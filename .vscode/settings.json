@@ -9,5 +9,8 @@
     "javascript",
     "typescript",
     "vue"
+  ],
+  "cSpell.words": [
+    "supabase"
   ]
 }
