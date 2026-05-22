@@ -6,6 +6,11 @@ export default defineNuxtConfig({
     enabled: true,
   },
   css: ['~/assets/css/main.css'],
+  runtimeConfig: {
+    supabaseUrl: process.env.SUPABASE_URL ?? '',
+    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
+    lineChannelSecret: process.env.LINE_CHANNEL_SECRET ?? '',
+  },
   eslint: {
     config: {
       typescript: true,
