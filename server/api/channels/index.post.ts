@@ -1,4 +1,5 @@
 import { serverSupabaseUser } from '#supabase/server';
+import { CHANNEL_LIMIT, type Tier } from '~~/shared/constants/tiers';
 import { connectChannelInputSchema } from '~~/shared/schemas/channels';
 
 export default defineEventHandler(async (event) => {
@@ -18,7 +19,8 @@ export default defineEventHandler(async (event) => {
   const { data: userRow, error: userErr } = await admin
     .from('users').select('tier').eq('id', user.id).single();
   if (userErr) throw userErr;
-  const limit = userRow.tier === 'pro' ? 5 : 1;
+  const tier = userRow.tier as Tier;
+  const limit = CHANNEL_LIMIT[tier];
 
   const { count, error: countErr } = await admin
     .from('channels')
@@ -29,7 +31,7 @@ export default defineEventHandler(async (event) => {
   if ((count ?? 0) >= limit) {
     throw createError({
       statusCode: 403,
-      statusMessage: `Channel limit reached for ${userRow.tier} tier (max ${limit})`,
+      statusMessage: `Channel limit reached for ${tier} tier (max ${limit})`,
     });
   }
 
