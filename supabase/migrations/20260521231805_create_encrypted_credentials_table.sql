@@ -1,22 +1,13 @@
--- Creates the `encrypted_credentials` table, envelope-encrypted
--- storage for any third-party credential fermi holds on behalf of a
--- user. Decryption happens server-side only; ciphertext is never
--- exposed to clients.
+-- Envelope-encrypted storage for any third-party credential fermi holds
+-- on behalf of a user. Ciphertext is service_role-only; never exposed
+-- to clients.
 --
--- The identity tuple is `(user_id, key_type, channel_id)`. Channel-
--- agnostic credentials carry a NULL `channel_id`, and a partial unique
--- index enforces one-per-`(user_id, key_type)` for those rows.
+-- Identity tuple `(user_id, key_type, channel_id)`. Channel-agnostic
+-- credentials carry NULL `channel_id`; a partial unique index gives
+-- them one-per-(user, key_type) enforcement.
 --
--- Envelope encryption (AES-GCM-256 throughout):
---   1. Generate random 32-byte DEK (data encryption key) per row.
---   2. Encrypt plaintext credential with DEK → `ciphertext`, `iv`.
---      Refresh token (when present) uses the same DEK with a fresh IV.
---   3. Wrap DEK itself with the KEK (master key from FERMI_KEK env)
---      → `wrapped_dek`, `wrapped_dek_iv`.
---
--- Why envelope: KEK rotation only requires re-wrapping each DEK, not
--- re-encrypting every ciphertext. Also leaves a clean migration path
--- if KEK ever moves to KMS/HSM.
+-- KEK rotation needs only re-wrapping each DEK, not re-encrypting any
+-- ciphertext.
 
 create table public.encrypted_credentials (
   id                  uuid primary key default gen_random_uuid(),

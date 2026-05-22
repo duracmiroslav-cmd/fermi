@@ -1,17 +1,10 @@
-// Envelope encryption with AES-GCM-256. Web Crypto API only,
-// so this module runs on both Node (Nuxt server) and Deno (Edge Function).
+// AES-GCM-256 envelope encryption.
 //
-// Pattern per row:
-//   1. Generate a random DEK (data encryption key).
-//   2. Encrypt the credential with the DEK -> ciphertext + iv.
-//      Refresh token (when present) uses the same DEK with a fresh IV.
-//   3. Wrap the DEK itself with the KEK (master key from FERMI_KEK)
-//      via subtle.wrapKey -> wrappedDek + wrappedDekIv. After unwrap,
-//      the DEK CryptoKey is non-extractable so raw bytes can never
-//      leak back into JS memory.
-//   4. Every AES-GCM operation binds an AAD string (typically
-//      `${userId}:${keyType}:${channelId ?? ''}`) so a row's
-//      ciphertext+iv+wrappedDek triple cannot be swapped to another row.
+// The aad string (typically `${userId}:${keyType}:${channelId ?? ''}`)
+// binds every operation to a specific row so a ciphertext + iv +
+// wrappedDek triple swapped to another row will fail to decrypt.
+// The unwrapped DEK is non-extractable so raw key bytes never
+// re-enter JS memory after wrap.
 
 const ALG = 'AES-GCM';
 const ALG_TAG = 'aes-gcm-256';
@@ -19,14 +12,18 @@ const KEY_LENGTH = 256;
 const IV_LENGTH = 12;
 const KEY_BYTES = 32;
 
+// Web Crypto API rejects shared-buffer-backed views, so we pin all
+// byte buffers in this module to a plain ArrayBuffer.
+type Bytes = Uint8Array<ArrayBuffer>;
+
 export interface EncryptedCredential {
-  ciphertext: Uint8Array;
-  iv: Uint8Array;
-  wrappedDek: Uint8Array;
-  wrappedDekIv: Uint8Array;
+  ciphertext: Bytes;
+  iv: Bytes;
+  wrappedDek: Bytes;
+  wrappedDekIv: Bytes;
   alg: string;
-  refreshCiphertext?: Uint8Array;
-  refreshIv?: Uint8Array;
+  refreshCiphertext?: Bytes;
+  refreshIv?: Bytes;
 }
 
 export const loadKek = (base64: string): Promise<CryptoKey> => {
@@ -40,23 +37,26 @@ export const loadKek = (base64: string): Promise<CryptoKey> => {
 const generateDek = (): Promise<CryptoKey> =>
   crypto.subtle.generateKey({ name: ALG, length: KEY_LENGTH }, true, ['encrypt', 'decrypt']);
 
-const encodeAad = (aad: string): Uint8Array => new TextEncoder().encode(aad);
+const encodeAad = (aad: string): Bytes =>
+  new Uint8Array(new TextEncoder().encode(aad));
+
+const randomIv = (): Bytes => crypto.getRandomValues(new Uint8Array(IV_LENGTH));
 
 const wrapDek = async (
   dek: CryptoKey,
   kek: CryptoKey,
-  aad: Uint8Array,
-): Promise<{ wrappedDek: Uint8Array; iv: Uint8Array }> => {
-  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+  aad: Bytes,
+): Promise<{ wrappedDek: Bytes; iv: Bytes }> => {
+  const iv = randomIv();
   const wrapped = await crypto.subtle.wrapKey('raw', dek, kek, { name: ALG, iv, additionalData: aad });
   return { wrappedDek: new Uint8Array(wrapped), iv };
 };
 
 const unwrapDek = (
-  wrappedDek: Uint8Array,
-  iv: Uint8Array,
+  wrappedDek: Bytes,
+  iv: Bytes,
   kek: CryptoKey,
-  aad: Uint8Array,
+  aad: Bytes,
 ): Promise<CryptoKey> =>
   crypto.subtle.unwrapKey(
     'raw',
@@ -71,19 +71,19 @@ const unwrapDek = (
 const encryptWith = async (
   plaintext: string,
   dek: CryptoKey,
-  aad: Uint8Array,
-): Promise<{ ciphertext: Uint8Array; iv: Uint8Array }> => {
-  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+  aad: Bytes,
+): Promise<{ ciphertext: Bytes; iv: Bytes }> => {
+  const iv = randomIv();
   const data = new TextEncoder().encode(plaintext);
   const ct = await crypto.subtle.encrypt({ name: ALG, iv, additionalData: aad }, dek, data);
   return { ciphertext: new Uint8Array(ct), iv };
 };
 
 const decryptWith = async (
-  ciphertext: Uint8Array,
-  iv: Uint8Array,
+  ciphertext: Bytes,
+  iv: Bytes,
   dek: CryptoKey,
-  aad: Uint8Array,
+  aad: Bytes,
 ): Promise<string> => {
   const pt = await crypto.subtle.decrypt({ name: ALG, iv, additionalData: aad }, dek, ciphertext);
   return new TextDecoder().decode(pt);

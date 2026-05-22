@@ -1,7 +1,5 @@
--- Creates the `channels` table, where each row is an external messaging
--- endpoint (currently a LINE OA) owned by a fermi account. Channel-level
--- credentials live in `encrypted_credentials` and reference this table by
--- `channel_id`.
+-- Each row is an external messaging endpoint (currently a LINE OA)
+-- owned by a fermi account.
 
 create table public.channels (
   id            uuid primary key default gen_random_uuid(),
@@ -11,9 +9,14 @@ create table public.channels (
   display_name  text,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
-  deleted_at    timestamptz,
-  unique (channel_type, external_id)
+  deleted_at    timestamptz
 );
+
+-- Soft-deleted rows release the (channel_type, external_id) key so a
+-- disconnected channel can be reconnected or claimed by another account.
+create unique index channels_active_external_id_uq
+  on public.channels (channel_type, external_id)
+  where deleted_at is null;
 
 create index channels_owner_id_idx on public.channels(owner_id);
 
