@@ -144,6 +144,8 @@ export type Database = {
           refresh_iv: string | null
           updated_at: string
           user_id: string
+          wrapped_dek: string
+          wrapped_dek_iv: string
         }
         Insert: {
           alg?: string
@@ -161,6 +163,8 @@ export type Database = {
           refresh_iv?: string | null
           updated_at?: string
           user_id: string
+          wrapped_dek: string
+          wrapped_dek_iv: string
         }
         Update: {
           alg?: string
@@ -178,6 +182,8 @@ export type Database = {
           refresh_iv?: string | null
           updated_at?: string
           user_id?: string
+          wrapped_dek?: string
+          wrapped_dek_iv?: string
         }
         Relationships: [
           {

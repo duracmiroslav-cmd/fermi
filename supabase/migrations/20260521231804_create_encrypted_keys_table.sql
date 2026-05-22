@@ -7,10 +7,16 @@
 -- agnostic credentials carry a NULL `channel_id`, and a partial unique
 -- index enforces one-per-`(user_id, key_type)` for those rows.
 --
--- AES-GCM-256 is chosen as the AEAD primitive (confidentiality and
--- integrity in one). `iv` is the 12-byte nonce and must be unique per
--- encryption. The `alg` column allows future rotation without renaming
--- columns.
+-- Envelope encryption (AES-GCM-256 throughout):
+--   1. Generate random 32-byte DEK (data encryption key) per row.
+--   2. Encrypt plaintext credential with DEK → `ciphertext`, `iv`.
+--      Refresh token (when present) uses the same DEK with a fresh IV.
+--   3. Wrap DEK itself with the KEK (master key from APP_KEY env)
+--      → `wrapped_dek`, `wrapped_dek_iv`.
+--
+-- Why envelope: KEK rotation only requires re-wrapping each DEK, not
+-- re-encrypting every ciphertext. Also leaves a clean migration path
+-- if KEK ever moves to KMS/HSM.
 
 create table public.encrypted_keys (
   id                  uuid primary key default gen_random_uuid(),
@@ -28,6 +34,8 @@ create table public.encrypted_keys (
   iv                  bytea not null,
   refresh_ciphertext  bytea,
   refresh_iv          bytea,
+  wrapped_dek         bytea not null,
+  wrapped_dek_iv      bytea not null,
   alg                 text not null default 'aes-gcm-256' check (alg in ('aes-gcm-256')),
   expires_at          timestamptz,
   last_used_at        timestamptz,
