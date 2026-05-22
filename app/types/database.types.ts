@@ -127,7 +127,7 @@ export type Database = {
           },
         ]
       }
-      encrypted_keys: {
+      encrypted_credentials: {
         Row: {
           alg: string
           channel_id: string | null
@@ -187,14 +187,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "encrypted_keys_channel_id_fkey"
+            foreignKeyName: "encrypted_credentials_channel_id_fkey"
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "channels"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "encrypted_keys_user_id_fkey"
+            foreignKeyName: "encrypted_credentials_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"

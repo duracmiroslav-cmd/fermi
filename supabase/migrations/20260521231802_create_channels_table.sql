@@ -1,6 +1,6 @@
 -- Creates the `channels` table, where each row is an external messaging
 -- endpoint (currently a LINE OA) owned by a fermi account. Channel-level
--- credentials live in `encrypted_keys` and reference this table by
+-- credentials live in `encrypted_credentials` and reference this table by
 -- `channel_id`.
 
 create table public.channels (

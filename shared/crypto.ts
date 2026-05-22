@@ -19,7 +19,7 @@ const KEY_LENGTH = 256;
 const IV_LENGTH = 12;
 const KEY_BYTES = 32;
 
-export interface SealedCredential {
+export interface EncryptedCredential {
   ciphertext: Uint8Array;
   iv: Uint8Array;
   wrappedDek: Uint8Array;
@@ -89,39 +89,39 @@ const decryptWith = async (
   return new TextDecoder().decode(pt);
 };
 
-export const sealCredential = async (
+export const encryptCredential = async (
   plaintext: string,
   kek: CryptoKey,
   aad: string,
   refreshPlaintext?: string,
-): Promise<SealedCredential> => {
+): Promise<EncryptedCredential> => {
   const aadBytes = encodeAad(aad);
   const dek = await generateDek();
   const { wrappedDek, iv: wrappedDekIv } = await wrapDek(dek, kek, aadBytes);
   const { ciphertext, iv } = await encryptWith(plaintext, dek, aadBytes);
-  const sealed: SealedCredential = { ciphertext, iv, wrappedDek, wrappedDekIv, alg: ALG_TAG };
+  const encrypted: EncryptedCredential = { ciphertext, iv, wrappedDek, wrappedDekIv, alg: ALG_TAG };
   if (refreshPlaintext !== undefined) {
     const { ciphertext: rc, iv: ri } = await encryptWith(refreshPlaintext, dek, aadBytes);
-    sealed.refreshCiphertext = rc;
-    sealed.refreshIv = ri;
+    encrypted.refreshCiphertext = rc;
+    encrypted.refreshIv = ri;
   }
-  return sealed;
+  return encrypted;
 };
 
-export const openCredential = async (
-  sealed: SealedCredential,
+export const decryptCredential = async (
+  encrypted: EncryptedCredential,
   kek: CryptoKey,
   aad: string,
 ): Promise<{ plaintext: string; refreshPlaintext?: string }> => {
-  if (sealed.alg !== ALG_TAG) {
-    throw new Error(`Unsupported alg: ${sealed.alg}`);
+  if (encrypted.alg !== ALG_TAG) {
+    throw new Error(`Unsupported alg: ${encrypted.alg}`);
   }
   const aadBytes = encodeAad(aad);
-  const dek = await unwrapDek(sealed.wrappedDek, sealed.wrappedDekIv, kek, aadBytes);
-  const plaintext = await decryptWith(sealed.ciphertext, sealed.iv, dek, aadBytes);
+  const dek = await unwrapDek(encrypted.wrappedDek, encrypted.wrappedDekIv, kek, aadBytes);
+  const plaintext = await decryptWith(encrypted.ciphertext, encrypted.iv, dek, aadBytes);
   const out: { plaintext: string; refreshPlaintext?: string } = { plaintext };
-  if (sealed.refreshCiphertext && sealed.refreshIv) {
-    out.refreshPlaintext = await decryptWith(sealed.refreshCiphertext, sealed.refreshIv, dek, aadBytes);
+  if (encrypted.refreshCiphertext && encrypted.refreshIv) {
+    out.refreshPlaintext = await decryptWith(encrypted.refreshCiphertext, encrypted.refreshIv, dek, aadBytes);
   }
   return out;
 };
