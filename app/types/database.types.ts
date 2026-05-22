@@ -43,6 +43,7 @@ export type Database = {
         Row: {
           channel_type: string
           created_at: string
+          deleted_at: string | null
           display_name: string | null
           external_id: string
           id: string
@@ -52,6 +53,7 @@ export type Database = {
         Insert: {
           channel_type?: string
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           external_id: string
           id?: string
@@ -61,6 +63,7 @@ export type Database = {
         Update: {
           channel_type?: string
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           external_id?: string
           id?: string
@@ -81,6 +84,7 @@ export type Database = {
         Row: {
           channel_id: string
           created_at: string
+          deleted_at: string | null
           display_name: string | null
           external_user_id: string
           external_user_locale: string | null
@@ -92,6 +96,7 @@ export type Database = {
         Insert: {
           channel_id: string
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           external_user_id: string
           external_user_locale?: string | null
@@ -103,6 +108,7 @@ export type Database = {
         Update: {
           channel_id?: string
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           external_user_id?: string
           external_user_locale?: string | null
@@ -194,6 +200,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          deleted_at: string | null
           display_name: string | null
           email: string | null
           id: string
@@ -207,6 +214,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           email?: string | null
           id: string
@@ -220,6 +228,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           email?: string | null
           id?: string
@@ -381,5 +390,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-A new version of Supabase CLI is available: v2.101.0 (currently installed v2.90.0)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

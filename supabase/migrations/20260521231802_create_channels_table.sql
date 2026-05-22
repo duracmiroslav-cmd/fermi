@@ -11,6 +11,7 @@ create table public.channels (
   display_name  text,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
+  deleted_at    timestamptz,
   unique (channel_type, external_id)
 );
 

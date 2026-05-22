@@ -13,7 +13,7 @@ export default [
     semi: true,
   }),
   {
-    ignores: ['.nuxt/**', '.output/**', '.claude/**', '**/*.d.ts', 'supabase/**'],
+    ignores: ['.nuxt/**', '.output/**', '.claude/**', '**/*.d.ts', 'supabase/**', 'app/types/database.types.ts'],
   },
   {
     files: ['**/*.vue'],

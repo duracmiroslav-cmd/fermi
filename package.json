@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:types": "supabase gen types typescript --linked > app/types/database.types.ts && sed -i '' '1d' app/types/database.types.ts"
+    "db:types": "supabase gen types typescript --linked > app/types/database.types.ts"
   },
   "dependencies": {
     "@line/bot-sdk": "^11.0.0",

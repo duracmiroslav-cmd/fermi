@@ -12,7 +12,8 @@ create table public.users (
   is_admin      boolean not null default false,
   onboarded_at  timestamptz,
   created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
+  updated_at    timestamptz not null default now(),
+  deleted_at    timestamptz
 );
 
 create trigger users_set_updated_at
