@@ -11,6 +11,11 @@ export default defineNuxtConfig({
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
     lineChannelSecret: process.env.LINE_CHANNEL_SECRET ?? '',
   },
+  vite: {
+    server: {
+      allowedHosts: ['.ngrok-free.app'],
+    },
+  },
   eslint: {
     config: {
       typescript: true,

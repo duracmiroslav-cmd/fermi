@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const signature = getHeader(event, 'x-line-signature');
-  const { lineChannelSecret } = useRuntimeConfig(event);
+  const { lineChannelSecret, supabaseUrl, supabaseServiceRoleKey } = useRuntimeConfig(event);
 
   if (!signature || !lineChannelSecret || !validateSignature(rawBody, lineChannelSecret, signature)) {
     throw createError({ statusCode: 401, statusMessage: 'Invalid signature' });
@@ -15,6 +15,14 @@ export default defineEventHandler(async (event) => {
 
   const payload = JSON.parse(rawBody) as webhook.CallbackRequest;
   await enqueueWebhookEvent(useSupabaseAdmin(), payload);
+
+  void fetch(`${supabaseUrl}/functions/v1/agent`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceRoleKey}`,
+    },
+  }).catch(console.error);
 
   return { ok: true };
 });

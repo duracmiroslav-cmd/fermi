@@ -1,16 +1,58 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from 'npm:@supabase/supabase-js';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const lineChannelAccessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN')!;
 
 const admin = createClient(supabaseUrl, supabaseServiceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
+interface LineEvent {
+  type: string;
+  replyToken?: string;
+  message?: {
+    type: string;
+    text?: string;
+  };
+}
+
+interface CallbackPayload {
+  destination?: string;
+  events?: LineEvent[];
+}
+
 interface QueueMessage {
   msg_id: number;
-  payload: unknown;
+  payload: CallbackPayload;
 }
+
+const replyText = async (replyToken: string, text: string): Promise<void> => {
+  const res = await fetch('https://api.line.me/v2/bot/message/reply', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${lineChannelAccessToken}`,
+    },
+    body: JSON.stringify({
+      replyToken,
+      messages: [{ type: 'text', text }],
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`LINE Reply API ${res.status}: ${body}`);
+  }
+};
+
+const processEvents = async (events: LineEvent[]): Promise<void> => {
+  for (const event of events) {
+    if (event.type === 'message' && event.message?.type === 'text' && event.replyToken) {
+      await replyText(event.replyToken, event.message.text ?? '');
+    }
+  }
+};
 
 Deno.serve(async () => {
   const { data, error } = await admin.rpc('dequeue_webhook_events', {
@@ -29,12 +71,14 @@ Deno.serve(async () => {
   const messages = (data ?? []) as QueueMessage[];
 
   for (const { msg_id, payload } of messages) {
-    console.log('processing webhook event', { msg_id, payload });
-    // TODO M1 P0 #6: parse LINE event, call LINE Reply API to echo back.
-
-    const { error: archiveError } = await admin.rpc('archive_webhook_event', { msg_id });
-    if (archiveError) {
-      console.error('archive failed', { msg_id, archiveError });
+    try {
+      await processEvents(payload.events ?? []);
+      const { error: archiveError } = await admin.rpc('archive_webhook_event', { msg_id });
+      if (archiveError) {
+        console.error('archive failed', { msg_id, archiveError });
+      }
+    } catch (err) {
+      console.error('process failed; leaving for retry', { msg_id, err });
     }
   }
 
