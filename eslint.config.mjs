@@ -34,6 +34,7 @@ export default [
       '@typescript-eslint/no-unused-vars': ['error', {
         ignoreRestSiblings: true,
       }],
+      'arrow-body-style': ['error', 'as-needed'],
       'curly': ['error', 'multi-line'],
       'dot-notation': 'error',
       'func-style': ['error', 'expression', {
