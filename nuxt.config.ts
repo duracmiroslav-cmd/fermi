@@ -2,7 +2,7 @@
 export default defineNuxtConfig({
   modules: ['@nuxt/eslint', '@nuxt/ui', '@nuxtjs/supabase', '@vueuse/nuxt'],
   runtimeConfig: {
-    appKey: process.env.APP_KEY ?? '',
+    fermiKek: process.env.FERMI_KEK ?? '',
     supabaseUrl: process.env.SUPABASE_URL ?? '',
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
     lineChannelSecret: process.env.LINE_CHANNEL_SECRET ?? '',

@@ -36,7 +36,7 @@ describe('envelope encryption', () => {
   });
 
   it('rejects a KEK that does not decode to 32 bytes', async () => {
-    await expect(loadKek('dGVzdA==')).rejects.toThrow('APP_KEY must decode to 32 bytes');
+    await expect(loadKek('dGVzdA==')).rejects.toThrow('FERMI_KEK must decode to 32 bytes');
   });
 
   it('fails to open with wrong KEK', async () => {

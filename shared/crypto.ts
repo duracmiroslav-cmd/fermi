@@ -5,8 +5,10 @@
 //   1. Generate a random DEK (data encryption key).
 //   2. Encrypt the credential with the DEK -> ciphertext + iv.
 //      Refresh token (when present) uses the same DEK with a fresh IV.
-//   3. Wrap the DEK itself with the KEK (master key from APP_KEY)
-//      -> wrappedDek + wrappedDekIv.
+//   3. Wrap the DEK itself with the KEK (master key from FERMI_KEK)
+//      via subtle.wrapKey -> wrappedDek + wrappedDekIv. After unwrap,
+//      the DEK CryptoKey is non-extractable so raw bytes can never
+//      leak back into JS memory.
 //   4. Every AES-GCM operation binds an AAD string (typically
 //      `${userId}:${keyType}:${channelId ?? ''}`) so a row's
 //      ciphertext+iv+wrappedDek triple cannot be swapped to another row.
@@ -30,9 +32,9 @@ export interface SealedCredential {
 export const loadKek = (base64: string): Promise<CryptoKey> => {
   const raw = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
   if (raw.length !== KEY_BYTES) {
-    return Promise.reject(new Error(`APP_KEY must decode to ${KEY_BYTES} bytes (got ${raw.length})`));
+    return Promise.reject(new Error(`FERMI_KEK must decode to ${KEY_BYTES} bytes (got ${raw.length})`));
   }
-  return crypto.subtle.importKey('raw', raw, { name: ALG }, false, ['encrypt', 'decrypt']);
+  return crypto.subtle.importKey('raw', raw, { name: ALG }, false, ['wrapKey', 'unwrapKey']);
 };
 
 const generateDek = (): Promise<CryptoKey> =>
@@ -45,21 +47,26 @@ const wrapDek = async (
   kek: CryptoKey,
   aad: Uint8Array,
 ): Promise<{ wrappedDek: Uint8Array; iv: Uint8Array }> => {
-  const rawDek = await crypto.subtle.exportKey('raw', dek);
   const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-  const wrapped = await crypto.subtle.encrypt({ name: ALG, iv, additionalData: aad }, kek, rawDek);
+  const wrapped = await crypto.subtle.wrapKey('raw', dek, kek, { name: ALG, iv, additionalData: aad });
   return { wrappedDek: new Uint8Array(wrapped), iv };
 };
 
-const unwrapDek = async (
+const unwrapDek = (
   wrappedDek: Uint8Array,
   iv: Uint8Array,
   kek: CryptoKey,
   aad: Uint8Array,
-): Promise<CryptoKey> => {
-  const rawDek = await crypto.subtle.decrypt({ name: ALG, iv, additionalData: aad }, kek, wrappedDek);
-  return crypto.subtle.importKey('raw', rawDek, { name: ALG }, false, ['encrypt', 'decrypt']);
-};
+): Promise<CryptoKey> =>
+  crypto.subtle.unwrapKey(
+    'raw',
+    wrappedDek,
+    kek,
+    { name: ALG, iv, additionalData: aad },
+    { name: ALG },
+    false,
+    ['encrypt', 'decrypt'],
+  );
 
 const encryptWith = async (
   plaintext: string,
