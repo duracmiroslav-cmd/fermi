@@ -1,0 +1,33 @@
+-- Creates `public.dequeue_webhook_events` and `public.archive_webhook_event`,
+-- the SECURITY DEFINER wrappers the Edge Function worker uses to drain the
+-- `webhook_events` queue without touching the `pgmq` schema directly.
+--
+-- Both functions are granted to `service_role` only; anon and authenticated
+-- roles cannot consume the queue.
+
+create function public.dequeue_webhook_events(
+  batch_size integer default 10,
+  visibility_timeout integer default 30
+)
+returns table (msg_id bigint, payload jsonb)
+  language sql
+  security definer
+  set search_path = public
+as $$
+  select msg_id, message as payload
+  from pgmq.read('webhook_events', visibility_timeout, batch_size);
+$$;
+
+revoke execute on function public.dequeue_webhook_events(integer, integer) from public;
+grant execute on function public.dequeue_webhook_events(integer, integer) to service_role;
+
+create function public.archive_webhook_event(msg_id bigint) returns boolean
+  language sql
+  security definer
+  set search_path = public
+as $$
+  select pgmq.archive('webhook_events', msg_id);
+$$;
+
+revoke execute on function public.archive_webhook_event(bigint) from public;
+grant execute on function public.archive_webhook_event(bigint) to service_role;
