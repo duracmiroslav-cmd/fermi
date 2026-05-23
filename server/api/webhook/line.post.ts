@@ -7,15 +7,38 @@ export default defineEventHandler(async (event) => {
   }
 
   const signature = getHeader(event, 'x-line-signature');
-  const { lineChannelSecret, supabaseUrl, supabaseServiceRoleKey } = useRuntimeConfig(event);
+  if (!signature) {
+    throw createError({ statusCode: 401, statusMessage: 'Missing signature' });
+  }
 
-  if (!signature || !lineChannelSecret || !validateSignature(rawBody, lineChannelSecret, signature)) {
+  // Body must be parsed before the signature is verified because
+  // `destination` is the only field that identifies which channel's
+  // secret to use. The body stays untrusted until validateSignature
+  // succeeds below.
+  const payload = JSON.parse(rawBody) as webhook.CallbackRequest;
+  if (!payload.destination) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing destination' });
+  }
+
+  const admin = useSupabaseAdmin();
+  const channel = await findLineChannelByDestination(admin, payload.destination);
+  if (!channel) {
+    throw createError({ statusCode: 401, statusMessage: 'Unknown channel' });
+  }
+
+  const { plaintext: channelSecret } = await loadCredential(admin, {
+    userId: channel.ownerId,
+    channelId: channel.id,
+    keyType: 'line_channel_secret',
+  });
+
+  if (!validateSignature(rawBody, channelSecret, signature)) {
     throw createError({ statusCode: 401, statusMessage: 'Invalid signature' });
   }
 
-  const payload = JSON.parse(rawBody) as webhook.CallbackRequest;
-  await enqueueWebhookEvent(useSupabaseAdmin(), payload);
+  await enqueueWebhookEvent(admin, { channelId: channel.id, ...payload });
 
+  const { supabaseUrl, supabaseServiceRoleKey } = useRuntimeConfig(event);
   void fetch(`${supabaseUrl}/functions/v1/agent`, {
     method: 'POST',
     headers: {

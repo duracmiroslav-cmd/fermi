@@ -5,7 +5,6 @@ export default defineNuxtConfig({
     fermiKek: process.env.FERMI_KEK ?? '',
     supabaseUrl: process.env.SUPABASE_URL ?? '',
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
-    lineChannelSecret: process.env.LINE_CHANNEL_SECRET ?? '',
     public: {
       googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
     },
