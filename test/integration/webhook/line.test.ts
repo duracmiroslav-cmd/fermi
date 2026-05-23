@@ -20,15 +20,6 @@ describe('POST /api/webhook/line', async () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns 401 when X-Line-Signature is missing', async () => {
-    const res = await fetch('/api/webhook/line', {
-      method: 'POST',
-      body: '{"destination":"Uxxx","events":[]}',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    expect(res.status).toBe(401);
-  });
-
   it('returns 400 when destination is missing', async () => {
     const res = await fetch('/api/webhook/line', {
       method: 'POST',
@@ -39,5 +30,14 @@ describe('POST /api/webhook/line', async () => {
       },
     });
     expect(res.status).toBe(400);
+  });
+
+  it('returns 401 when X-Line-Signature is missing', async () => {
+    const res = await fetch('/api/webhook/line', {
+      method: 'POST',
+      body: '{"destination":"Uxxx","events":[]}',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    expect(res.status).toBe(401);
   });
 });

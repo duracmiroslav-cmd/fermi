@@ -14,6 +14,7 @@
     "ciphertext",
     "openrouter",
     "pgmq",
+    "pkce",
     "supabase"
   ]
 }
