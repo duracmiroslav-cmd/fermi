@@ -1,2 +1,20 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
+
+@theme static {
+  /* OKLCH scale, anchored at #E89A75 (500) */
+  --color-apricot-50:  #fef9f6;
+  --color-apricot-100: #fbe6dc;
+  --color-apricot-200: #f7d3c2;
+  --color-apricot-300: #f3c0a9;
+  --color-apricot-400: #eead8f;
+  --color-apricot-500: #e89a75;
+  --color-apricot-600: #bf7551;
+  --color-apricot-700: #98512d;
+  --color-apricot-800: #722f04;
+  --color-apricot-900: #4d0a00;
+  --color-apricot-950: #1f0000;
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}

@@ -1,6 +1,16 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  modules: ['@nuxt/eslint', '@nuxt/ui', '@nuxtjs/supabase', '@vueuse/nuxt'],
+  modules: ['@nuxt/eslint', '@nuxt/fonts', '@nuxt/ui', '@nuxtjs/supabase', '@vueuse/nuxt'],
+  colorMode: {
+    preference: 'dark',
+    fallback: 'dark',
+  },
+  fonts: {
+    families: [
+      { name: 'Inter', provider: 'google' },
+      { name: 'JetBrains Mono', provider: 'google' },
+    ],
+  },
   runtimeConfig: {
     fermiKek: process.env.FERMI_KEK ?? '',
     supabaseUrl: process.env.SUPABASE_URL ?? '',

@@ -24,4 +24,6 @@ logs
 !.env.example
 
 # Claude Code
-.claude/
+.claude/*
+!.claude/rules/
+!.claude/rules/**

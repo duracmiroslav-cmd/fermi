@@ -66,11 +66,12 @@ const signOut = async () => {
         <h1 class="text-2xl font-bold">
           Dashboard
         </h1>
-        <p class="text-sm text-gray-500">
+        <p class="text-sm text-muted">
           {{ user?.email }}
         </p>
       </div>
       <UButton
+        color="neutral"
         variant="outline"
         @click="signOut"
       >
@@ -90,7 +91,7 @@ const signOut = async () => {
           <p class="font-medium">
             OpenRouter
           </p>
-          <p class="text-sm text-gray-500">
+          <p class="text-sm text-muted">
             <template v-if="openrouter?.connected">
               Connected as {{ openrouter.openrouterUserId ?? 'user' }}
             </template>

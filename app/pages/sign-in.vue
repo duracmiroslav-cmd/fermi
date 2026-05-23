@@ -66,7 +66,7 @@ onMounted(async () => {
   const btn = document.getElementById('google-btn');
   if (btn) {
     google.accounts.id.renderButton(btn, {
-      theme: 'outline',
+      theme: 'filled_black',
       size: 'large',
       shape: 'pill',
       width: 280,
@@ -83,7 +83,7 @@ onMounted(async () => {
       <h1 class="text-2xl font-bold">
         fermi
       </h1>
-      <p class="text-sm text-gray-500 mt-1">
+      <p class="text-sm text-muted mt-1">
         LINE 上的 agentic assistant
       </p>
     </div>
