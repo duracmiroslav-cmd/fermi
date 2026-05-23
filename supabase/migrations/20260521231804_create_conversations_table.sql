@@ -24,11 +24,14 @@ create trigger conversations_set_updated_at
 
 alter table public.conversations enable row level security;
 
+-- Conversations are only visible while the parent channel is active
+-- (not in the trash). Restoring the channel makes them visible again.
 create policy "Users can view their own conversations." on public.conversations
   for select using (
     exists (
       select 1 from public.channels
       where channels.id = conversations.channel_id
         and channels.owner_id = auth.uid()
+        and channels.deleted_at is null
     )
   );
