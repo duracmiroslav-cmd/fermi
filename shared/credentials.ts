@@ -1,8 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { type EncryptedCredential, decryptCredential, encryptCredential } from '~~/shared/crypto';
-import { useKek } from '~~/shared/kek';
+import { type EncryptedCredential, decryptCredential, encryptCredential } from './crypto.ts';
 
-type KeyType
+export type KeyType
   = | 'openrouter'
     | 'line_channel_access_token'
     | 'line_channel_secret'
@@ -27,25 +26,23 @@ const pgHexToBytes = (hex: string): Bytes => {
 const buildAad = (userId: string, keyType: KeyType, channelId: string | null): string =>
   `${userId}:${keyType}:${channelId ?? ''}`;
 
-const loadKekFromConfig = (): Promise<CryptoKey> => {
-  const { fermiKek } = useRuntimeConfig();
-  return useKek(fermiKek);
-};
-
-export interface StoreCredentialParams {
+export interface LoadCredentialParams {
   userId: string;
   channelId: string | null;
   keyType: KeyType;
+}
+
+export interface StoreCredentialParams extends LoadCredentialParams {
   plaintext: string;
   refreshPlaintext?: string;
 }
 
 export const storeCredential = async (
   admin: SupabaseClient,
+  kek: CryptoKey,
   params: StoreCredentialParams,
 ): Promise<void> => {
   const { userId, channelId, keyType, plaintext, refreshPlaintext } = params;
-  const kek = await loadKekFromConfig();
   const aad = buildAad(userId, keyType, channelId);
   const enc = await encryptCredential(plaintext, kek, aad, refreshPlaintext);
   const { error } = await admin.from('encrypted_credentials').insert({
@@ -63,14 +60,9 @@ export const storeCredential = async (
   if (error) throw error;
 };
 
-export interface LoadCredentialParams {
-  userId: string;
-  channelId: string | null;
-  keyType: KeyType;
-}
-
 export const loadCredential = async (
   admin: SupabaseClient,
+  kek: CryptoKey,
   params: LoadCredentialParams,
 ): Promise<{ plaintext: string; refreshPlaintext?: string }> => {
   const { userId, channelId, keyType } = params;
@@ -84,7 +76,6 @@ export const loadCredential = async (
     : await query.is('channel_id', null).single();
   if (error) throw error;
 
-  const kek = await loadKekFromConfig();
   const aad = buildAad(userId, keyType, channelId);
   const sealed: EncryptedCredential = {
     ciphertext: pgHexToBytes(data.ciphertext),

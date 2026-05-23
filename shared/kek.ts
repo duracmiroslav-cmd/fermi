@@ -1,4 +1,4 @@
-import { loadKek } from './crypto';
+import { loadKek } from './crypto.ts';
 
 let cached: { base64: string; key: Promise<CryptoKey> } | null = null;
 

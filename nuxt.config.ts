@@ -29,4 +29,11 @@ export default defineNuxtConfig({
       typescript: true,
     },
   },
+  typescript: {
+    sharedTsConfig: {
+      compilerOptions: {
+        allowImportingTsExtensions: true,
+      },
+    },
+  },
 });

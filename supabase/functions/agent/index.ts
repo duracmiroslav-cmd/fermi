@@ -1,8 +1,10 @@
-import { createClient } from 'npm:@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
+import { loadCredential } from '../../../shared/credentials.ts';
+import { useKek } from '../../../shared/kek.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const lineChannelAccessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN')!;
+const fermiKek = Deno.env.get('FERMI_KEK')!;
 
 const admin = createClient(supabaseUrl, supabaseServiceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -17,39 +19,64 @@ interface LineEvent {
   };
 }
 
-interface CallbackPayload {
+interface QueuePayload {
+  channelId: string;
   destination?: string;
   events?: LineEvent[];
 }
 
 interface QueueMessage {
   msg_id: number;
-  payload: CallbackPayload;
+  payload: QueuePayload;
 }
 
-const replyText = async (replyToken: string, text: string): Promise<void> => {
+const lookupChannelOwner = async (channelId: string): Promise<string> => {
+  const { data, error } = await admin
+    .from('channels')
+    .select('owner_id')
+    .eq('id', channelId)
+    .single();
+  if (error) throw error;
+  return data.owner_id;
+};
+
+const replyText = async (
+  accessToken: string,
+  replyToken: string,
+  text: string,
+): Promise<void> => {
   const res = await fetch('https://api.line.me/v2/bot/message/reply', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${lineChannelAccessToken}`,
+      'Authorization': `Bearer ${accessToken}`,
     },
     body: JSON.stringify({
       replyToken,
       messages: [{ type: 'text', text }],
     }),
   });
-
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`LINE Reply API ${res.status}: ${body}`);
   }
 };
 
-const processEvents = async (events: LineEvent[]): Promise<void> => {
+const processMessage = async (payload: QueuePayload): Promise<void> => {
+  const events = payload.events ?? [];
+  if (events.length === 0) return;
+
+  const ownerId = await lookupChannelOwner(payload.channelId);
+  const kek = await useKek(fermiKek);
+  const { plaintext: accessToken } = await loadCredential(admin, kek, {
+    userId: ownerId,
+    channelId: payload.channelId,
+    keyType: 'line_channel_access_token',
+  });
+
   for (const event of events) {
     if (event.type === 'message' && event.message?.type === 'text' && event.replyToken) {
-      await replyText(event.replyToken, event.message.text ?? '');
+      await replyText(accessToken, event.replyToken, event.message.text ?? '');
     }
   }
 };
@@ -72,7 +99,7 @@ Deno.serve(async () => {
 
   for (const { msg_id, payload } of messages) {
     try {
-      await processEvents(payload.events ?? []);
+      await processMessage(payload);
       const { error: archiveError } = await admin.rpc('archive_webhook_event', { msg_id });
       if (archiveError) {
         console.error('archive failed', { msg_id, archiveError });

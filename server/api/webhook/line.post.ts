@@ -1,4 +1,6 @@
 import { validateSignature, type webhook } from '@line/bot-sdk';
+import { loadCredential } from '~~/shared/credentials';
+import { useKek } from '~~/shared/kek';
 
 export default defineEventHandler(async (event) => {
   const rawBody = await readRawBody(event);
@@ -26,7 +28,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: 'Unknown channel' });
   }
 
-  const { plaintext: channelSecret } = await loadCredential(admin, {
+  const { fermiKek, supabaseUrl, supabaseServiceRoleKey } = useRuntimeConfig(event);
+  const kek = await useKek(fermiKek);
+  const { plaintext: channelSecret } = await loadCredential(admin, kek, {
     userId: channel.ownerId,
     channelId: channel.id,
     keyType: 'line_channel_secret',
@@ -38,7 +42,6 @@ export default defineEventHandler(async (event) => {
 
   await enqueueWebhookEvent(admin, { channelId: channel.id, ...payload });
 
-  const { supabaseUrl, supabaseServiceRoleKey } = useRuntimeConfig(event);
   void fetch(`${supabaseUrl}/functions/v1/agent`, {
     method: 'POST',
     headers: {
