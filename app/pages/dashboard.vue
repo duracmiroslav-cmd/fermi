@@ -13,10 +13,11 @@ const signOut = async () => {
     <h1 class="text-2xl font-bold">
       Dashboard
     </h1>
-    <p class="text-gray-500">
+    <p class="text-muted">
       {{ user?.email }}
     </p>
     <UButton
+      color="neutral"
       variant="outline"
       @click="signOut"
     >
