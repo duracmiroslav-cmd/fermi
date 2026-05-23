@@ -41,4 +41,9 @@ describe('updateProfileInputSchema', () => {
     const result = updateProfileInputSchema.safeParse({ email: 'other@example.com' });
     expect(result.success).toBe(false);
   });
+
+  it('rejects non-canonical locale (must go through normalizeLocale first)', () => {
+    const result = updateProfileInputSchema.safeParse({ locale: 'zh-CN' });
+    expect(result.success).toBe(false);
+  });
 });

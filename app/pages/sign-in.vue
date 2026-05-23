@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { CredentialResponse, accounts } from 'google-one-tap';
+import { normalizeLocale } from '~~/shared/locale';
 
 definePageMeta({ auth: false });
 
@@ -41,12 +42,20 @@ onMounted(async () => {
     use_fedcm_for_prompt: true,
     callback: async (response: CredentialResponse) => {
       try {
-        const { error } = await supabase.auth.signInWithIdToken({
+        const { data, error } = await supabase.auth.signInWithIdToken({
           provider: 'google',
           token: response.credential,
           nonce: rawNonce,
         });
         if (error) throw error;
+
+        // Best-effort locale sync; session is valid even if PATCH fails.
+        const oauthLocale = data.user?.user_metadata?.locale as string | undefined;
+        await $fetch('/api/me/profile', {
+          method: 'PATCH',
+          body: { locale: normalizeLocale(oauthLocale) },
+        }).catch(() => {});
+
         await navigateTo('/dashboard');
       } catch (e) {
         errorMessage.value = e instanceof Error ? e.message : 'Sign-in failed';
