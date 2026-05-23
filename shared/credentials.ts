@@ -35,6 +35,7 @@ export interface LoadCredentialParams {
 export interface StoreCredentialParams extends LoadCredentialParams {
   plaintext: string;
   refreshPlaintext?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export const storeCredential = async (
@@ -42,7 +43,7 @@ export const storeCredential = async (
   kek: CryptoKey,
   params: StoreCredentialParams,
 ): Promise<void> => {
-  const { userId, channelId, keyType, plaintext, refreshPlaintext } = params;
+  const { userId, channelId, keyType, plaintext, refreshPlaintext, metadata } = params;
   const aad = buildAad(userId, keyType, channelId);
   const enc = await encryptCredential(plaintext, kek, aad, refreshPlaintext);
   const { error } = await admin.from('encrypted_credentials').insert({
@@ -56,6 +57,7 @@ export const storeCredential = async (
     alg: enc.alg,
     refresh_ciphertext: enc.refreshCiphertext ? bytesToPgHex(enc.refreshCiphertext) : null,
     refresh_iv: enc.refreshIv ? bytesToPgHex(enc.refreshIv) : null,
+    metadata: metadata ?? null,
   });
   if (error) throw error;
 };
