@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { findChannelById } from '../../../shared/channels.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
 import { useKek } from '../../../shared/kek.ts';
 
@@ -19,11 +20,14 @@ interface LineEvent {
   };
 }
 
-interface QueuePayload {
+interface LinePayload {
+  channelType: 'line';
   channelId: string;
   destination?: string;
   events?: LineEvent[];
 }
+
+type QueuePayload = LinePayload;
 
 interface QueueMessage {
   msg_id: number;
@@ -35,17 +39,6 @@ class LineReplyError extends Error {
     super(message);
   }
 }
-
-const lookupChannelOwner = async (channelId: string): Promise<string | null> => {
-  const { data, error } = await admin
-    .from('channels')
-    .select('owner_id')
-    .eq('id', channelId)
-    .is('deleted_at', null)
-    .maybeSingle();
-  if (error) throw error;
-  return data?.owner_id ?? null;
-};
 
 const replyText = async (
   accessToken: string,
@@ -69,12 +62,12 @@ const replyText = async (
   }
 };
 
-const processMessage = async (payload: QueuePayload): Promise<void> => {
+const processLineMessage = async (payload: LinePayload): Promise<void> => {
   const events = payload.events ?? [];
   if (events.length === 0) return;
 
-  const ownerId = await lookupChannelOwner(payload.channelId);
-  if (!ownerId) {
+  const channel = await findChannelById(admin, payload.channelId);
+  if (!channel) {
     // Channel was disconnected while message sat in the queue. Skip
     // and let the caller archive so we don't loop forever.
     console.warn('channel deleted; dropping message', { channelId: payload.channelId });
@@ -83,7 +76,7 @@ const processMessage = async (payload: QueuePayload): Promise<void> => {
 
   const kek = await useKek(fermiKek);
   const { plaintext: accessToken } = await loadCredential(admin, kek, {
-    userId: ownerId,
+    userId: channel.ownerId,
     channelId: payload.channelId,
     keyType: 'line_channel_access_token',
   });
@@ -101,6 +94,19 @@ const processMessage = async (payload: QueuePayload): Promise<void> => {
         }
         throw err;
       }
+    }
+  }
+};
+
+const processMessage = async (payload: QueuePayload): Promise<void> => {
+  switch (payload.channelType) {
+    case 'line':
+      await processLineMessage(payload);
+      return;
+    default: {
+      // Adding a new ChannelType without a case here will fail compile.
+      const exhaustive: never = payload.channelType;
+      console.warn('unknown channel type; dropping', { channelType: exhaustive });
     }
   }
 };

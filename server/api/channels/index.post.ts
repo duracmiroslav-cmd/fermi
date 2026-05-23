@@ -21,8 +21,14 @@ export default defineEventHandler(async (event) => {
   if (userErr) throw userErr;
   const limit = CHANNEL_LIMIT[userRow.tier as Tier];
 
-  switch (parsed.data.type) {
+  const input = parsed.data;
+  switch (input.type) {
     case 'line':
-      return connectLineChannel(event, admin, user.id, parsed.data, limit);
+      return connectLineChannel(event, admin, user.id, input, limit);
+    default: {
+      // Adding a new ChannelType without a case here will fail compile.
+      const exhaustive: never = input.type;
+      throw createError({ statusCode: 400, statusMessage: `Unsupported channel type: ${String(exhaustive)}` });
+    }
   }
 });

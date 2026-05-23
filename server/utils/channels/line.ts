@@ -5,26 +5,6 @@ import { storeCredential } from '~~/shared/credentials';
 import { useKek } from '~~/shared/kek';
 import type { LineChannelInput } from '~~/shared/schemas/channels';
 
-export interface LineChannelLookup {
-  id: string;
-  ownerId: string;
-}
-
-export const findLineChannelByDestination = async (
-  admin: SupabaseClient,
-  destination: string,
-): Promise<LineChannelLookup | null> => {
-  const { data, error } = await admin
-    .from('channels')
-    .select('id, owner_id')
-    .eq('channel_type', 'line')
-    .eq('external_id', destination)
-    .is('deleted_at', null)
-    .maybeSingle();
-  if (error) throw error;
-  return data ? { id: data.id, ownerId: data.owner_id } : null;
-};
-
 // LINE has no API to verify the Channel Secret directly, so connect-time
 // verification only confirms the Channel Access Token; a wrong Secret
 // surfaces later as a webhook signature mismatch.

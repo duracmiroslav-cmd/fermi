@@ -27,5 +27,14 @@ export default defineEventHandler(async (event) => {
     throw error;
   }
 
+  // Hard-delete credentials so the (user_id, key_type, channel_id)
+  // unique key is freed and a future reconnect of the same OA can
+  // store fresh secrets without colliding on the dead channel row.
+  const { error: credErr } = await admin
+    .from('encrypted_credentials')
+    .delete()
+    .eq('channel_id', id);
+  if (credErr) throw credErr;
+
   return { id: data.id };
 });

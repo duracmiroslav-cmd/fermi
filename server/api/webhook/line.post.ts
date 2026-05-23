@@ -1,6 +1,13 @@
-import { validateSignature, type webhook } from '@line/bot-sdk';
+import { validateSignature } from '@line/bot-sdk';
+import { z } from 'zod';
+import { findChannelByDestination } from '~~/shared/channels';
 import { loadCredential } from '~~/shared/credentials';
 import { useKek } from '~~/shared/kek';
+
+const webhookBodySchema = z.looseObject({
+  destination: z.string().min(1),
+  events: z.array(z.unknown()).default([]),
+});
 
 export default defineEventHandler(async (event) => {
   const rawBody = await readRawBody(event);
@@ -17,13 +24,14 @@ export default defineEventHandler(async (event) => {
   // `destination` is the only field that identifies which channel's
   // secret to use. The body stays untrusted until validateSignature
   // succeeds below.
-  const payload = JSON.parse(rawBody) as webhook.CallbackRequest;
-  if (!payload.destination) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing destination' });
+  const parsedBody = webhookBodySchema.safeParse(JSON.parse(rawBody));
+  if (!parsedBody.success) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid webhook body' });
   }
+  const payload = parsedBody.data;
 
   const admin = useSupabaseAdmin();
-  const channel = await findLineChannelByDestination(admin, payload.destination);
+  const channel = await findChannelByDestination(admin, 'line', payload.destination);
   if (!channel) {
     // Unknown or disconnected destination. Return 200 so LINE drops
     // the retry; a 4xx here would keep LINE redelivering until the
@@ -43,7 +51,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: 'Invalid signature' });
   }
 
-  await enqueueWebhookEvent(admin, { channelId: channel.id, ...payload });
+  await enqueueWebhookEvent(admin, {
+    channelType: 'line',
+    channelId: channel.id,
+    destination: payload.destination,
+    events: payload.events,
+  });
 
   void fetch(`${supabaseUrl}/functions/v1/agent`, {
     method: 'POST',
