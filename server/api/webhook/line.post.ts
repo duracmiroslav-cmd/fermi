@@ -2,17 +2,35 @@ import { validateSignature } from '@line/bot-sdk';
 import { z } from 'zod';
 import { findChannelByDestination } from '~~/shared/channels';
 import { loadCredential } from '~~/shared/credentials';
-import { useKek } from '~~/shared/kek';
+import { getKek } from '~~/shared/kek';
+
+const MAX_BODY_BYTES = 256 * 1024;
 
 const webhookBodySchema = z.looseObject({
   destination: z.string().min(1),
   events: z.array(z.unknown()).default([]),
 });
 
+// Hostname must match this for fermi to forward the service-role
+// bearer to /functions/v1/agent. A misconfigured SUPABASE_URL would
+// otherwise leak the bearer to whatever host it resolves to.
+const isTrustedTriggerHost = (url: URL): boolean =>
+  (url.protocol === 'https:' && url.hostname.endsWith('.supabase.co'))
+  || url.hostname === 'localhost'
+  || url.hostname === '127.0.0.1';
+
 export default defineEventHandler(async (event) => {
+  const contentLength = Number(getHeader(event, 'content-length') ?? 0);
+  if (contentLength > MAX_BODY_BYTES) {
+    throw createError({ statusCode: 413, statusMessage: 'Payload too large' });
+  }
+
   const rawBody = await readRawBody(event);
   if (!rawBody) {
     throw createError({ statusCode: 400, statusMessage: 'Empty body' });
+  }
+  if (rawBody.length > MAX_BODY_BYTES) {
+    throw createError({ statusCode: 413, statusMessage: 'Payload too large' });
   }
 
   const signature = getHeader(event, 'x-line-signature');
@@ -20,10 +38,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: 'Missing signature' });
   }
 
-  // Body must be parsed before the signature is verified because
-  // `destination` is the only field that identifies which channel's
-  // secret to use. The body stays untrusted until validateSignature
-  // succeeds below.
+  // destination identifies which channel's secret to use, so the body
+  // must be parsed before signature verification. It stays untrusted
+  // until validateSignature succeeds below.
   const parsedBody = webhookBodySchema.safeParse(JSON.parse(rawBody));
   if (!parsedBody.success) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid webhook body' });
@@ -40,7 +57,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const { fermiKek, supabaseUrl, supabaseServiceRoleKey } = useRuntimeConfig(event);
-  const kek = await useKek(fermiKek);
+  const kek = await getKek(fermiKek);
   const { plaintext: channelSecret } = await loadCredential(admin, kek, {
     userId: channel.ownerId,
     channelId: channel.id,
@@ -58,13 +75,18 @@ export default defineEventHandler(async (event) => {
     events: payload.events,
   });
 
-  void fetch(`${supabaseUrl}/functions/v1/agent`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceRoleKey}`,
-    },
-  }).catch(console.error);
+  const triggerUrl = new URL('/functions/v1/agent', supabaseUrl);
+  if (isTrustedTriggerHost(triggerUrl)) {
+    void fetch(triggerUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceRoleKey}`,
+      },
+    }).catch(console.error);
+  } else {
+    console.error('refusing to trigger worker on untrusted host', triggerUrl.hostname);
+  }
 
   return { ok: true };
 });

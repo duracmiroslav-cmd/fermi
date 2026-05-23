@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { findChannelById } from '../../../shared/channels.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
-import { useKek } from '../../../shared/kek.ts';
+import { getKek } from '../../../shared/kek.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -74,7 +74,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     return;
   }
 
-  const kek = await useKek(fermiKek);
+  const kek = await getKek(fermiKek);
   const { plaintext: accessToken } = await loadCredential(admin, kek, {
     userId: channel.ownerId,
     channelId: payload.channelId,

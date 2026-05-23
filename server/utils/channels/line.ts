@@ -2,7 +2,7 @@ import { LineBotClient, type messagingApi } from '@line/bot-sdk';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { H3Event } from 'h3';
 import { storeCredential } from '~~/shared/credentials';
-import { useKek } from '~~/shared/kek';
+import { getKek } from '~~/shared/kek';
 import type { LineChannelInput } from '~~/shared/schemas/channels';
 
 // LINE has no API to verify the Channel Secret directly, so connect-time
@@ -59,10 +59,10 @@ export const connectLineChannel = async (
   }
 
   const { fermiKek } = useRuntimeConfig(event);
-  const kek = await useKek(fermiKek);
+  const kek = await getKek(fermiKek);
 
-  // Sequential credential inserts. A partial failure between the two
-  // would leave an orphan channel row, so we rollback by deleting it.
+  // Rollback the channel on credential-insert failure so the unique
+  // key isn't left pointing at an orphan row.
   try {
     await storeCredential(admin, kek, {
       userId,

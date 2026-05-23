@@ -1,10 +1,9 @@
 // AES-GCM-256 envelope encryption.
 //
-// The aad string (typically `${userId}:${keyType}:${channelId ?? ''}`)
-// binds every operation to a specific row so a ciphertext + iv +
-// wrappedDek triple swapped to another row will fail to decrypt.
-// The unwrapped DEK is non-extractable so raw key bytes never
-// re-enter JS memory after wrap.
+// AAD binds every operation to a row identity so a ciphertext + iv +
+// wrappedDek triple swapped to another row fails to decrypt. The
+// unwrapped DEK is non-extractable so raw key bytes never re-enter
+// JS memory.
 
 const ALG = 'AES-GCM';
 const ALG_TAG = 'aes-gcm-256';

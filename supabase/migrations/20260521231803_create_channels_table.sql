@@ -18,7 +18,12 @@ create unique index channels_active_external_id_uq
   on public.channels (channel_type, external_id)
   where deleted_at is null;
 
-create index channels_owner_id_idx on public.channels(owner_id);
+-- Owner lookups always filter deleted_at, so a partial index over
+-- the active subset is both smaller and more selective than a full
+-- B-tree on owner_id alone.
+create index channels_active_owner_idx
+  on public.channels(owner_id)
+  where deleted_at is null;
 
 create trigger channels_set_updated_at
   before update on public.channels
