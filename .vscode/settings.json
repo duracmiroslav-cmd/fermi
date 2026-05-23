@@ -1,4 +1,11 @@
 {
+  "cSpell.words": [
+    "ciphertext",
+    "openrouter",
+    "pgmq",
+    "pkce",
+    "supabase"
+  ],
   "deno.enablePaths": [
     "supabase"
   ],
@@ -10,11 +17,7 @@
     "typescript",
     "vue"
   ],
-  "cSpell.words": [
-    "ciphertext",
-    "openrouter",
-    "pgmq",
-    "pkce",
-    "supabase"
-  ]
+  "files.associations": {
+    "*.css": "tailwindcss"
+  }
 }
