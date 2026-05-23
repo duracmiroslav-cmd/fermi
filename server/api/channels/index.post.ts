@@ -1,12 +1,9 @@
-import { serverSupabaseUser } from '#supabase/server';
+import { getCurrentUser } from '~~/server/utils/auth';
 import { CHANNEL_LIMIT, type Tier } from '~~/shared/constants/tiers';
 import { connectChannelInputSchema } from '~~/shared/schemas/channels';
 
 export default defineEventHandler(async (event) => {
-  const user = await serverSupabaseUser(event);
-  if (!user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
-  }
+  const user = await getCurrentUser(event);
 
   const body = await readBody(event);
   const parsed = connectChannelInputSchema.safeParse(body);
