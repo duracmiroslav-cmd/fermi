@@ -30,14 +30,21 @@ interface QueueMessage {
   payload: QueuePayload;
 }
 
-const lookupChannelOwner = async (channelId: string): Promise<string> => {
+class LineReplyError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+  }
+}
+
+const lookupChannelOwner = async (channelId: string): Promise<string | null> => {
   const { data, error } = await admin
     .from('channels')
     .select('owner_id')
     .eq('id', channelId)
-    .single();
+    .is('deleted_at', null)
+    .maybeSingle();
   if (error) throw error;
-  return data.owner_id;
+  return data?.owner_id ?? null;
 };
 
 const replyText = async (
@@ -58,7 +65,7 @@ const replyText = async (
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`LINE Reply API ${res.status}: ${body}`);
+    throw new LineReplyError(res.status, `LINE Reply API ${res.status}: ${body}`);
   }
 };
 
@@ -67,6 +74,13 @@ const processMessage = async (payload: QueuePayload): Promise<void> => {
   if (events.length === 0) return;
 
   const ownerId = await lookupChannelOwner(payload.channelId);
+  if (!ownerId) {
+    // Channel was disconnected while message sat in the queue. Skip
+    // and let the caller archive so we don't loop forever.
+    console.warn('channel deleted; dropping message', { channelId: payload.channelId });
+    return;
+  }
+
   const kek = await useKek(fermiKek);
   const { plaintext: accessToken } = await loadCredential(admin, kek, {
     userId: ownerId,
@@ -76,7 +90,17 @@ const processMessage = async (payload: QueuePayload): Promise<void> => {
 
   for (const event of events) {
     if (event.type === 'message' && event.message?.type === 'text' && event.replyToken) {
-      await replyText(accessToken, event.replyToken, event.message.text ?? '');
+      try {
+        await replyText(accessToken, event.replyToken, event.message.text ?? '');
+      } catch (err) {
+        // 400 from Reply API is terminal (expired or already-used
+        // replyToken); retrying will just 400 again forever. Drop it.
+        if (err instanceof LineReplyError && err.status === 400) {
+          console.warn('reply token expired; dropping event', { channelId: payload.channelId });
+          continue;
+        }
+        throw err;
+      }
     }
   }
 };

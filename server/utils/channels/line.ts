@@ -53,20 +53,30 @@ export const connectLineChannel = async (
   admin: SupabaseClient,
   userId: string,
   input: LineChannelInput,
+  limit: number,
 ): Promise<ConnectedChannel> => {
   const botInfo = await verifyLineChannel(input.channelAccessToken);
 
-  const { data: channel, error: insertErr } = await admin
-    .from('channels')
-    .insert({
-      owner_id: userId,
-      channel_type: 'line',
-      external_id: botInfo.userId,
-      display_name: botInfo.displayName,
-    })
-    .select('id, display_name')
-    .single();
-  if (insertErr) throw insertErr;
+  const { data: rows, error: insertErr } = await admin.rpc('insert_channel_if_under_limit', {
+    p_owner_id: userId,
+    p_channel_type: 'line',
+    p_external_id: botInfo.userId,
+    p_display_name: botInfo.displayName,
+    p_limit: limit,
+  });
+  if (insertErr) {
+    if (insertErr.message?.includes('channel_limit_reached')) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: `Channel limit reached (max ${limit})`,
+      });
+    }
+    throw insertErr;
+  }
+  const channel = rows?.[0];
+  if (!channel) {
+    throw new Error('insert_channel_if_under_limit returned no row');
+  }
 
   const { fermiKek } = useRuntimeConfig(event);
   const kek = await useKek(fermiKek);

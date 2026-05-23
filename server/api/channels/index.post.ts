@@ -19,24 +19,10 @@ export default defineEventHandler(async (event) => {
   const { data: userRow, error: userErr } = await admin
     .from('users').select('tier').eq('id', user.id).single();
   if (userErr) throw userErr;
-  const tier = userRow.tier as Tier;
-  const limit = CHANNEL_LIMIT[tier];
-
-  const { count, error: countErr } = await admin
-    .from('channels')
-    .select('id', { count: 'exact', head: true })
-    .eq('owner_id', user.id)
-    .is('deleted_at', null);
-  if (countErr) throw countErr;
-  if ((count ?? 0) >= limit) {
-    throw createError({
-      statusCode: 403,
-      statusMessage: `Channel limit reached for ${tier} tier (max ${limit})`,
-    });
-  }
+  const limit = CHANNEL_LIMIT[userRow.tier as Tier];
 
   switch (parsed.data.type) {
     case 'line':
-      return connectLineChannel(event, admin, user.id, parsed.data);
+      return connectLineChannel(event, admin, user.id, parsed.data, limit);
   }
 });

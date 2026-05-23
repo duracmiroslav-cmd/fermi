@@ -8,6 +8,15 @@
 
 create extension if not exists pgmq;
 
+-- `supabase db reset --linked` only drops the public schema; pgmq
+-- tables linger in the pgmq schema and a re-run of pgmq.create()
+-- against partial leftover state (tables present, sequence missing)
+-- errors out. Drop first to start from a clean slate.
+do $$ begin
+  perform pgmq.drop_queue('webhook_events');
+exception when others then null;
+end $$;
+
 select pgmq.create('webhook_events');
 
 create function public.enqueue_webhook_event(payload jsonb) returns bigint

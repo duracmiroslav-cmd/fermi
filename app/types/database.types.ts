@@ -261,6 +261,19 @@ export type Database = {
         }[]
       }
       enqueue_webhook_event: { Args: { payload: Json }; Returns: number }
+      insert_channel_if_under_limit: {
+        Args: {
+          p_channel_type: string
+          p_display_name: string
+          p_external_id: string
+          p_limit: number
+          p_owner_id: string
+        }
+        Returns: {
+          display_name: string
+          id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

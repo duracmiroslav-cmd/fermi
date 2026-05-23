@@ -25,7 +25,10 @@ export default defineEventHandler(async (event) => {
   const admin = useSupabaseAdmin();
   const channel = await findLineChannelByDestination(admin, payload.destination);
   if (!channel) {
-    throw createError({ statusCode: 401, statusMessage: 'Unknown channel' });
+    // Unknown or disconnected destination. Return 200 so LINE drops
+    // the retry; a 4xx here would keep LINE redelivering until the
+    // webhook is marked broken on their side.
+    return { ok: true };
   }
 
   const { fermiKek, supabaseUrl, supabaseServiceRoleKey } = useRuntimeConfig(event);
