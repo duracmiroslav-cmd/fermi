@@ -32,7 +32,7 @@ create trigger channels_set_updated_at
 alter table public.channels enable row level security;
 
 create policy "Users can view their own channels." on public.channels
-  for select using (auth.uid() = owner_id);
+  for select using ((select auth.uid()) = owner_id);
 
 -- Locks the owner's users row before counting + inserting so two
 -- concurrent connects from the same user can't both observe an

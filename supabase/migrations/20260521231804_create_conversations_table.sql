@@ -31,7 +31,7 @@ create policy "Users can view their own conversations." on public.conversations
     exists (
       select 1 from public.channels
       where channels.id = conversations.channel_id
-        and channels.owner_id = auth.uid()
+        and channels.owner_id = (select auth.uid())
         and channels.deleted_at is null
     )
   );

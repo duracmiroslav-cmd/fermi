@@ -23,10 +23,10 @@ create trigger users_set_updated_at
 alter table public.users enable row level security;
 
 create policy "Users can view their own profile." on public.users
-  for select using (auth.uid() = id);
+  for select using ((select auth.uid()) = id);
 
 create policy "Users can update their own profile." on public.users
-  for update using (auth.uid() = id) with check (auth.uid() = id);
+  for update using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
 
 -- Self-promotion guard: RLS picks the row, column grants pick the columns.
 revoke update on public.users from authenticated;
