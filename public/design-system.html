@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fermi · Design System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --apricot-50:  #fef9f6;
+      --apricot-100: #fbe6dc;
+      --apricot-200: #f7d3c2;
+      --apricot-300: #f3c0a9;
+      --apricot-400: #eead8f;
+      --apricot-500: #e89a75;
+      --apricot-600: #bf7551;
+      --apricot-700: #98512d;
+      --apricot-800: #722f04;
+      --apricot-900: #4d0a00;
+      --apricot-950: #1f0000;
+
+      --stone-50:  #fafaf9;
+      --stone-100: #f5f5f4;
+      --stone-200: #e7e5e4;
+      --stone-300: #d6d3d1;
+      --stone-400: #a8a29e;
+      --stone-500: #78716c;
+      --stone-600: #57534e;
+      --stone-700: #44403c;
+      --stone-800: #292524;
+      --stone-900: #1c1917;
+      --stone-950: #0c0a09;
+
+      --font-sans: 'Inter', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    }
+
+    body {
+      margin: 0;
+      background: var(--stone-950);
+      color: var(--stone-100);
+      font-family: var(--font-sans);
+      padding: 64px 32px;
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.01em;
+    }
+    .container { max-width: 960px; margin: 0 auto; }
+
+    h1 {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin: 0 0 12px;
+      color: var(--stone-100);
+    }
+    .lede {
+      font-size: 15px;
+      color: var(--stone-400);
+      margin: 0 0 48px;
+      line-height: 1.55;
+      max-width: 560px;
+    }
+
+    section { margin-bottom: 72px; }
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--stone-500);
+      margin: 0 0 16px;
+    }
+    h2 {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin: 0 0 24px;
+      color: var(--stone-100);
+    }
+    .group { margin-bottom: 40px; }
+    .group-name {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--stone-300);
+      margin: 0 0 12px;
+    }
+
+    /* Scale strip */
+    .scale {
+      display: grid;
+      grid-template-columns: repeat(11, 1fr);
+      gap: 4px;
+    }
+    .step {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .step-swatch {
+      height: 64px;
+      border-radius: 6px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+      position: relative;
+    }
+    .step-swatch.is-anchor::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border: 1px solid var(--stone-100);
+      border-radius: 8px;
+      pointer-events: none;
+    }
+    .step-meta {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--stone-500);
+      text-align: left;
+      line-height: 1.4;
+    }
+    .step-meta b {
+      color: var(--stone-300);
+      font-weight: 500;
+      display: block;
+    }
+
+    /* Typography spec */
+    .type-row {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 24px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--stone-800);
+      align-items: baseline;
+    }
+    .type-row:last-child { border-bottom: none; }
+    .type-spec {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--stone-500);
+      line-height: 1.5;
+    }
+    .type-spec b { color: var(--stone-300); font-weight: 500; display: block; }
+
+    /* Radii spec */
+    .radii {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .radius-cell {
+      background: var(--stone-900);
+      border: 1px solid var(--stone-800);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .radius-shape {
+      width: 64px;
+      height: 64px;
+      background: var(--stone-700);
+    }
+    .radius-meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--stone-400);
+      text-align: center;
+      line-height: 1.5;
+    }
+    .radius-meta b { color: var(--stone-200); font-weight: 500; display: block; }
+
+    /* Component examples */
+    .components {
+      background: var(--stone-900);
+      border: 1px solid var(--stone-800);
+      border-radius: 12px;
+      padding: 32px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+    .component-row {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 24px;
+      align-items: center;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--stone-800);
+    }
+    .component-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .component-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--stone-500);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .component-stage {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    /* Tokens of the system in use */
+    .btn-solid {
+      background: var(--apricot-500);
+      color: var(--stone-950);
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font-sans);
+      cursor: pointer;
+    }
+    .btn-soft {
+      background: color-mix(in srgb, var(--apricot-500) 14%, transparent);
+      color: var(--apricot-500);
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      cursor: pointer;
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--stone-200);
+      border: 1px solid var(--stone-700);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      cursor: pointer;
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--stone-300);
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      cursor: pointer;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: color-mix(in srgb, var(--apricot-500) 14%, transparent);
+      color: var(--apricot-500);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 999px;
+      letter-spacing: 0.04em;
+      font-family: var(--font-sans);
+    }
+    .badge::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border-radius: 999px;
+      background: var(--apricot-500);
+    }
+    .link {
+      color: var(--apricot-500);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      font-family: var(--font-sans);
+    }
+    .link:hover { color: var(--apricot-400); }
+    .card-demo {
+      background: var(--stone-900);
+      border: 1px solid var(--stone-800);
+      border-radius: 12px;
+      padding: 16px;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card-demo-title {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0;
+      color: var(--stone-100);
+    }
+    .card-demo-body {
+      font-size: 13px;
+      color: var(--stone-300);
+      line-height: 1.5;
+      margin: 0;
+    }
+    .bubble-user {
+      align-self: flex-end;
+      max-width: 80%;
+      padding: 8px 12px;
+      border-radius: 12px 12px 4px 12px;
+      background: var(--stone-800);
+      color: var(--stone-100);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .bubble-bot {
+      align-self: flex-start;
+      max-width: 80%;
+      padding: 8px 12px;
+      border-radius: 12px 12px 12px 4px;
+      background: color-mix(in srgb, var(--apricot-500) 14%, transparent);
+      color: var(--stone-100);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .chat-stage {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+      max-width: 360px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <h1>Fermi Design System</h1>
+    <p class="lede">Dark-mode-first. Apricot for primary, Stone for neutral.</p>
+
+    <section>
+      <p class="section-label">Color</p>
+      <h2>Brand · Apricot</h2>
+      <div class="group">
+        <p class="group-name">apricot — OKLCH scale, anchor at 500</p>
+        <div class="scale">
+          <div class="step"><div class="step-swatch" style="background:var(--apricot-50)"></div><div class="step-meta"><b>50</b>#fef9f6</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--apricot-100)"></div><div class="step-meta"><b>100</b>#fbe6dc</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--apricot-200)"></div><div class="step-meta"><b>200</b>#f7d3c2</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--apricot-300)"></div><div class="step-meta"><b>300</b>#f3c0a9</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--apricot-400)"></div><div class="step-meta"><b>400</b>#eead8f</div></div>
+          <div class="step"><div class="step-swatch is-anchor" style="background:var(--apricot-500)"></div><div class="step-meta"><b>500</b>#e89a75</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--apricot-600)"></div><div class="step-meta"><b>600</b>#bf7551</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--apricot-700)"></div><div class="step-meta"><b>700</b>#98512d</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--apricot-800)"></div><div class="step-meta"><b>800</b>#722f04</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--apricot-900)"></div><div class="step-meta"><b>900</b>#4d0a00</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--apricot-950)"></div><div class="step-meta"><b>950</b>#1f0000</div></div>
+        </div>
+      </div>
+
+      <h2>Neutral · Stone</h2>
+      <div class="group">
+        <p class="group-name">stone — Tailwind v4 built-in</p>
+        <div class="scale">
+          <div class="step"><div class="step-swatch" style="background:var(--stone-50)"></div><div class="step-meta"><b>50</b>#fafaf9</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--stone-100)"></div><div class="step-meta"><b>100</b>#f5f5f4</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--stone-200)"></div><div class="step-meta"><b>200</b>#e7e5e4</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--stone-300)"></div><div class="step-meta"><b>300</b>#d6d3d1</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--stone-400)"></div><div class="step-meta"><b>400</b>#a8a29e</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--stone-500)"></div><div class="step-meta"><b>500</b>#78716c</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--stone-600)"></div><div class="step-meta"><b>600</b>#57534e</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--stone-700)"></div><div class="step-meta"><b>700</b>#44403c</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--stone-800)"></div><div class="step-meta"><b>800</b>#292524</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--stone-900)"></div><div class="step-meta"><b>900</b>#1c1917</div></div>
+          <div class="step"><div class="step-swatch" style="background:var(--stone-950)"></div><div class="step-meta"><b>950</b>#0c0a09</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <p class="section-label">Typography</p>
+      <div class="type-row">
+        <div class="type-spec"><b>Inter</b>sans · body, UI</div>
+        <div style="font-family: var(--font-sans); font-size: 32px; font-weight: 600; letter-spacing: -0.02em;">The quick brown fox jumps over the lazy dog</div>
+      </div>
+      <div class="type-row">
+        <div class="type-spec"><b>JetBrains Mono</b>mono · headlines, code, labels</div>
+        <div style="font-family: var(--font-mono); font-size: 28px; font-weight: 600;">The quick brown fox</div>
+      </div>
+    </section>
+
+    <section>
+      <p class="section-label">Radii · Modern hierarchy</p>
+      <div class="radii">
+        <div class="radius-cell">
+          <div class="radius-shape" style="border-radius: 12px;"></div>
+          <div class="radius-meta"><b>Card</b>12 px</div>
+        </div>
+        <div class="radius-cell">
+          <div class="radius-shape" style="border-radius: 8px;"></div>
+          <div class="radius-meta"><b>Button / Input</b>8 px</div>
+        </div>
+        <div class="radius-cell">
+          <div class="radius-shape" style="border-radius: 999px;"></div>
+          <div class="radius-meta"><b>Tag / Badge</b>pill</div>
+        </div>
+        <div class="radius-cell">
+          <div class="radius-shape" style="border-radius: 6px;"></div>
+          <div class="radius-meta"><b>Tooltip / Inline</b>6 px</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <p class="section-label">Components</p>
+      <div class="components">
+
+        <div class="component-row">
+          <div class="component-label">Button · Solid</div>
+          <div class="component-stage">
+            <button class="btn-solid">Continue</button>
+          </div>
+        </div>
+
+        <div class="component-row">
+          <div class="component-label">Button · Soft</div>
+          <div class="component-stage">
+            <button class="btn-soft">Continue</button>
+          </div>
+        </div>
+
+        <div class="component-row">
+          <div class="component-label">Button · Outline</div>
+          <div class="component-stage">
+            <button class="btn-outline">Continue</button>
+          </div>
+        </div>
+
+        <div class="component-row">
+          <div class="component-label">Button · Ghost</div>
+          <div class="component-stage">
+            <button class="btn-ghost">Continue</button>
+          </div>
+        </div>
+
+        <div class="component-row">
+          <div class="component-label">Badge</div>
+          <div class="component-stage">
+            <span class="badge">Live</span>
+          </div>
+        </div>
+
+        <div class="component-row">
+          <div class="component-label">Link</div>
+          <div class="component-stage">
+            <a class="link" href="#">Upgrade to Pro →</a>
+          </div>
+        </div>
+
+        <div class="component-row">
+          <div class="component-label">Card</div>
+          <div class="component-stage">
+            <div class="card-demo">
+              <h3 class="card-demo-title">Today</h3>
+              <p class="card-demo-body">12 messages processed. 3 need your review.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="component-row">
+          <div class="component-label">Chat bubbles</div>
+          <div class="component-stage">
+            <div class="chat-stage">
+              <div class="bubble-user">Sort out my todos.</div>
+              <div class="bubble-bot">Three items. Which first?</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</body>
+</html>
