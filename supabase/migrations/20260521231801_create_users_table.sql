@@ -27,3 +27,8 @@ create policy "Users can view their own profile." on public.users
 
 create policy "Users can update their own profile." on public.users
   for update using (auth.uid() = id) with check (auth.uid() = id);
+
+-- Self-promotion guard: RLS picks the row, column grants pick the columns.
+revoke update on public.users from authenticated;
+grant update (display_name, locale, timezone, avatar_url)
+  on public.users to authenticated;
