@@ -1,12 +1,9 @@
-import { serverSupabaseUser } from '#supabase/server';
+import { getCurrentUser } from '~~/server/utils/auth';
 import { setPkceCookie } from '~~/server/utils/oauth/cookies';
 import { buildAuthorizeUrl, deriveChallenge, generateState, generateVerifier } from '~~/server/utils/oauth/openrouter';
 
 export default defineEventHandler(async (event) => {
-  const user = await serverSupabaseUser(event);
-  if (!user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
-  }
+  await getCurrentUser(event);
 
   const state = generateState();
   const codeVerifier = generateVerifier();

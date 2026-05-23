@@ -1,14 +1,11 @@
-import { serverSupabaseUser } from '#supabase/server';
+import { getCurrentUser } from '~~/server/utils/auth';
 import { clearPkceCookie, readPkceCookie } from '~~/server/utils/oauth/cookies';
 import { exchangeCodeForKey } from '~~/server/utils/oauth/openrouter';
 import { storeCredential } from '~~/shared/credentials';
 import { getKek } from '~~/shared/kek';
 
 export default defineEventHandler(async (event) => {
-  const user = await serverSupabaseUser(event);
-  if (!user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
-  }
+  const user = await getCurrentUser(event);
 
   const query = getQuery(event);
   const error = typeof query.error === 'string' ? query.error : null;
