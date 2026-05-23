@@ -16,7 +16,7 @@ export interface PkceCookiePayload {
 export const setPkceCookie = (event: H3Event, payload: PkceCookiePayload): void => {
   setCookie(event, COOKIE_NAME, JSON.stringify(payload), {
     httpOnly: true,
-    secure: true,
+    secure: !import.meta.dev,
     sameSite: 'lax',
     path: COOKIE_PATH,
     maxAge: COOKIE_MAX_AGE_SECONDS,
