@@ -26,17 +26,15 @@ watch(() => route.path, () => {
 
     <div class="flex-1 flex flex-col min-w-0">
       <header class="border-b border-default px-4 sm:px-8 h-14 flex items-center gap-4 shrink-0">
-        <button
-          type="button"
-          class="md:hidden text-muted hover:text-highlighted transition-colors"
+        <UButton
+          icon="i-lucide-menu"
+          color="neutral"
+          variant="ghost"
+          size="sm"
           aria-label="Open menu"
+          class="md:hidden"
           @click="drawerOpen = true"
-        >
-          <UIcon
-            name="i-lucide-menu"
-            class="size-5"
-          />
-        </button>
+        />
         <h1 class="flex-1 font-mono text-base text-highlighted tracking-tight truncate">
           <slot name="title">dashboard</slot>
         </h1>

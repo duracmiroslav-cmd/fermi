@@ -4,5 +4,10 @@ export default defineAppConfig({
       primary: 'apricot',
       neutral: 'stone',
     },
+    button: {
+      slots: {
+        base: 'cursor-pointer',
+      },
+    },
   },
 });
