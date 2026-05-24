@@ -33,3 +33,6 @@ create policy "Users can view their own messages." on public.messages
         and b.deleted_at is null
     )
   );
+
+-- Messages are written by the agent worker via service_role only.
+revoke insert, update, delete on public.messages from authenticated;

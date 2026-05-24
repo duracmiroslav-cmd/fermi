@@ -35,7 +35,14 @@ create trigger bots_set_updated_at
 alter table public.bots enable row level security;
 
 create policy "Users can view their own bots." on public.bots
-  for select using ((select auth.uid()) = owner_id);
+  for select using (
+    (select auth.uid()) = owner_id
+    and deleted_at is null
+  );
+
+-- Writes flow through service_role-only RPCs. Explicit revoke makes
+-- this hold even if RLS were ever disabled on the table.
+revoke insert, update, delete on public.bots from authenticated;
 
 -- Locks the owner's users row before counting + inserting so two
 -- concurrent connects from the same user can't both observe an

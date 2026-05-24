@@ -34,3 +34,6 @@ create policy "Users can view their own threads." on public.threads
         and b.deleted_at is null
     )
   );
+
+-- Threads are mutated by the agent worker via service_role only.
+revoke insert, update, delete on public.threads from authenticated;

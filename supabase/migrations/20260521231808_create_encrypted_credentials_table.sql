@@ -54,5 +54,8 @@ create trigger encrypted_credentials_set_updated_at
   before update on public.encrypted_credentials
   for each row execute function public.set_updated_at();
 
--- No client-facing policies; ciphertext is service_role-only.
+-- Ciphertext is service_role-only. No policies are defined; the
+-- explicit revoke makes that intent hold even if RLS were ever
+-- disabled on the table.
 alter table public.encrypted_credentials enable row level security;
+revoke all on public.encrypted_credentials from authenticated, anon;

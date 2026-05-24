@@ -38,3 +38,6 @@ create policy "Users can view their own conversations." on public.conversations
         and bots.deleted_at is null
     )
   );
+
+-- Conversations are mutated server-side via service_role only.
+revoke insert, update, delete on public.conversations from authenticated;

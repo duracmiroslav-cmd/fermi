@@ -32,6 +32,10 @@ create policy "Users can view their own agents." on public.agents
     and deleted_at is null
   );
 
+-- Writes flow through service_role-only RPCs. Explicit revoke makes
+-- this hold even if RLS were ever disabled on the table.
+revoke insert, update, delete on public.agents from authenticated;
+
 -- Locks the owner's users row before counting + inserting so two
 -- concurrent creates from the same user can't both observe an
 -- under-limit count and bypass the tier quota.
