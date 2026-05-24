@@ -2,6 +2,7 @@
 const props = defineProps<{
   agentId: string;
   currentUrl: string | null;
+  fallback?: string;
 }>();
 
 const emit = defineEmits<{
@@ -14,14 +15,11 @@ const BUCKET = 'agent-avatars';
 
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
+const toast = useToast();
 const uploading = ref(false);
-const errorMessage = ref<string | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
-const openPicker = () => {
-  errorMessage.value = null;
-  fileInputRef.value?.click();
-};
+const openPicker = () => fileInputRef.value?.click();
 
 const removeExistingForAgent = async (userId: string) => {
   const { data: files, error } = await supabase.storage.from(BUCKET).list(userId);
@@ -38,15 +36,13 @@ const onFileChange = async (event: Event) => {
   const file = input.files?.[0];
   if (!file) return;
 
-  errorMessage.value = null;
-
   if (!ALLOWED_MIME.includes(file.type)) {
-    errorMessage.value = 'Unsupported format. PNG, JPEG, WebP, or GIF only.';
+    toast.add({ title: 'Unsupported format', description: 'PNG, JPEG, WebP, or GIF only.', color: 'error' });
     input.value = '';
     return;
   }
   if (file.size > MAX_BYTES) {
-    errorMessage.value = 'File too large. Max 2MB.';
+    toast.add({ title: 'File too large', description: 'Max 2MB.', color: 'error' });
     input.value = '';
     return;
   }
@@ -54,9 +50,7 @@ const onFileChange = async (event: Event) => {
   uploading.value = true;
   try {
     if (!user.value) throw new Error('Not signed in');
-
     await removeExistingForAgent(user.value.id);
-
     const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
     const path = `${user.value.id}/${props.agentId}.${ext}`;
     const { error: uploadErr } = await supabase.storage.from(BUCKET).upload(path, file, {
@@ -64,87 +58,62 @@ const onFileChange = async (event: Event) => {
       upsert: true,
     });
     if (uploadErr) throw uploadErr;
-
     const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
     emit('change', publicUrl);
   }
   catch (e) {
-    errorMessage.value = e instanceof Error ? e.message : 'Upload failed';
+    toast.add({
+      title: 'Upload failed',
+      description: e instanceof Error ? e.message : 'Unknown error',
+      color: 'error',
+    });
   }
   finally {
     uploading.value = false;
     input.value = '';
   }
 };
-
-const onRemove = async () => {
-  errorMessage.value = null;
-  uploading.value = true;
-  try {
-    if (!user.value) throw new Error('Not signed in');
-    await removeExistingForAgent(user.value.id);
-    emit('change', null);
-  }
-  catch (e) {
-    errorMessage.value = e instanceof Error ? e.message : 'Remove failed';
-  }
-  finally {
-    uploading.value = false;
-  }
-};
 </script>
 
 <template>
-  <div class="flex items-start gap-5">
-    <UAvatar
-      :src="currentUrl ?? undefined"
-      :alt="`Agent avatar`"
-      text="?"
-      size="2xl"
-    />
-    <div class="flex-1 min-w-0 space-y-2">
-      <div class="flex flex-wrap items-center gap-2">
-        <UButton
-          color="neutral"
-          variant="outline"
-          size="sm"
-          :loading="uploading"
-          @click="openPicker"
-        >
-          {{ currentUrl ? 'Replace' : 'Upload' }}
-        </UButton>
-        <UButton
-          v-if="currentUrl"
-          color="error"
-          variant="ghost"
-          size="sm"
-          :disabled="uploading"
-          @click="onRemove"
-        >
-          Remove
-        </UButton>
-      </div>
-
-      <p
-        v-if="errorMessage"
-        class="font-mono text-xs text-error"
-      >
-        ! {{ errorMessage }}
-      </p>
-      <p
-        v-else
-        class="font-mono text-xs text-dimmed"
-      >
-        PNG / JPEG / WebP / GIF · max 2MB
-      </p>
-    </div>
-
-    <input
-      ref="fileInputRef"
-      type="file"
-      accept="image/png,image/jpeg,image/webp,image/gif"
-      class="hidden"
-      @change="onFileChange"
+  <UTooltip :text="currentUrl ? 'Replace avatar' : 'Upload avatar'">
+    <button
+      type="button"
+      :disabled="uploading"
+      class="relative size-12 shrink-0 rounded-full overflow-hidden bg-primary/10 hover:bg-primary/20 transition-colors group disabled:opacity-60 cursor-pointer"
+      @click="openPicker"
     >
-  </div>
+      <img
+        v-if="currentUrl && !uploading"
+        :src="currentUrl"
+        alt=""
+        class="absolute inset-0 size-full object-cover transition-opacity group-hover:opacity-50"
+      >
+      <UIcon
+        v-if="uploading"
+        name="i-lucide-loader-circle"
+        class="absolute inset-0 m-auto size-5 text-primary animate-spin"
+      />
+      <template v-else>
+        <span
+          v-if="!currentUrl"
+          class="absolute inset-0 flex items-center justify-center font-mono text-xl font-semibold text-primary transition-opacity group-hover:opacity-0"
+        >
+          {{ fallback ?? '?' }}
+        </span>
+        <UIcon
+          name="i-lucide-camera"
+          class="absolute inset-0 m-auto size-5 text-primary opacity-0 transition-opacity group-hover:opacity-100"
+        />
+      </template>
+    </button>
+  </UTooltip>
+
+  <input
+    ref="fileInputRef"
+    type="file"
+    accept="image/png,image/jpeg,image/webp,image/gif"
+    class="hidden"
+    @change="onFileChange"
+  >
 </template>

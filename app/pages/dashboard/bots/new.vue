@@ -1,8 +1,16 @@
 <script setup lang="ts">
+type Platform = 'line';
+
 const toast = useToast();
 const connecting = ref(false);
 
-const onSubmit = async (value: { channelSecret: string; channelAccessToken: string }) => {
+const platform = ref<Platform | null>(null);
+
+const platformOptions = [
+  { label: 'LINE', value: 'line' },
+];
+
+const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: string }) => {
   connecting.value = true;
   try {
     const created = await $fetch<{ id: string }>('/api/bots', {
@@ -32,24 +40,36 @@ const onSubmit = async (value: { channelSecret: string; channelAccessToken: stri
 <template>
   <NuxtLayout name="dashboard">
     <template #title>
-      Connect bot
+      New bot
     </template>
 
-    <div class="p-6 sm:p-8 pb-12 max-w-3xl">
-      <BotConnectForm
-        form-id="bot-connect-form"
-        @submit="onSubmit"
-      />
-    </div>
-
-    <template #footer>
+    <template
+      v-if="platform === 'line'"
+      #actions
+    >
       <UButton
         type="submit"
-        form="bot-connect-form"
+        form="line-bot-connect-form"
         :loading="connecting"
       >
-        Connect bot
+        Create
       </UButton>
     </template>
+
+    <div class="p-6 sm:p-8 pb-12 max-w-3xl flex flex-col gap-6">
+      <UFormField label="Platform">
+        <USelect
+          v-model="platform"
+          :items="platformOptions"
+          placeholder="Pick a platform..."
+        />
+      </UFormField>
+
+      <LineBotConnectForm
+        v-if="platform === 'line'"
+        form-id="line-bot-connect-form"
+        @submit="onLineSubmit"
+      />
+    </div>
   </NuxtLayout>
 </template>

@@ -53,41 +53,31 @@ const onSubmit = () => {
     :id="formId"
     :schema="updateBotInputSchema"
     :state="state"
-    class="space-y-8"
+    class="flex flex-col gap-6"
     @submit="onSubmit"
   >
-    <section>
-      <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-4">
-        agent
-      </h2>
-      <UFormField
-        label="Agent"
-        name="agentId"
-      >
-        <USelectMenu
-          v-model="state.agentId"
-          :items="agentItems"
-          value-key="value"
-          clear
-          placeholder="Select an agent"
-          class="w-full"
-          :ui="{ base: 'font-mono' }"
-        />
-        <template #help>
-          Drives this bot's replies. Clear to pause.
-        </template>
-      </UFormField>
-    </section>
-
-    <section>
-      <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-4">
-        status
-      </h2>
-      <USwitch
-        v-model="enabled"
-        label="Enabled"
-        description="When off, fermi receives webhook events but does not reply."
+    <UFormField
+      label="Agent"
+      name="agentId"
+    >
+      <USelectMenu
+        v-model="state.agentId"
+        :items="agentItems"
+        value-key="value"
+        clear
+        placeholder="Select an agent"
+        :ui="{ base: 'font-mono' }"
       />
-    </section>
+      <template #help>
+        Pick the agent that replies. Leave empty to keep the bot quiet.
+      </template>
+    </UFormField>
+
+    <UFormField
+      label="Enabled"
+      help="When off, the bot won't reply."
+    >
+      <USwitch v-model="enabled" />
+    </UFormField>
   </UForm>
 </template>

@@ -17,7 +17,7 @@ const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
 <template>
   <NuxtLayout name="dashboard">
     <template #title>
-      Agents <span class="text-dimmed">({{ used }} / {{ limit }})</span>
+      Agents <span class="text-dimmed">({{ used }})</span>
     </template>
     <template #actions>
       <UTooltip
@@ -56,7 +56,7 @@ const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
           No agents yet
         </p>
         <p class="text-sm text-dimmed mb-6 max-w-md mx-auto">
-          An agent is a persona — a name, a system prompt, and a default model. Attach one to a bot to bring it to life.
+          An agent is a persona with a name, a system prompt, and a default model. Attach one to a bot to bring it to life.
         </p>
         <UButton
           v-if="!atLimit"
@@ -75,12 +75,13 @@ const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
           v-for="agent in agents"
           :key="agent.id"
           :to="`/dashboard/agents/${agent.id}`"
-          class="group flex items-center gap-4 p-4 rounded-md border border-default hover:bg-muted/30 transition-colors"
+          class="group flex items-center gap-4 p-4 rounded-md border border-default hover:bg-muted transition-colors"
         >
           <UAvatar
             :src="agent.avatarUrl ?? undefined"
             :text="initial(agent.name)"
-            size="sm"
+            size="lg"
+            color="primary"
           />
           <div class="flex-1 min-w-0">
             <p class="font-medium truncate">

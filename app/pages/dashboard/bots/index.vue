@@ -20,7 +20,7 @@ const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
 <template>
   <NuxtLayout name="dashboard">
     <template #title>
-      Bots <span class="text-dimmed">({{ used }} / {{ limit }})</span>
+      Bots <span class="text-dimmed">({{ used }})</span>
     </template>
     <template #actions>
       <UTooltip
@@ -32,7 +32,7 @@ const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
           size="sm"
           disabled
         >
-          Connect bot
+          New bot
         </UButton>
       </UTooltip>
       <UButton
@@ -41,7 +41,7 @@ const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
         size="sm"
         to="/dashboard/bots/new"
       >
-        Connect bot
+        New bot
       </UButton>
     </template>
 
@@ -56,17 +56,17 @@ const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
         class="border border-dashed border-default rounded-md py-16 px-6 text-center"
       >
         <p class="font-mono text-sm text-muted mb-2">
-          No bots connected
+          No bots yet
         </p>
         <p class="text-sm text-dimmed mb-6 max-w-md mx-auto">
-          A bot is your LINE channel registered in fermi. Connect one with its Channel Secret + Access Token, then attach an agent to bring it to life.
+          A bot is a messaging channel registered in fermi. Add one, then attach an agent to bring it to life.
         </p>
         <UButton
           v-if="!atLimit"
           to="/dashboard/bots/new"
           icon="i-lucide-plus"
         >
-          Connect your first bot
+          Create your first bot
         </UButton>
       </div>
 
@@ -78,13 +78,13 @@ const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
           v-for="bot in bots"
           :key="bot.id"
           :to="`/dashboard/bots/${bot.id}`"
-          class="group flex items-center gap-4 p-4 rounded-md border border-default hover:bg-muted/30 transition-colors"
+          class="group flex items-center gap-4 p-4 rounded-md border border-default hover:bg-muted transition-colors"
         >
           <UAvatar
             v-if="bot.avatarUrl"
             :src="bot.avatarUrl"
             :text="initial(bot.displayName)"
-            size="sm"
+            size="lg"
           />
           <UTooltip
             v-else
@@ -93,7 +93,7 @@ const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
             <button
               type="button"
               :disabled="syncingId === bot.id"
-              class="relative size-8 shrink-0 rounded-full bg-primary/10 border border-primary/30 hover:bg-primary/20 hover:border-primary/50 transition-colors group disabled:opacity-60 cursor-pointer"
+              class="relative size-9 shrink-0 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors group disabled:opacity-60 cursor-pointer"
               @click.stop.prevent="syncAvatar(bot.id)"
             >
               <UIcon

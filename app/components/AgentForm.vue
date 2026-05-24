@@ -39,61 +39,46 @@ const onSubmit = () => {
     :id="formId"
     :schema="createAgentInputSchema"
     :state="state"
-    class="space-y-8"
+    class="flex flex-col gap-6"
     @submit="onSubmit"
   >
-    <section>
-      <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-4">
-        identity
-      </h2>
-      <UFormField
-        label="Name"
-        name="name"
-        required
-      >
-        <UInput
-          v-model="state.name"
-          placeholder="my agent"
-          class="w-full"
-        />
-      </UFormField>
-    </section>
+    <UFormField
+      label="Name"
+      name="name"
+      required
+    >
+      <UInput
+        v-model="state.name"
+        placeholder="my agent"
+      />
+    </UFormField>
 
-    <section>
-      <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-4">
-        behavior
-      </h2>
-      <div class="space-y-4">
-        <UFormField name="systemPrompt">
-          <template #label>
-            <span class="flex items-center justify-between gap-2 w-full">
-              <span>System prompt</span>
-              <span class="font-mono text-xs text-dimmed">
-                {{ promptCharCount }} / 8000
-              </span>
-            </span>
-          </template>
-          <UTextarea
-            v-model="state.systemPrompt"
-            :rows="12"
-            placeholder="You are a helpful assistant..."
-            class="w-full"
-            :ui="{ base: 'font-mono' }"
-          />
-        </UFormField>
+    <UFormField
+      label="System prompt"
+      name="systemPrompt"
+    >
+      <template #hint>
+        <span class="font-mono text-xs text-dimmed">
+          {{ promptCharCount }} / 8000
+        </span>
+      </template>
+      <UTextarea
+        v-model="state.systemPrompt"
+        :rows="12"
+        placeholder="You are a helpful assistant..."
+        :ui="{ base: 'font-mono' }"
+      />
+    </UFormField>
 
-        <UFormField
-          label="Default model"
-          name="defaultModel"
-        >
-          <USelect
-            v-model="state.defaultModel"
-            :items="models"
-            class="w-full"
-            :ui="{ base: 'font-mono' }"
-          />
-        </UFormField>
-      </div>
-    </section>
+    <UFormField
+      label="Default model"
+      name="defaultModel"
+    >
+      <USelect
+        v-model="state.defaultModel"
+        :items="models"
+        :ui="{ base: 'font-mono' }"
+      />
+    </UFormField>
   </UForm>
 </template>

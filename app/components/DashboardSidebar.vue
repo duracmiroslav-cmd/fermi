@@ -7,7 +7,7 @@
       fermi
     </NuxtLink>
 
-    <nav class="flex-1 px-3 space-y-0.5">
+    <nav class="flex-1 px-3 space-y-1">
       <DashboardNavItem
         to="/dashboard/bots"
         icon="i-lucide-bot"
@@ -23,14 +23,9 @@
         icon="i-lucide-cable"
         label="Connections"
       />
-      <DashboardNavItem
-        to="/dashboard/settings"
-        icon="i-lucide-sliders-horizontal"
-        label="Settings"
-      />
     </nav>
 
-    <div class="border-t border-default p-3">
+    <div class="p-3">
       <DashboardUserMenu />
     </div>
   </div>

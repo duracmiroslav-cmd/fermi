@@ -82,9 +82,7 @@ const onDelete = async () => {
 
 <template>
   <NuxtLayout name="dashboard">
-    <template #title>
-      {{ bot?.displayName || 'Bot' }}
-    </template>
+    <template #title />
 
     <template
       v-if="bot"
@@ -95,55 +93,57 @@ const onDelete = async () => {
         form="bot-form"
         :loading="saving"
       >
-        Save changes
+        Save
       </UButton>
     </template>
 
     <div
       v-if="bot"
-      class="p-6 sm:p-8 pb-12 max-w-3xl space-y-12"
+      class="p-6 sm:p-8 pb-12 max-w-3xl flex flex-col gap-6"
     >
-      <section>
-        <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-3">
-          identity
-        </h2>
-        <div class="flex items-center gap-4 p-4 rounded-md border border-default">
-          <UAvatar
-            v-if="bot.avatarUrl"
-            :src="bot.avatarUrl"
-            size="lg"
-          />
-          <div
-            v-else
-            class="size-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center font-mono text-xl font-semibold text-primary shrink-0"
+      <div class="flex items-center gap-4">
+        <UAvatar
+          v-if="bot.avatarUrl"
+          :src="bot.avatarUrl"
+          size="3xl"
+        />
+        <UTooltip
+          v-else
+          text="Sync avatar from LINE"
+        >
+          <button
+            type="button"
+            :disabled="syncing"
+            class="relative size-12 shrink-0 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors group disabled:opacity-60 cursor-pointer"
+            @click.stop.prevent="syncFromLine(bot.id)"
           >
-            {{ (bot.displayName ?? '?').charAt(0).toUpperCase() }}
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm truncate">
-              {{ bot.displayName || '(unnamed)' }}
-            </p>
-            <p class="text-xs text-dimmed mt-1">
-              Name and avatar mirror your LINE OA. Edit them in LINE Official Account Manager, then sync.
-            </p>
-          </div>
-          <UButton
-            icon="i-lucide-refresh-cw"
-            size="sm"
-            color="neutral"
-            variant="outline"
-            :loading="syncing"
-            @click="syncFromLine(bot.id)"
-          >
-            Sync from LINE
-          </UButton>
-        </div>
-      </section>
+            <UIcon
+              v-if="syncing"
+              name="i-lucide-loader-circle"
+              class="absolute inset-0 m-auto size-5 text-primary animate-spin"
+            />
+            <template v-else>
+              <span
+                class="absolute inset-0 flex items-center justify-center font-mono text-xl font-semibold text-primary transition-opacity group-hover:opacity-0"
+              >
+                {{ (bot.displayName ?? '?').charAt(0).toUpperCase() }}
+              </span>
+              <UIcon
+                name="i-lucide-refresh-cw"
+                class="absolute inset-0 m-auto size-5 text-primary opacity-0 transition-opacity group-hover:opacity-100"
+              />
+            </template>
+          </button>
+        </UTooltip>
+        <h1 class="text-2xl font-semibold truncate">
+          {{ bot.displayName || '(unnamed)' }}
+        </h1>
+      </div>
 
-      <section>
-        <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-3">
-          webhook url
-        </h2>
+      <UFormField
+        label="Webhook URL"
+        help='In LINE Developers Console, paste this as your Webhook URL and turn on "Use webhook".'
+      >
         <div class="flex items-center gap-2 p-3 rounded-md border border-default bg-elevated/40">
           <code class="flex-1 font-mono text-sm text-highlighted truncate select-all">
             {{ bot.webhookUrl }}
@@ -157,10 +157,7 @@ const onDelete = async () => {
             @click="copyWebhook"
           />
         </div>
-        <p class="text-sm text-muted mt-2">
-          Paste into LINE Developers Console → Messaging API → Webhook URL, then enable "Use webhook".
-        </p>
-      </section>
+      </UFormField>
 
       <BotEditForm
         form-id="bot-form"
@@ -171,17 +168,30 @@ const onDelete = async () => {
         @submit="onSubmit"
       />
 
+      <UFormField label="Details">
+        <div class="p-4 rounded-md border border-default bg-elevated/40">
+          <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 font-mono text-xs">
+            <dt class="text-dimmed text-right">External ID</dt>
+            <dd class="text-toned break-all">{{ bot.externalId }}</dd>
+            <dt class="text-dimmed text-right">Created</dt>
+            <dd class="text-toned">{{ relativeTime(bot.createdAt) }}</dd>
+            <dt class="text-dimmed text-right">Updated</dt>
+            <dd class="text-toned">{{ relativeTime(bot.updatedAt) }}</dd>
+          </dl>
+        </div>
+      </UFormField>
+
       <section>
         <h2 class="font-mono text-xs uppercase tracking-wider text-error mb-3">
           danger zone
         </h2>
         <div class="flex items-center justify-between gap-4 p-4 rounded-md border border-error/40">
           <div class="min-w-0">
-            <p class="font-medium">
+            <p class="text-sm font-medium">
               Delete this bot
             </p>
             <p class="text-sm text-muted mt-1">
-              Permanent. Encrypted credentials are dropped. Agent (if any) unlinked.
+              Permanent. The saved tokens are removed and any attached agent is unlinked.
             </p>
           </div>
           <UButton
@@ -194,22 +204,18 @@ const onDelete = async () => {
         </div>
       </section>
 
-      <p class="font-mono text-xs text-dimmed">
-        external_id: {{ bot.externalId }} · created {{ relativeTime(bot.createdAt) }} · updated {{ relativeTime(bot.updatedAt) }}
-      </p>
-
       <DeleteConfirmDialog
         v-model:open="deleteDialogOpen"
         title="Delete bot"
         :item-name="bot.displayName || bot.externalId"
-        confirm-label="Delete bot"
+        confirm-label="Delete"
         :loading="deleting"
         @confirm="onDelete"
       >
         <p>
-          This permanently deletes
-          <span class="font-mono text-highlighted">{{ bot.displayName || bot.externalId }}</span>
-          and its encrypted credentials. The agent bound to it (if any) is unlinked but kept.
+          Permanently deletes
+          <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{{ bot.displayName || bot.externalId }}</span>
+          and its saved tokens. Any attached agent is detached but kept.
         </p>
       </DeleteConfirmDialog>
     </div>

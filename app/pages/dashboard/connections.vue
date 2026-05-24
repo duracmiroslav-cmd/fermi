@@ -60,7 +60,7 @@ const disconnect = async () => {
 
     <div class="p-6 sm:p-8 max-w-3xl space-y-8">
       <section>
-        <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-4">
+        <h2 class="font-mono text-xs uppercase tracking-wider text-toned mb-4">
           llm providers
         </h2>
         <UCard>
@@ -74,7 +74,7 @@ const disconnect = async () => {
                   Connected as {{ openrouter.openrouterUserId ?? 'user' }}
                 </template>
                 <template v-else>
-                  Required to run text and vision LLM calls
+                  Powers your bot's replies (text and images).
                 </template>
               </p>
             </div>

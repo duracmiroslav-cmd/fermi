@@ -15,19 +15,20 @@ const isActive = computed(() => {
 <template>
   <NuxtLink
     :to="to"
-    class="group flex items-center gap-3 px-3 py-2 rounded-md font-mono text-sm transition-colors"
+    class="group relative flex items-center gap-3 px-3 py-2 rounded-lg font-mono text-sm transition-all"
     :class="isActive
-      ? 'text-highlighted bg-muted/40'
-      : 'text-muted hover:text-default hover:bg-muted/20'"
+      ? 'text-primary bg-primary/10'
+      : 'text-muted hover:text-default hover:bg-elevated'"
   >
     <span
-      class="size-1 rounded-full transition-colors shrink-0"
-      :class="isActive ? 'bg-primary' : 'bg-transparent group-hover:bg-muted'"
+      class="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 rounded-r-full bg-primary transition-all"
+      :class="isActive ? 'h-5 opacity-100' : 'h-0 opacity-0'"
       aria-hidden="true"
     />
     <UIcon
       :name="icon"
-      class="size-4 shrink-0"
+      class="size-4 shrink-0 transition-transform"
+      :class="isActive ? 'scale-110' : 'group-hover:scale-110'"
     />
     <span>{{ label }}</span>
   </NuxtLink>

@@ -34,21 +34,22 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultMode
     <template #title>
       New agent
     </template>
+
+    <template #actions>
+      <UButton
+        type="submit"
+        form="agent-form"
+        :loading="saving"
+      >
+        Create
+      </UButton>
+    </template>
+
     <div class="p-6 sm:p-8 pb-12 max-w-3xl">
       <AgentForm
         form-id="agent-form"
         @submit="onSubmit"
       />
     </div>
-
-    <template #footer>
-      <UButton
-        type="submit"
-        form="agent-form"
-        :loading="saving"
-      >
-        Create agent
-      </UButton>
-    </template>
   </NuxtLayout>
 </template>

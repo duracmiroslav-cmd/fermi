@@ -7,7 +7,6 @@ interface AgentDetail {
   avatarUrl: string | null;
   createdAt: string;
   updatedAt: string;
-  bot: { id: string; displayName: string | null; platform: string } | null;
 }
 
 const route = useRoute();
@@ -90,9 +89,7 @@ const onDelete = async () => {
 
 <template>
   <NuxtLayout name="dashboard">
-    <template #title>
-      {{ agent?.name || 'Agent' }}
-    </template>
+    <template #title />
 
     <template
       v-if="agent"
@@ -103,48 +100,24 @@ const onDelete = async () => {
         form="agent-form"
         :loading="saving"
       >
-        Save changes
+        Save
       </UButton>
     </template>
     <div
       v-if="agent"
-      class="p-6 sm:p-8 pb-12 max-w-3xl space-y-12"
+      class="p-6 sm:p-8 pb-12 max-w-3xl flex flex-col gap-6"
     >
-      <p class="font-mono text-xs text-muted -mt-2">
-        <template v-if="agent.bot">
-          Bound to
-          <NuxtLink
-            :to="`/dashboard/bots/${agent.bot.id}`"
-            class="text-highlighted hover:underline"
-          >
-            {{ agent.bot.displayName || agent.bot.id }}
-          </NuxtLink>
-          <span
-            aria-hidden="true"
-            class="ml-1"
-          >↗</span>
-        </template>
-        <template v-else>
-          Not bound to any bot ·
-          <NuxtLink
-            to="/dashboard/bots"
-            class="text-toned hover:text-highlighted hover:underline"
-          >
-            bind →
-          </NuxtLink>
-        </template>
-      </p>
-
-      <section>
-        <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-4">
-          avatar
-        </h2>
+      <div class="flex items-center gap-4">
         <AgentAvatarUpload
           :agent-id="agent.id"
           :current-url="agent.avatarUrl"
+          :fallback="(agent.name ?? '?').charAt(0).toUpperCase()"
           @change="onAvatarChange"
         />
-      </section>
+        <h1 class="text-2xl font-semibold truncate">
+          {{ agent.name || '(unnamed)' }}
+        </h1>
+      </div>
 
       <AgentForm
         form-id="agent-form"
@@ -156,17 +129,30 @@ const onDelete = async () => {
         @submit="onSubmit"
       />
 
+      <UFormField label="Details">
+        <div class="p-4 rounded-md border border-default bg-elevated/40">
+          <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 font-mono text-xs">
+            <dt class="text-dimmed text-right">ID</dt>
+            <dd class="text-toned break-all">{{ agent.id }}</dd>
+            <dt class="text-dimmed text-right">Created</dt>
+            <dd class="text-toned">{{ relativeTime(agent.createdAt) }}</dd>
+            <dt class="text-dimmed text-right">Updated</dt>
+            <dd class="text-toned">{{ relativeTime(agent.updatedAt) }}</dd>
+          </dl>
+        </div>
+      </UFormField>
+
       <section>
         <h2 class="font-mono text-xs uppercase tracking-wider text-error mb-3">
           danger zone
         </h2>
         <div class="flex items-center justify-between gap-4 p-4 rounded-md border border-error/40">
           <div class="min-w-0">
-            <p class="font-medium">
+            <p class="text-sm font-medium">
               Delete this agent
             </p>
             <p class="text-sm text-muted mt-1">
-              Permanent. Bots bound to it will be unlinked.
+              Permanent. Bots using this agent will stop replying.
             </p>
           </div>
           <UButton
@@ -179,22 +165,18 @@ const onDelete = async () => {
         </div>
       </section>
 
-      <p class="font-mono text-xs text-dimmed">
-        id: {{ agent.id }} · created {{ relativeTime(agent.createdAt) }} · updated {{ relativeTime(agent.updatedAt) }}
-      </p>
-
       <DeleteConfirmDialog
         v-model:open="deleteDialogOpen"
         title="Delete agent"
         :item-name="agent.name"
-        confirm-label="Delete agent"
+        confirm-label="Delete"
         :loading="deleting"
         @confirm="onDelete"
       >
         <p>
-          This permanently deletes
-          <span class="font-mono text-highlighted">{{ agent.name }}</span>.
-          Bots bound to this agent are unlinked but kept.
+          Permanently deletes
+          <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{{ agent.name }}</span>.
+          Bots using this agent stop replying.
         </p>
       </DeleteConfirmDialog>
     </div>
