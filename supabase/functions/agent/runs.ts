@@ -3,6 +3,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 export type StepType
   = | 'llm_requested'
     | 'llm_responded'
+    | 'tool_called'
+    | 'tool_responded'
     | 'push_succeeded'
     | 'push_failed'
     | 'error_occurred';

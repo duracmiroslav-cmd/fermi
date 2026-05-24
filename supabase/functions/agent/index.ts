@@ -3,13 +3,14 @@ import { findAgentById } from '../../../shared/agents.ts';
 import { findBotById } from '../../../shared/bots.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
 import { getKek } from '../../../shared/kek.ts';
-import { OpenRouterError, chatCompletion } from './openrouter.ts';
+import { OpenRouterError, chatCompletion, type ChatMessage } from './openrouter.ts';
 import { finishRun, logStep, startRun } from './runs.ts';
 import {
   appendMessage,
   loadRecentMessages,
   resolveOrCreateLatestThread,
 } from './threads.ts';
+import { executeTool, toolSchemas } from './tools/index.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -21,6 +22,11 @@ const admin = createClient(supabaseUrl, supabaseServiceRoleKey, {
 
 const DEFAULT_MODEL = 'anthropic/claude-opus-4.7';
 const HISTORY_WINDOW = 20;
+// Hard cap on LLM iterations within a single agent run. One iteration
+// = one OpenRouter call. A typical multi-step query (read calendar →
+// search docs → answer) finishes in 3-5; 8 leaves headroom without
+// risking the Edge Function's 400s wall clock when tools are slow.
+const MAX_AGENT_STEPS = 8;
 
 interface LineSource {
   type: 'user' | 'group' | 'room';
@@ -228,40 +234,113 @@ const runAgentLoop = async (params: {
       ?? `You are ${agent.name}, a helpful assistant on LINE. Reply in the user's language.`;
     const model = agent.defaultModel ?? DEFAULT_MODEL;
 
-    await logStep(admin, {
-      runId,
-      step: step++,
-      type: 'llm_requested',
-      payload: { model, message_count: history.length },
-    });
+    const messages: ChatMessage[] = [
+      { role: 'system', content: systemPrompt },
+      ...history,
+    ];
 
-    const llmStart = performance.now();
-    const result = await chatCompletion({
-      apiKey: openrouterKey,
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...history,
-      ],
-    });
-    const llmLatency = Math.round(performance.now() - llmStart);
-    totalCostUsd += result.costUsd;
+    let finalText: string | null = null;
+    let iteration = 0;
+    while (iteration < MAX_AGENT_STEPS) {
+      iteration++;
 
-    await logStep(admin, {
-      runId,
-      step: step++,
-      type: 'llm_responded',
-      payload: {
-        model: result.model,
-        finish_reason: result.finishReason,
-        usage: result.usage,
-      },
-      latencyMs: llmLatency,
-      costUsd: result.costUsd,
-      openrouterGenId: result.generationId,
-    });
+      await logStep(admin, {
+        runId,
+        step: step++,
+        type: 'llm_requested',
+        payload: { model, message_count: messages.length, iteration },
+      });
 
-    await appendMessage(admin, threadId, 'assistant', { type: 'text', text: result.text });
+      const llmStart = performance.now();
+      const result = await chatCompletion({
+        apiKey: openrouterKey,
+        model,
+        messages,
+        tools: toolSchemas,
+      });
+      const llmLatency = Math.round(performance.now() - llmStart);
+      totalCostUsd += result.costUsd;
+
+      await logStep(admin, {
+        runId,
+        step: step++,
+        type: 'llm_responded',
+        payload: {
+          model: result.model,
+          finish_reason: result.finishReason,
+          usage: result.usage,
+          has_tool_calls: result.toolCalls !== null,
+        },
+        latencyMs: llmLatency,
+        costUsd: result.costUsd,
+        openrouterGenId: result.generationId,
+      });
+
+      // No tool calls — model's final answer. Exit loop.
+      if (!result.toolCalls) {
+        finalText = result.text ?? '';
+        break;
+      }
+
+      // Re-attach the assistant turn (including tool_calls) so the
+      // next LLM iteration sees the exchange. OpenAI's format requires
+      // each tool message to immediately follow the assistant turn
+      // that requested it.
+      messages.push({
+        role: 'assistant',
+        content: result.text,
+        tool_calls: result.toolCalls.map(tc => ({
+          id: tc.id,
+          type: 'function',
+          function: { name: tc.name, arguments: tc.argumentsJson },
+        })),
+      });
+
+      for (const call of result.toolCalls) {
+        await logStep(admin, {
+          runId,
+          step: step++,
+          type: 'tool_called',
+          payload: {
+            tool_call_id: call.id,
+            name: call.name,
+            arguments: call.argumentsJson,
+          },
+        });
+
+        const toolStart = performance.now();
+        const toolResult = await executeTool(call.name, call.argumentsJson);
+        const toolLatency = Math.round(performance.now() - toolStart);
+
+        await logStep(admin, {
+          runId,
+          step: step++,
+          type: 'tool_responded',
+          payload: {
+            tool_call_id: call.id,
+            name: call.name,
+            // Truncated preview keeps payload row size sane; full
+            // result still flows back to the model via the tool turn.
+            result_preview: toolResult.slice(0, 500),
+          },
+          latencyMs: toolLatency,
+        });
+
+        messages.push({
+          role: 'tool',
+          tool_call_id: call.id,
+          content: toolResult,
+        });
+      }
+    }
+
+    // Hit the step cap without a terminal assistant turn. Send the
+    // user a clear "I stopped" notice rather than nothing.
+    if (finalText === null) {
+      finalText = `⚠️ 跑了 ${MAX_AGENT_STEPS} 步還沒收斂，先停下來。可以換個方式問我一次。`;
+    }
+
+    await appendMessage(admin, threadId, 'assistant', { type: 'text', text: finalText });
 
     const elapsedMs = Date.now() - eventTimestamp;
     try {
@@ -269,7 +348,7 @@ const runAgentLoop = async (params: {
         accessToken: lineAccessToken,
         replyToken,
         userId: externalUserId,
-        text: `🤖 ${result.text}`,
+        text: `🤖 ${finalText}`,
         elapsedMs,
       });
       await logStep(admin, {

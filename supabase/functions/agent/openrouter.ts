@@ -3,9 +3,23 @@
 // abstraction is deferred until a second modality (vision / image gen)
 // needs it.
 
+import type { ToolSchema } from './tools/index.ts';
+
+export interface OutgoingToolCall {
+  id: string;
+  type: 'function';
+  function: { name: string; arguments: string };
+}
+
+// Union over the four valid turn shapes. `content` is nullable only on
+// assistant turns that exclusively carry `tool_calls`. `tool_call_id`
+// is mandatory on tool turns (OpenAI requires the bridge back to the
+// originating call) and forbidden elsewhere.
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string;
+  content: string | null;
+  tool_call_id?: string;
+  tool_calls?: OutgoingToolCall[];
 }
 
 // OpenRouter's usage object — full passthrough. New fields appear
@@ -29,8 +43,19 @@ export interface ChatCompletionUsage {
   };
 }
 
+export interface ToolCall {
+  id: string;
+  name: string;
+  // JSON-encoded args, exactly as the model emitted. Parsed by the
+  // tool executor; we don't pre-parse here because the registry needs
+  // to handle invalid JSON itself (so the error round-trips to the
+  // model as a tool result, not as a thrown exception).
+  argumentsJson: string;
+}
+
 export interface ChatCompletionResult {
-  text: string;
+  text: string | null;
+  toolCalls: ToolCall[] | null;
   generationId: string;
   model: string;
   finishReason: string;
@@ -44,11 +69,21 @@ export class OpenRouterError extends Error {
   }
 }
 
+interface RawToolCall {
+  id: string;
+  type: 'function';
+  function: { name: string; arguments: string };
+}
+
 interface RawCompletionResponse {
   id: string;
   model: string;
   choices: Array<{
-    message: { role: string; content: string | null };
+    message: {
+      role: string;
+      content: string | null;
+      tool_calls?: RawToolCall[];
+    };
     finish_reason: string;
   }>;
   usage: ChatCompletionUsage;
@@ -58,7 +93,16 @@ export const chatCompletion = async (params: {
   apiKey: string;
   model: string;
   messages: ChatMessage[];
+  tools?: ToolSchema[];
 }): Promise<ChatCompletionResult> => {
+  const body: Record<string, unknown> = {
+    model: params.model,
+    messages: params.messages,
+  };
+  if (params.tools && params.tools.length > 0) {
+    body.tools = params.tools;
+  }
+
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -68,25 +112,31 @@ export const chatCompletion = async (params: {
       'HTTP-Referer': 'https://fermi.tw',
       'X-Title': 'fermi',
     },
-    body: JSON.stringify({
-      model: params.model,
-      messages: params.messages,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
-    const body = await res.text();
-    throw new OpenRouterError(res.status, `OpenRouter ${res.status}: ${body}`);
+    const errBody = await res.text();
+    throw new OpenRouterError(res.status, `OpenRouter ${res.status}: ${errBody}`);
   }
 
   const data: RawCompletionResponse = await res.json();
-  const text = data.choices[0]?.message?.content ?? '';
+  const choice = data.choices[0];
+  const rawToolCalls = choice?.message?.tool_calls ?? null;
+  const toolCalls = rawToolCalls && rawToolCalls.length > 0
+    ? rawToolCalls.map(tc => ({
+      id: tc.id,
+      name: tc.function.name,
+      argumentsJson: tc.function.arguments,
+    }))
+    : null;
 
   return {
-    text,
+    text: choice?.message?.content ?? null,
+    toolCalls,
     generationId: data.id,
     model: data.model,
-    finishReason: data.choices[0]?.finish_reason ?? 'unknown',
+    finishReason: choice?.finish_reason ?? 'unknown',
     costUsd: data.usage.cost ?? 0,
     usage: data.usage,
   };
