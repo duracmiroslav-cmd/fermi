@@ -26,21 +26,6 @@ const saving = ref(false);
 const deleting = ref(false);
 const deleteDialogOpen = ref(false);
 
-const relativeTime = (iso: string) => {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const seconds = Math.floor(diffMs / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-  return `${Math.floor(months / 12)}y ago`;
-};
-
 const onSubmit = async (value: { name: string; systemPrompt: string; defaultModel: string }) => {
   saving.value = true;
   try {
@@ -148,12 +133,20 @@ const onDelete = async () => {
         id: {{ agent.id }} · created {{ relativeTime(agent.createdAt) }} · updated {{ relativeTime(agent.updatedAt) }}
       </p>
 
-      <AgentDeleteDialog
+      <DeleteConfirmDialog
         v-model:open="deleteDialogOpen"
-        :agent-name="agent.name"
+        title="Delete agent"
+        :item-name="agent.name"
+        confirm-label="Delete agent"
         :loading="deleting"
         @confirm="onDelete"
-      />
+      >
+        <p>
+          This permanently deletes
+          <span class="font-mono text-highlighted">{{ agent.name }}</span>.
+          Bots bound to this agent are unlinked but kept.
+        </p>
+      </DeleteConfirmDialog>
     </div>
 
     <template

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 const props = defineProps<{
   open: boolean;
-  agentName: string;
+  title: string;
+  itemName: string;
+  confirmLabel: string;
   loading?: boolean;
 }>();
 
@@ -11,7 +13,7 @@ const emit = defineEmits<{
 }>();
 
 const confirmInput = ref('');
-const matches = computed(() => confirmInput.value === props.agentName);
+const matches = computed(() => confirmInput.value === props.itemName);
 
 watch(() => props.open, (v) => {
   if (v) confirmInput.value = '';
@@ -32,19 +34,17 @@ const onConfirm = () => {
       <div class="p-6 space-y-5">
         <div>
           <h2 class="font-mono text-xs uppercase tracking-wider text-error mb-2">
-            Delete agent
+            {{ title }}
           </h2>
-          <p class="text-sm text-toned">
-            This permanently deletes
-            <span class="font-mono text-highlighted">{{ agentName }}</span>.
-            Bots bound to this agent are unlinked but kept.
-          </p>
+          <div class="text-sm text-toned">
+            <slot />
+          </div>
         </div>
 
         <div>
           <label class="block font-mono text-xs text-muted mb-2">
             type
-            <span class="text-highlighted">{{ agentName }}</span>
+            <span class="text-highlighted">{{ itemName }}</span>
             to confirm
           </label>
           <UInput
@@ -69,7 +69,7 @@ const onConfirm = () => {
             :loading="loading"
             @click="onConfirm"
           >
-            Delete agent
+            {{ confirmLabel }}
           </UButton>
         </div>
       </div>

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { BOT_LIMIT, type Tier } from '~~/shared/constants/tiers';
-
 interface BotRow {
   id: string;
   platform: string;
@@ -13,37 +11,9 @@ interface BotRow {
   webhookUrl: string;
 }
 
-interface ProfileShape {
-  tier: Tier;
-}
-
-const { data: profile } = await useFetch<ProfileShape>('/api/me/profile', {
-  headers: useRequestHeaders(['cookie']),
-});
-const { data: bots } = await useFetch<BotRow[]>('/api/bots', {
-  headers: useRequestHeaders(['cookie']),
-});
-
-const limit = computed(() => BOT_LIMIT[(profile.value?.tier ?? 'free') as Tier]);
-const used = computed(() => bots.value?.length ?? 0);
-const atLimit = computed(() => used.value >= limit.value);
+const { items: bots, limit, used, atLimit } = useTierLimit<BotRow>('bots');
 
 const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
-
-const relativeTime = (iso: string) => {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const seconds = Math.floor(diffMs / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-  return `${Math.floor(months / 12)}y ago`;
-};
 </script>
 
 <template>
