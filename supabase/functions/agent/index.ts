@@ -341,22 +341,18 @@ const runAgentLoop = async (params: {
   }
 };
 
-// Single source of truth for what a runtime error looks like inside a
-// LINE chat. Truncates the message so a stack-trace doesn't blow past
-// LINE's 5000-char limit, and prefixes a status code when one is
-// available so the surface is greppable in chat history.
+// Wraps a runtime error for display in a LINE chat. The error classes
+// (OpenRouterError / LineReplyError / LinePushError) already self-
+// format with their status code, so we just prefix `⚠️` and truncate
+// to keep the message well under LINE's 5000-char limit.
 const formatErrorForLine = (err: unknown): string => {
   const maxLen = 400;
-  if (err instanceof OpenRouterError) {
-    return `⚠️ OpenRouter ${err.status}: ${err.message.slice(0, maxLen)}`;
-  }
-  if (err instanceof LineReplyError) {
-    return `⚠️ LINE Reply ${err.status}: ${err.message.slice(0, maxLen)}`;
-  }
-  if (err instanceof LinePushError) {
-    return `⚠️ LINE Push ${err.status}: ${err.message.slice(0, maxLen)}`;
-  }
-  return `⚠️ fermi error: ${String(err).slice(0, maxLen)}`;
+  const message = err instanceof OpenRouterError
+    || err instanceof LineReplyError
+    || err instanceof LinePushError
+    ? err.message
+    : `fermi error: ${String(err)}`;
+  return `⚠️ ${message.slice(0, maxLen)}`;
 };
 
 const processLineMessage = async (payload: LinePayload): Promise<void> => {
