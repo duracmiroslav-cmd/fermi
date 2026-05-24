@@ -50,7 +50,7 @@ const submit = async () => {
         </div>
         <nav class="flex items-center gap-6 font-mono text-xs">
           <a
-            href="https://github.com/memochou1993/fermi"
+            href="https://github.com/ipotesi/fermi"
             target="_blank"
             rel="noopener"
             class="text-muted hover:text-highlighted transition-colors flex items-center gap-1.5"
@@ -164,25 +164,14 @@ const submit = async () => {
       <footer class="px-6 sm:px-12 py-6 border-t border-default font-mono text-xs text-dimmed">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <span>© fermi · spiritual successor to gpt-ai-assistant</span>
-          <div class="flex items-center gap-4">
-            <a
-              href="https://github.com/memochou1993/fermi"
-              target="_blank"
-              rel="noopener"
-              class="hover:text-highlighted transition-colors"
-            >
-              github
-            </a>
-            <span class="text-muted">·</span>
-            <a
-              href="https://x.com/memochou1993"
-              target="_blank"
-              rel="noopener"
-              class="hover:text-highlighted transition-colors"
-            >
-              x
-            </a>
-          </div>
+          <a
+            href="https://github.com/ipotesi/fermi"
+            target="_blank"
+            rel="noopener"
+            class="hover:text-highlighted transition-colors"
+          >
+            github ↗
+          </a>
         </div>
       </footer>
     </div>
