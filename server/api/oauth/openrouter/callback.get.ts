@@ -11,23 +11,23 @@ export default defineEventHandler(async (event) => {
   const error = typeof query.error === 'string' ? query.error : null;
   if (error) {
     clearPkceCookie(event);
-    return sendRedirect(event, `/dashboard?openrouter=error&reason=${encodeURIComponent(error)}`, 302);
+    return sendRedirect(event, `/dashboard/connections?openrouter=error&reason=${encodeURIComponent(error)}`, 302);
   }
 
   const code = typeof query.code === 'string' ? query.code : null;
   const state = typeof query.state === 'string' ? query.state : null;
   if (!code || !state) {
     clearPkceCookie(event);
-    return sendRedirect(event, '/dashboard?openrouter=error&reason=missing_params', 302);
+    return sendRedirect(event, '/dashboard/connections?openrouter=error&reason=missing_params', 302);
   }
 
   const cookie = readPkceCookie(event);
   if (!cookie) {
-    return sendRedirect(event, '/dashboard?openrouter=error&reason=expired_session', 302);
+    return sendRedirect(event, '/dashboard/connections?openrouter=error&reason=expired_session', 302);
   }
   if (state !== cookie.state) {
     clearPkceCookie(event);
-    return sendRedirect(event, '/dashboard?openrouter=error&reason=state_mismatch', 302);
+    return sendRedirect(event, '/dashboard/connections?openrouter=error&reason=state_mismatch', 302);
   }
 
   // Clear before the network call so a failure mid-exchange still
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
   try {
     exchange = await exchangeCodeForKey(code, cookie.codeVerifier);
   } catch {
-    return sendRedirect(event, '/dashboard?openrouter=error&reason=exchange_failed', 302);
+    return sendRedirect(event, '/dashboard/connections?openrouter=error&reason=exchange_failed', 302);
   }
 
   const { fermiKek } = useRuntimeConfig(event);
@@ -55,10 +55,10 @@ export default defineEventHandler(async (event) => {
     });
   } catch (err: unknown) {
     if ((err as { code?: string }).code === '23505') {
-      return sendRedirect(event, '/dashboard?openrouter=error&reason=already_connected', 302);
+      return sendRedirect(event, '/dashboard/connections?openrouter=error&reason=already_connected', 302);
     }
     throw err;
   }
 
-  return sendRedirect(event, '/dashboard?openrouter=connected', 302);
+  return sendRedirect(event, '/dashboard/connections?openrouter=connected', 302);
 });
