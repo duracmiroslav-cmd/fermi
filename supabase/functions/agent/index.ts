@@ -312,9 +312,44 @@ const runAgentLoop = async (params: {
       type: 'error_occurred',
       payload,
     });
+    // Surface the failure to LINE so the user (and dogfooding owner)
+    // sees what went wrong instead of staring at a vanished `...`.
+    // Best-effort: a failed notice must not break the outer retry
+    // semantics. v1 ships the raw error string for fast dogfooding
+    // — once we have non-trusted users this needs to switch to a
+    // friendly notice + admin-only debug link (see roadmap M3 P1).
+    try {
+      await deliverMessage({
+        accessToken: lineAccessToken,
+        replyToken,
+        userId: externalUserId,
+        text: formatErrorForLine(err),
+        elapsedMs: Date.now() - eventTimestamp,
+      });
+    } catch (notifyErr) {
+      console.error('error notice delivery failed', notifyErr);
+    }
     await finishRun(admin, runId, 'failed', totalCostUsd);
     throw err;
   }
+};
+
+// Single source of truth for what a runtime error looks like inside a
+// LINE chat. Truncates the message so a stack-trace doesn't blow past
+// LINE's 5000-char limit, and prefixes a status code when one is
+// available so the surface is greppable in chat history.
+const formatErrorForLine = (err: unknown): string => {
+  const maxLen = 400;
+  if (err instanceof OpenRouterError) {
+    return `⚠️ OpenRouter ${err.status}: ${err.message.slice(0, maxLen)}`;
+  }
+  if (err instanceof LineReplyError) {
+    return `⚠️ LINE Reply ${err.status}: ${err.message.slice(0, maxLen)}`;
+  }
+  if (err instanceof LinePushError) {
+    return `⚠️ LINE Push ${err.status}: ${err.message.slice(0, maxLen)}`;
+  }
+  return `⚠️ fermi error: ${String(err).slice(0, maxLen)}`;
 };
 
 const processLineMessage = async (payload: LinePayload): Promise<void> => {
