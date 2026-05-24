@@ -138,7 +138,7 @@ const syncAvatar = async (bot: BotRow) => {
               />
               <template v-else>
                 <span
-                  class="absolute inset-0 flex items-center justify-center font-mono text-xs text-primary transition-opacity group-hover:opacity-0"
+                  class="absolute inset-0 flex items-center justify-center font-mono text-sm font-semibold text-primary transition-opacity group-hover:opacity-0"
                 >
                   {{ initial(bot.displayName) }}
                 </span>

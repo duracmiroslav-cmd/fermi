@@ -154,7 +154,7 @@ const onDelete = async () => {
           />
           <div
             v-else
-            class="size-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center font-mono text-base text-primary"
+            class="size-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center font-mono text-xl font-semibold text-primary"
           >
             {{ (bot.displayName ?? '?').charAt(0).toUpperCase() }}
           </div>
