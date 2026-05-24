@@ -15,6 +15,19 @@
   --color-apricot-900: #4d0a00;
   --color-apricot-950: #1f0000;
 
+  /* OKLCH scale, anchored at #97B975 (500) */
+  --color-pistachio-50:  #f9fbf8;
+  --color-pistachio-100: #e3ebdb;
+  --color-pistachio-200: #ccdcbe;
+  --color-pistachio-300: #b8cfa2;
+  --color-pistachio-400: #a5c388;
+  --color-pistachio-500: #97b975;
+  --color-pistachio-600: #6f8d4f;
+  --color-pistachio-700: #4d6a2b;
+  --color-pistachio-800: #2c4603;
+  --color-pistachio-900: #102200;
+  --color-pistachio-950: #010300;
+
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
