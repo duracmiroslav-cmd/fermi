@@ -171,8 +171,8 @@ export type Database = {
           allow_groups: boolean
           created_at: string
           deleted_at: string | null
+          disabled_at: string | null
           display_name: string | null
-          enabled: boolean
           external_id: string
           id: string
           owner_id: string
@@ -184,8 +184,8 @@ export type Database = {
           allow_groups?: boolean
           created_at?: string
           deleted_at?: string | null
+          disabled_at?: string | null
           display_name?: string | null
-          enabled?: boolean
           external_id: string
           id?: string
           owner_id: string
@@ -197,8 +197,8 @@ export type Database = {
           allow_groups?: boolean
           created_at?: string
           deleted_at?: string | null
+          disabled_at?: string | null
           display_name?: string | null
-          enabled?: boolean
           external_id?: string
           id?: string
           owner_id?: string

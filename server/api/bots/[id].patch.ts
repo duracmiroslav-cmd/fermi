@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   const patch: Record<string, unknown> = {};
   if ('agentId' in input) patch.agent_id = input.agentId;
   if ('displayName' in input) patch.display_name = input.displayName;
-  if ('enabled' in input) patch.enabled = input.enabled;
+  if ('disabledAt' in input) patch.disabled_at = input.disabledAt;
   if ('allowGroups' in input) patch.allow_groups = input.allowGroups;
 
   if (Object.keys(patch).length === 0) {
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
     .eq('id', id)
     .eq('owner_id', user.id)
     .is('deleted_at', null)
-    .select('id, platform, external_id, display_name, agent_id, enabled, allow_groups, updated_at')
+    .select('id, platform, external_id, display_name, agent_id, disabled_at, allow_groups, updated_at')
     .maybeSingle();
   if (error) {
     // Unique violation on agent_id (1:1 binding enforced at DB level).
@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
     externalId: data.external_id,
     displayName: data.display_name,
     agentId: data.agent_id,
-    enabled: data.enabled,
+    disabledAt: data.disabled_at,
     allowGroups: data.allow_groups,
     updatedAt: data.updated_at,
   };

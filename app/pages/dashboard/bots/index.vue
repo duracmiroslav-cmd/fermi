@@ -5,7 +5,7 @@ interface BotRow {
   externalId: string;
   displayName: string | null;
   agentId: string | null;
-  enabled: boolean;
+  disabledAt: string | null;
   allowGroups: boolean;
   createdAt: string;
   webhookUrl: string;
@@ -87,7 +87,7 @@ const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
             <p class="font-medium truncate flex items-center gap-2">
               {{ bot.displayName || '(unnamed)' }}
               <span
-                v-if="!bot.enabled"
+                v-if="bot.disabledAt"
                 class="font-mono text-xs text-dimmed normal-case"
               >paused</span>
             </p>

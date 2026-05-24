@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const admin = useSupabaseAdmin();
   const { data, error } = await admin
     .from('bots')
-    .select('id, platform, external_id, display_name, agent_id, enabled, allow_groups, created_at, updated_at')
+    .select('id, platform, external_id, display_name, agent_id, disabled_at, allow_groups, created_at, updated_at')
     .eq('id', id)
     .eq('owner_id', user.id)
     .is('deleted_at', null)
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     externalId: data.external_id,
     displayName: data.display_name,
     agentId: data.agent_id,
-    enabled: data.enabled,
+    disabledAt: data.disabled_at,
     allowGroups: data.allow_groups,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
