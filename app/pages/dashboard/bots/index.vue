@@ -13,7 +13,7 @@ interface BotRow {
   webhookUrl: string;
 }
 
-const { items: bots, limit, used, atLimit, pending, refresh, limitMessage } = useTierLimit<BotRow>('bots');
+const { items: bots, used, atLimit, pending, refresh, limitMessage } = useTierLimit<BotRow>('bots');
 const { syncingId, sync: syncAvatar } = useBotAvatar(refresh);
 
 const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();

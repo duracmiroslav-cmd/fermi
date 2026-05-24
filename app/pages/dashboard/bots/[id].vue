@@ -35,7 +35,9 @@ const copyWebhook = async () => {
   if (!bot.value) return;
   await navigator.clipboard.writeText(bot.value.webhookUrl);
   webhookCopied.value = true;
-  setTimeout(() => { webhookCopied.value = false; }, 1500);
+  setTimeout(() => {
+    webhookCopied.value = false;
+  }, 1500);
 };
 
 const onSubmit = async (value: { agentId: string | null; disabledAt: string | null }) => {

@@ -11,7 +11,7 @@ interface AgentRow {
   updatedAt: string;
 }
 
-const { items: agents, limit, used, atLimit, pending, limitMessage } = useTierLimit<AgentRow>('agents');
+const { items: agents, used, atLimit, pending, limitMessage } = useTierLimit<AgentRow>('agents');
 
 const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
 
