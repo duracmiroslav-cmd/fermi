@@ -1,11 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type StepType
-  = | 'llm_request'
-    | 'llm_response'
-    | 'push_sent'
+  = | 'llm_requested'
+    | 'llm_responded'
+    | 'push_succeeded'
     | 'push_failed'
-    | 'error';
+    | 'error_occurred';
 
 export type RunStatus = 'running' | 'succeeded' | 'failed';
 

@@ -160,7 +160,7 @@ const runAgentLoop = async (params: {
     await logStep(admin, {
       runId,
       step: step++,
-      type: 'llm_request',
+      type: 'llm_requested',
       payload: { model, message_count: history.length },
     });
 
@@ -179,7 +179,7 @@ const runAgentLoop = async (params: {
     await logStep(admin, {
       runId,
       step: step++,
-      type: 'llm_response',
+      type: 'llm_responded',
       payload: {
         model: result.model,
         finish_reason: result.finishReason,
@@ -197,7 +197,7 @@ const runAgentLoop = async (params: {
       await logStep(admin, {
         runId,
         step: step++,
-        type: 'push_sent',
+        type: 'push_succeeded',
       });
       await finishRun(admin, runId, 'succeeded', totalCostUsd);
     } catch (err) {
@@ -223,7 +223,7 @@ const runAgentLoop = async (params: {
     await logStep(admin, {
       runId,
       step: step++,
-      type: 'error',
+      type: 'error_occurred',
       payload,
     });
     await finishRun(admin, runId, 'failed', totalCostUsd);
