@@ -1,135 +1,102 @@
 <script setup lang="ts">
-import type { CredentialResponse, accounts } from 'google-one-tap';
-import { normalizeLocale } from '~~/shared/locale';
-
 definePageMeta({ auth: false });
 
 useSeoMeta({
   title: 'Sign in · fermi',
 });
 
-useHead({
-  script: [{ src: 'https://accounts.google.com/gsi/client', async: true }],
-});
-
-declare const google: { accounts: accounts };
-
-const config = useRuntimeConfig();
 const supabase = useSupabaseClient();
 const errorMessage = ref<string | null>(null);
-const githubBusy = ref(false);
+const busy = ref<'google' | 'github' | null>(null);
 
-const signInWithGithub = async () => {
-  githubBusy.value = true;
+const signInWithProvider = async (provider: 'google' | 'github') => {
+  busy.value = provider;
   errorMessage.value = null;
   const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'github',
+    provider,
     options: { redirectTo: `${window.location.origin}/confirm` },
   });
   if (error) {
     errorMessage.value = error.message;
-    githubBusy.value = false;
+    busy.value = null;
   }
-};
-
-const generateNonce = async (): Promise<[string, string]> => {
-  const rawNonce = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))));
-  const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawNonce));
-  const hashedNonce = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-  return [rawNonce, hashedNonce];
-};
-
-const handleGoogleCredential = (rawNonce: string) => async (response: CredentialResponse) => {
-  try {
-    const { error } = await supabase.auth.signInWithIdToken({
-      provider: 'google',
-      token: response.credential,
-      nonce: rawNonce,
-    });
-    if (error) throw error;
-
-    await $fetch('/api/me/profile', {
-      method: 'PATCH',
-      body: { locale: normalizeLocale(navigator.language) },
-    }).catch(err => console.warn('locale sync failed', err));
-
-    await navigateTo('/dashboard');
-  } catch (e) {
-    errorMessage.value = e instanceof Error ? e.message : 'Sign-in failed';
-  }
-};
-
-const initGoogleOneTap = async () => {
-  await until(() => !!window.google).toBeTruthy({ timeout: 5000 });
-
-  const [rawNonce, hashedNonce] = await generateNonce();
-
-  google.accounts.id.initialize({
-    client_id: config.public.googleClientId,
-    nonce: hashedNonce,
-    use_fedcm_for_prompt: true,
-    callback: handleGoogleCredential(rawNonce),
-  });
-
-  const btn = document.getElementById('google-btn');
-  if (btn) {
-    google.accounts.id.renderButton(btn, {
-      theme: 'filled_black',
-      size: 'large',
-      shape: 'pill',
-      width: 280,
-    });
-  }
-
-  google.accounts.id.prompt();
 };
 
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
     await navigateTo('/dashboard');
-    return;
   }
-  await initGoogleOneTap();
 });
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col items-center justify-center gap-6 px-4">
+  <div class="min-h-screen flex flex-col items-center justify-center gap-8 px-4">
     <div class="text-center">
-      <h1 class="text-2xl font-bold">
+      <h1 class="font-mono text-2xl text-highlighted tracking-tight">
         fermi
       </h1>
-      <p class="text-sm text-muted mt-1">
-        LINE 上的 agentic assistant
+      <p class="text-sm text-muted mt-2">
+        Agentic AI in your LINE
       </p>
     </div>
 
-    <div id="google-btn" />
-
-    <button
-      type="button"
-      :disabled="githubBusy"
-      class="flex items-center justify-center gap-3 w-70 h-10 rounded-full bg-black text-white text-sm font-medium hover:bg-stone-900 transition-colors disabled:opacity-60 cursor-pointer"
-      @click="signInWithGithub"
-    >
-      <svg
-        viewBox="0 0 24 24"
-        class="w-5 h-5"
-        fill="currentColor"
-        aria-hidden="true"
+    <div class="flex flex-col gap-3 w-full max-w-xs">
+      <button
+        type="button"
+        :disabled="!!busy"
+        class="flex items-center justify-center gap-3 h-11 rounded-full border border-default bg-elevated hover:bg-accented text-default text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+        @click="signInWithProvider('google')"
       >
-        <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
-      </svg>
-      Sign in with GitHub
-    </button>
+        <svg
+          viewBox="0 0 18 18"
+          class="w-5 h-5 shrink-0"
+          aria-hidden="true"
+        >
+          <path
+            fill="#4285F4"
+            d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+          />
+          <path
+            fill="#34A853"
+            d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"
+          />
+          <path
+            fill="#FBBC05"
+            d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"
+          />
+          <path
+            fill="#EA4335"
+            d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+          />
+        </svg>
+        {{ busy === 'google' ? 'Redirecting…' : 'Continue with Google' }}
+      </button>
+
+      <button
+        type="button"
+        :disabled="!!busy"
+        class="flex items-center justify-center gap-3 h-11 rounded-full border border-default bg-elevated hover:bg-accented text-default text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+        @click="signInWithProvider('github')"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          class="w-5 h-5 shrink-0"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+        </svg>
+        {{ busy === 'github' ? 'Redirecting…' : 'Continue with GitHub' }}
+      </button>
+    </div>
 
     <UAlert
       v-if="errorMessage"
       color="error"
       variant="subtle"
       :description="errorMessage"
-      class="max-w-sm w-full"
+      class="max-w-xs w-full"
     />
   </div>
 </template>

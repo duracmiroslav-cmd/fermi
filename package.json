@@ -31,11 +31,9 @@
     "@nuxt/eslint": "^1.15.2",
     "@nuxt/test-utils": "^4.0.3",
     "@stylistic/eslint-plugin": "^5.10.0",
-    "@types/google-one-tap": "^1.2.7",
     "eslint": "^10.4.0",
     "eslint-plugin-import-x": "^4.16.2",
     "eslint-plugin-vue": "^10.9.1",
-    "google-one-tap": "^1.0.6",
     "happy-dom": "^20.9.0",
     "typescript-eslint": "^8.59.4",
     "vitest": "^4.1.7"
