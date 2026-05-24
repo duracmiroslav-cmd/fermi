@@ -17,6 +17,7 @@ const emit = defineEmits<{
 }>();
 
 const models = [
+  { label: 'Gemini 2.0 Flash (Google, free)', value: 'google/gemini-2.0-flash-exp:free' },
   { label: 'Claude Sonnet 4.6 (Anthropic)', value: 'anthropic/claude-sonnet-4-6' },
 ];
 
