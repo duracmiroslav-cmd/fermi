@@ -4,8 +4,13 @@ import { normalizeLocale } from '~~/shared/locale';
 const supabase = useSupabaseClient();
 
 onMounted(async () => {
-  const { error } = await supabase.auth.exchangeCodeForSession(window.location.search);
-  if (error) {
+  // No-op when Supabase already handled the OAuth callback server-side;
+  // still needed for PKCE / magic-link flows where the client must finish
+  // the exchange. Either way, the session check below is the source of truth.
+  await supabase.auth.exchangeCodeForSession(window.location.search).catch(() => {});
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
     await navigateTo('/sign-in');
     return;
   }
