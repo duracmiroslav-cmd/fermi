@@ -34,6 +34,7 @@ export default defineEventHandler(async (event) => {
     .update(patch)
     .eq('id', id)
     .eq('owner_id', user.id)
+    .is('deleted_at', null)
     .select('id, name, system_prompt, default_model, avatar_url, updated_at')
     .maybeSingle();
   if (error) throw error;

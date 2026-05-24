@@ -26,11 +26,12 @@ create trigger conversations_set_updated_at
 
 alter table public.conversations enable row level security;
 
--- Conversations are only visible while the parent bot is active
--- (not in the trash). Restoring the bot makes them visible again.
+-- Hidden while either the conversation itself or its parent bot is in
+-- the trash. Restoring either makes it visible again.
 create policy "Users can view their own conversations." on public.conversations
   for select using (
-    exists (
+    deleted_at is null
+    and exists (
       select 1 from public.bots
       where bots.id = conversations.bot_id
         and bots.owner_id = (select auth.uid())

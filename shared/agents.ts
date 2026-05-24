@@ -25,6 +25,9 @@ const mapRow = (data: {
   avatarUrl: data.avatar_url,
 });
 
+// Filters trashed agents so callers can treat a non-null return as
+// "safe to load persona config." Worker / API paths rely on this
+// instead of repeating the check downstream.
 export const findAgentById = async (
   admin: SupabaseClient,
   agentId: string,
@@ -33,6 +36,7 @@ export const findAgentById = async (
     .from('agents')
     .select('id, owner_id, name, system_prompt, default_model, avatar_url')
     .eq('id', agentId)
+    .is('deleted_at', null)
     .maybeSingle();
   if (error) throw error;
   return data ? mapRow(data) : null;

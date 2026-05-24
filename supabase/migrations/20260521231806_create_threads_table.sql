@@ -29,6 +29,7 @@ create policy "Users can view their own threads." on public.threads
       from public.conversations c
       join public.bots b on b.id = c.bot_id
       where c.id = threads.conversation_id
+        and c.deleted_at is null
         and b.owner_id = (select auth.uid())
         and b.deleted_at is null
     )

@@ -1,8 +1,5 @@
--- Creates the `agents` table. An agent is the abstract persona / brain
--- a user defines (system prompt, default model, avatar). Many bots can
--- bind to one agent; today the binding is 1:1 (enforced on bots), but
--- the FK on bots is `set null` so agents can be deleted without
--- cascading the deployment.
+-- Persona layer. The FK on `bots.agent_id` is `set null`, so deleting
+-- an agent leaves the deployment intact and rebindable.
 
 create table public.agents (
   id              uuid primary key default gen_random_uuid(),
@@ -12,10 +9,16 @@ create table public.agents (
   default_model   text,
   avatar_url      text,
   created_at      timestamptz not null default now(),
-  updated_at      timestamptz not null default now()
+  updated_at      timestamptz not null default now(),
+  deleted_at      timestamptz
 );
 
-create index agents_owner_id_idx on public.agents(owner_id);
+-- Owner lookups always filter deleted_at, so a partial index over
+-- the active subset is both smaller and more selective than a full
+-- B-tree on owner_id alone.
+create index agents_active_owner_idx
+  on public.agents(owner_id)
+  where deleted_at is null;
 
 create trigger agents_set_updated_at
   before update on public.agents
@@ -24,7 +27,10 @@ create trigger agents_set_updated_at
 alter table public.agents enable row level security;
 
 create policy "Users can view their own agents." on public.agents
-  for select using ((select auth.uid()) = owner_id);
+  for select using (
+    (select auth.uid()) = owner_id
+    and deleted_at is null
+  );
 
 -- Locks the owner's users row before counting + inserting so two
 -- concurrent creates from the same user can't both observe an
@@ -48,7 +54,7 @@ begin
 
   select count(*) into current_count
   from public.agents
-  where owner_id = p_owner_id;
+  where owner_id = p_owner_id and deleted_at is null;
 
   if current_count >= p_limit then
     raise exception 'agent_limit_reached' using errcode = 'P0001';

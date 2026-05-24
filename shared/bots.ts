@@ -1,5 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+// Both lookups filter `deleted_at is null` so callers can treat a
+// non-null return as "active bot." Downstream credential loaders
+// trust this invariant instead of re-checking.
+
 export interface BotRef {
   id: string;
   ownerId: string;

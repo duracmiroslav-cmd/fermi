@@ -8,20 +8,17 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Missing agent id' });
   }
 
-  // Hard delete: bound bots' agent_id flips to NULL via FK
-  // `on delete set null`, leaving the deployment intact for rebinding.
   const admin = useSupabaseAdmin();
-  const { data, error } = await admin
-    .from('agents')
-    .delete()
-    .eq('id', id)
-    .eq('owner_id', user.id)
-    .select('id')
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) {
-    throw createError({ statusCode: 404, statusMessage: 'Agent not found' });
+  const { data, error } = await admin.rpc('delete_agent', {
+    p_agent_id: id,
+    p_owner_id: user.id,
+  });
+  if (error) {
+    if (error.message?.includes('agent_not_found')) {
+      throw createError({ statusCode: 404, statusMessage: 'Agent not found' });
+    }
+    throw error;
   }
 
-  return { id: data.id };
+  return { id: data };
 });

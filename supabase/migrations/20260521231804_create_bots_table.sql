@@ -1,6 +1,5 @@
--- Each row is one deployed bot: a transport binding (currently a LINE
--- OA) plus deployment-level settings. The persona lives on `agents`;
--- a bot binds to at most one agent (the FK is `unique`).
+-- Deployment / transport layer. Persona lives on `agents`; the FK
+-- below uses `set null` so an agent delete leaves the bot rebindable.
 
 create table public.bots (
   id            uuid primary key default gen_random_uuid(),

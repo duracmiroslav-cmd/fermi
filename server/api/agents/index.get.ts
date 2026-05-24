@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
     .from('agents')
     .select('id, name, system_prompt, default_model, avatar_url, created_at, updated_at')
     .eq('owner_id', user.id)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
   if (error) throw error;
 

@@ -30,14 +30,13 @@ export default defineEventHandler(async (event) => {
 
   const admin = useSupabaseAdmin();
 
-  // If binding an agent, verify it belongs to this user. Skipped on
-  // unbind (agentId === null) because there's no row to verify.
   if (typeof input.agentId === 'string') {
     const { data: agent, error: agentErr } = await admin
       .from('agents')
       .select('id')
       .eq('id', input.agentId)
       .eq('owner_id', user.id)
+      .is('deleted_at', null)
       .maybeSingle();
     if (agentErr) throw agentErr;
     if (!agent) {

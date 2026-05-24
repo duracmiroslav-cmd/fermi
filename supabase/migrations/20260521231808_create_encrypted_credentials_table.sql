@@ -41,9 +41,9 @@ create table public.encrypted_credentials (
   )
 );
 
--- Partial unique index: account-level creds (bot_id IS NULL) get
--- one-per-(user, key_type) enforcement, since SQL UNIQUE treats NULLs
--- as distinct and would otherwise allow duplicates.
+-- SQL UNIQUE treats NULLs as distinct, so the table-level constraint
+-- skips account-level rows (bot_id IS NULL). This partial index
+-- re-enforces one-per-(user, key_type) for that subset.
 create unique index encrypted_credentials_user_keytype_no_bot_uq
   on public.encrypted_credentials (user_id, key_type)
   where bot_id is null;
