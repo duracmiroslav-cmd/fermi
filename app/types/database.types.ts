@@ -39,40 +39,100 @@ export type Database = {
   }
   public: {
     Tables: {
-      channels: {
+      agents: {
         Row: {
-          channel_type: string
+          avatar_url: string | null
           created_at: string
+          default_model: string | null
           deleted_at: string | null
-          display_name: string | null
-          external_id: string
           id: string
+          name: string
           owner_id: string
+          system_prompt: string | null
           updated_at: string
         }
         Insert: {
-          channel_type?: string
+          avatar_url?: string | null
           created_at?: string
+          default_model?: string | null
           deleted_at?: string | null
-          display_name?: string | null
-          external_id: string
           id?: string
+          name: string
           owner_id: string
+          system_prompt?: string | null
           updated_at?: string
         }
         Update: {
-          channel_type?: string
+          avatar_url?: string | null
           created_at?: string
+          default_model?: string | null
           deleted_at?: string | null
-          display_name?: string | null
-          external_id?: string
           id?: string
+          name?: string
           owner_id?: string
+          system_prompt?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "channels_owner_id_fkey"
+            foreignKeyName: "agents_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bots: {
+        Row: {
+          agent_id: string | null
+          allow_groups: boolean
+          created_at: string
+          deleted_at: string | null
+          display_name: string | null
+          enabled: boolean
+          external_id: string
+          id: string
+          owner_id: string
+          platform: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id?: string | null
+          allow_groups?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          display_name?: string | null
+          enabled?: boolean
+          external_id: string
+          id?: string
+          owner_id: string
+          platform?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string | null
+          allow_groups?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          display_name?: string | null
+          enabled?: boolean
+          external_id?: string
+          id?: string
+          owner_id?: string
+          platform?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bots_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: true
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bots_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -82,7 +142,7 @@ export type Database = {
       }
       conversations: {
         Row: {
-          channel_id: string
+          bot_id: string
           created_at: string
           deleted_at: string | null
           display_name: string | null
@@ -94,7 +154,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          channel_id: string
+          bot_id: string
           created_at?: string
           deleted_at?: string | null
           display_name?: string | null
@@ -106,7 +166,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          channel_id?: string
+          bot_id?: string
           created_at?: string
           deleted_at?: string | null
           display_name?: string | null
@@ -119,10 +179,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "conversations_channel_id_fkey"
-            columns: ["channel_id"]
+            foreignKeyName: "conversations_bot_id_fkey"
+            columns: ["bot_id"]
             isOneToOne: false
-            referencedRelation: "channels"
+            referencedRelation: "bots"
             referencedColumns: ["id"]
           },
         ]
@@ -130,7 +190,7 @@ export type Database = {
       encrypted_credentials: {
         Row: {
           alg: string
-          channel_id: string | null
+          bot_id: string | null
           ciphertext: string
           created_at: string
           expires_at: string | null
@@ -149,7 +209,7 @@ export type Database = {
         }
         Insert: {
           alg?: string
-          channel_id?: string | null
+          bot_id?: string | null
           ciphertext: string
           created_at?: string
           expires_at?: string | null
@@ -168,7 +228,7 @@ export type Database = {
         }
         Update: {
           alg?: string
-          channel_id?: string | null
+          bot_id?: string | null
           ciphertext?: string
           created_at?: string
           expires_at?: string | null
@@ -187,10 +247,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "encrypted_credentials_channel_id_fkey"
-            columns: ["channel_id"]
+            foreignKeyName: "encrypted_credentials_bot_id_fkey"
+            columns: ["bot_id"]
             isOneToOne: false
-            referencedRelation: "channels"
+            referencedRelation: "bots"
             referencedColumns: ["id"]
           },
           {
@@ -198,6 +258,76 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          role: string
+          thread_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          id?: string
+          role: string
+          thread_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          role?: string
+          thread_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      threads: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          last_message_at: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "threads_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
         ]
@@ -253,6 +383,14 @@ export type Database = {
     }
     Functions: {
       archive_webhook_event: { Args: { msg_id: number }; Returns: boolean }
+      delete_agent: {
+        Args: { p_agent_id: string; p_owner_id: string }
+        Returns: string
+      }
+      delete_bot: {
+        Args: { p_bot_id: string; p_owner_id: string }
+        Returns: string
+      }
       dequeue_webhook_events: {
         Args: { batch_size?: number; visibility_timeout?: number }
         Returns: {
@@ -261,19 +399,42 @@ export type Database = {
         }[]
       }
       enqueue_webhook_event: { Args: { payload: Json }; Returns: number }
-      insert_channel_if_under_limit: {
+      insert_agent_if_under_limit: {
         Args: {
-          p_channel_type: string
+          p_avatar_url: string
+          p_default_model: string
+          p_limit: number
+          p_name: string
+          p_owner_id: string
+          p_system_prompt: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
+      insert_bot_if_under_limit: {
+        Args: {
           p_display_name: string
           p_external_id: string
           p_limit: number
           p_owner_id: string
+          p_platform: string
         }
         Returns: {
           display_name: string
           id: string
         }[]
       }
+      permanently_delete_agent: {
+        Args: { p_agent_id: string; p_owner_id: string }
+        Returns: string
+      }
+      permanently_delete_bot: {
+        Args: { p_bot_id: string; p_owner_id: string }
+        Returns: string
+      }
+      purge_deleted_agents: { Args: { older_than?: string }; Returns: number }
+      purge_deleted_bots: { Args: { older_than?: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never
