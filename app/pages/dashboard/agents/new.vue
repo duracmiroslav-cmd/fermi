@@ -32,7 +32,7 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultMode
 <template>
   <NuxtLayout name="dashboard">
     <template #title>
-      new agent
+      New agent
     </template>
     <div class="p-6 sm:p-8 pb-12 max-w-3xl">
       <AgentForm

@@ -17,7 +17,7 @@ const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
 <template>
   <NuxtLayout name="dashboard">
     <template #title>
-      agents
+      Agents
     </template>
     <template #actions>
       <UTooltip
@@ -29,7 +29,7 @@ const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
           size="sm"
           disabled
         >
-          new agent
+          New agent
         </UButton>
       </UTooltip>
       <UButton
@@ -38,7 +38,7 @@ const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
         size="sm"
         to="/dashboard/agents/new"
       >
-        new agent
+        New agent
       </UButton>
     </template>
 
@@ -52,7 +52,7 @@ const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
         class="border border-dashed border-default rounded-md py-16 px-6 text-center"
       >
         <p class="font-mono text-sm text-muted mb-2">
-          no agents yet
+          No agents yet
         </p>
         <p class="text-sm text-dimmed mb-6 max-w-md mx-auto">
           An agent is a persona — a name, a system prompt, and a default model. Attach one to a bot to bring it to life.
@@ -62,7 +62,7 @@ const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
           to="/dashboard/agents/new"
           icon="i-lucide-plus"
         >
-          create your first agent
+          Create your first agent
         </UButton>
       </div>
 

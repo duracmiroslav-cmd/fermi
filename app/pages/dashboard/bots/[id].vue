@@ -80,29 +80,38 @@ const onDelete = async () => {
 <template>
   <NuxtLayout name="dashboard">
     <template #title>
-      <span class="flex items-baseline gap-3">
-        <span class="truncate">{{ bot?.displayName || 'bot' }}</span>
-        <NuxtLink
-          v-if="bot?.agent"
-          :to="`/dashboard/agents/${bot.agent.id}`"
-          class="font-mono text-xs font-normal text-muted hover:text-highlighted transition-colors flex items-center gap-1 shrink-0"
-        >
-          using {{ bot.agent.name }}
-          <span aria-hidden="true">↗</span>
-        </NuxtLink>
-        <span
-          v-else-if="bot"
-          class="font-mono text-xs font-normal text-dimmed shrink-0"
-        >
-          no agent
-        </span>
-      </span>
+      {{ bot?.displayName || 'Bot' }}
     </template>
 
     <div
       v-if="bot"
       class="p-6 sm:p-8 pb-12 max-w-3xl space-y-12"
     >
+      <p class="font-mono text-xs text-muted -mt-2">
+        <template v-if="bot.agent">
+          Using
+          <NuxtLink
+            :to="`/dashboard/agents/${bot.agent.id}`"
+            class="text-highlighted hover:underline"
+          >
+            {{ bot.agent.name }}
+          </NuxtLink>
+          <span
+            aria-hidden="true"
+            class="ml-1"
+          >↗</span>
+        </template>
+        <template v-else>
+          No agent attached ·
+          <NuxtLink
+            to="/dashboard/agents"
+            class="text-toned hover:text-highlighted hover:underline"
+          >
+            attach one →
+          </NuxtLink>
+        </template>
+      </p>
+
       <section>
         <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-3">
           webhook url

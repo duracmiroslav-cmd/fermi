@@ -6,6 +6,8 @@ useSeoMeta({
   description: 'fermi puts MCP-connected agents inside LINE. No deploy, no new app, five-minute onboarding. Join the wait-list.',
 });
 
+const user = useSupabaseUser();
+
 const email = ref('');
 const submitting = ref(false);
 const submitted = ref(false);
@@ -59,10 +61,14 @@ const submit = async () => {
             <span aria-hidden="true">↗</span>
           </a>
           <NuxtLink
-            to="/sign-in"
-            class="text-muted hover:text-highlighted transition-colors"
+            :to="user ? '/dashboard' : '/sign-in'"
+            class="text-muted hover:text-highlighted transition-colors flex items-center gap-1.5"
           >
-            sign in
+            {{ user ? 'open dashboard' : 'sign in' }}
+            <span
+              v-if="user"
+              aria-hidden="true"
+            >↗</span>
           </NuxtLink>
         </nav>
       </header>

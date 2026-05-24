@@ -32,7 +32,7 @@ const onSubmit = async (value: { channelSecret: string; channelAccessToken: stri
 <template>
   <NuxtLayout name="dashboard">
     <template #title>
-      connect bot
+      Connect bot
     </template>
 
     <div class="p-6 sm:p-8 pb-12 max-w-3xl">

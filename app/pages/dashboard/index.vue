@@ -1,7 +1,7 @@
 <template>
   <NuxtLayout name="dashboard">
     <template #title>
-      dashboard
+      Dashboard
     </template>
 
     <div class="p-6 sm:p-8">

@@ -8,7 +8,7 @@ watch(() => route.path, () => {
 </script>
 
 <template>
-  <div class="bg-default text-default min-h-screen flex">
+  <div class="bg-default text-default h-dvh flex">
     <aside class="hidden md:flex flex-col w-60 border-r border-default shrink-0">
       <DashboardSidebar />
     </aside>

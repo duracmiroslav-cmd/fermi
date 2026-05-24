@@ -91,29 +91,37 @@ const onDelete = async () => {
 <template>
   <NuxtLayout name="dashboard">
     <template #title>
-      <span class="flex items-baseline gap-3">
-        <span class="truncate">{{ agent?.name || 'agent' }}</span>
-        <NuxtLink
-          v-if="agent?.bot"
-          :to="`/dashboard/bots/${agent.bot.id}`"
-          class="font-mono text-xs font-normal text-muted hover:text-highlighted transition-colors flex items-center gap-1 shrink-0"
-        >
-          bound to {{ agent.bot.displayName || agent.bot.id }}
-          <span aria-hidden="true">↗</span>
-        </NuxtLink>
-        <NuxtLink
-          v-else
-          to="/dashboard/bots"
-          class="font-mono text-xs font-normal text-dimmed hover:text-highlighted transition-colors shrink-0"
-        >
-          not bound · bind →
-        </NuxtLink>
-      </span>
+      {{ agent?.name || 'Agent' }}
     </template>
     <div
       v-if="agent"
       class="p-6 sm:p-8 pb-12 max-w-3xl space-y-12"
     >
+      <p class="font-mono text-xs text-muted -mt-2">
+        <template v-if="agent.bot">
+          Bound to
+          <NuxtLink
+            :to="`/dashboard/bots/${agent.bot.id}`"
+            class="text-highlighted hover:underline"
+          >
+            {{ agent.bot.displayName || agent.bot.id }}
+          </NuxtLink>
+          <span
+            aria-hidden="true"
+            class="ml-1"
+          >↗</span>
+        </template>
+        <template v-else>
+          Not bound to any bot ·
+          <NuxtLink
+            to="/dashboard/bots"
+            class="text-toned hover:text-highlighted hover:underline"
+          >
+            bind →
+          </NuxtLink>
+        </template>
+      </p>
+
       <section>
         <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-4">
           avatar

@@ -19,7 +19,7 @@ const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
 <template>
   <NuxtLayout name="dashboard">
     <template #title>
-      bots
+      Bots
     </template>
     <template #actions>
       <UTooltip
@@ -31,7 +31,7 @@ const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
           size="sm"
           disabled
         >
-          connect bot
+          Connect bot
         </UButton>
       </UTooltip>
       <UButton
@@ -40,7 +40,7 @@ const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
         size="sm"
         to="/dashboard/bots/new"
       >
-        connect bot
+        Connect bot
       </UButton>
     </template>
 
@@ -54,7 +54,7 @@ const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
         class="border border-dashed border-default rounded-md py-16 px-6 text-center"
       >
         <p class="font-mono text-sm text-muted mb-2">
-          no bots connected
+          No bots connected
         </p>
         <p class="text-sm text-dimmed mb-6 max-w-md mx-auto">
           A bot is your LINE channel registered in fermi. Connect one with its Channel Secret + Access Token, then attach an agent to bring it to life.
@@ -64,7 +64,7 @@ const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
           to="/dashboard/bots/new"
           icon="i-lucide-plus"
         >
-          connect your first bot
+          Connect your first bot
         </UButton>
       </div>
 
