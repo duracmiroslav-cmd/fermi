@@ -92,7 +92,7 @@ const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
             </p>
           </div>
           <span class="font-mono text-xs text-dimmed shrink-0">
-            {{ relativeTime(agent.updatedAt) }}
+            <TimeAgo :date="agent.updatedAt" />
           </span>
         </NuxtLink>
       </div>

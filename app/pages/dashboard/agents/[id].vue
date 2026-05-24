@@ -135,9 +135,9 @@ const onDelete = async () => {
             <dt class="text-dimmed text-right">ID</dt>
             <dd class="text-toned break-all">{{ agent.id }}</dd>
             <dt class="text-dimmed text-right">Created</dt>
-            <dd class="text-toned">{{ relativeTime(agent.createdAt) }}</dd>
+            <dd class="text-toned"><TimeAgo :date="agent.createdAt" /></dd>
             <dt class="text-dimmed text-right">Updated</dt>
-            <dd class="text-toned">{{ relativeTime(agent.updatedAt) }}</dd>
+            <dd class="text-toned"><TimeAgo :date="agent.updatedAt" /></dd>
           </dl>
         </div>
       </UFormField>

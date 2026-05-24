@@ -127,7 +127,7 @@ const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
             </p>
           </div>
           <span class="font-mono text-xs text-dimmed shrink-0">
-            {{ relativeTime(bot.createdAt) }}
+            <TimeAgo :date="bot.createdAt" />
           </span>
         </NuxtLink>
       </div>
