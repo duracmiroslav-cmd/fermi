@@ -3,6 +3,7 @@ export default defineAppConfig({
     colors: {
       primary: 'apricot',
       neutral: 'stone',
+      success: 'pistachio',
     },
     button: {
       slots: {
