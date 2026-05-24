@@ -51,7 +51,7 @@ const handleGoogleCredential = (rawNonce: string) => async (response: Credential
     await $fetch('/api/me/profile', {
       method: 'PATCH',
       body: { locale: normalizeLocale(navigator.language) },
-    }).catch(() => {});
+    }).catch(err => console.warn('locale sync failed', err));
 
     await navigateTo('/dashboard');
   } catch (e) {
