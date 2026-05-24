@@ -125,16 +125,29 @@ const syncAvatar = async (bot: BotRow) => {
             v-else
             text="Sync avatar from LINE"
           >
-            <UButton
-              icon="i-lucide-image-plus"
-              size="xs"
-              color="neutral"
-              variant="outline"
-              square
-              :loading="syncingId === bot.id"
-              class="rounded-full size-8"
+            <button
+              type="button"
+              :disabled="syncingId === bot.id"
+              class="relative size-8 shrink-0 rounded-full bg-primary/10 border border-primary/30 hover:bg-primary/20 hover:border-primary/50 transition-colors group disabled:opacity-60 cursor-pointer"
               @click.stop.prevent="syncAvatar(bot)"
-            />
+            >
+              <UIcon
+                v-if="syncingId === bot.id"
+                name="i-lucide-loader-circle"
+                class="absolute inset-0 m-auto size-4 text-primary animate-spin"
+              />
+              <template v-else>
+                <span
+                  class="absolute inset-0 flex items-center justify-center font-mono text-xs text-primary transition-opacity group-hover:opacity-0"
+                >
+                  {{ initial(bot.displayName) }}
+                </span>
+                <UIcon
+                  name="i-lucide-refresh-cw"
+                  class="absolute inset-0 m-auto size-3.5 text-primary opacity-0 transition-opacity group-hover:opacity-100"
+                />
+              </template>
+            </button>
           </UTooltip>
           <div class="flex-1 min-w-0">
             <p class="font-medium truncate flex items-center gap-2">

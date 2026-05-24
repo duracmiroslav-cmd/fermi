@@ -154,9 +154,9 @@ const onDelete = async () => {
           />
           <div
             v-else
-            class="size-12 rounded-full border border-dashed border-default flex items-center justify-center text-dimmed"
+            class="size-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center font-mono text-base text-primary"
           >
-            <UIcon name="i-lucide-image-off" />
+            {{ (bot.displayName ?? '?').charAt(0).toUpperCase() }}
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-sm">
