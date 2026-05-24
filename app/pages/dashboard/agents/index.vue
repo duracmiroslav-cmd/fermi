@@ -77,6 +77,7 @@ const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
           class="group flex items-center gap-4 p-4 rounded-md border border-default hover:bg-muted/30 transition-colors"
         >
           <UAvatar
+            :src="agent.avatarUrl ?? undefined"
             :text="initial(agent.name)"
             size="sm"
           />

@@ -52,6 +52,24 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultMode
   }
 };
 
+const onAvatarChange = async (url: string | null) => {
+  try {
+    await $fetch(`/api/agents/${route.params.id}`, {
+      method: 'PATCH',
+      body: { avatarUrl: url },
+    });
+    if (agent.value) agent.value.avatarUrl = url;
+    toast.add({ title: url ? 'Avatar updated' : 'Avatar removed', color: 'success' });
+  }
+  catch (e) {
+    toast.add({
+      title: 'Avatar update failed',
+      description: e instanceof Error ? e.message : 'Unknown error',
+      color: 'error',
+    });
+  }
+};
+
 const onDelete = async () => {
   deleting.value = true;
   try {
@@ -96,6 +114,17 @@ const onDelete = async () => {
       v-if="agent"
       class="p-6 sm:p-8 pb-12 max-w-3xl space-y-12"
     >
+      <section>
+        <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-4">
+          avatar
+        </h2>
+        <AgentAvatarUpload
+          :agent-id="agent.id"
+          :current-url="agent.avatarUrl"
+          @change="onAvatarChange"
+        />
+      </section>
+
       <AgentForm
         form-id="agent-form"
         :initial-value="{
