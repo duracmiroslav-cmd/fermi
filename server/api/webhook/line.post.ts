@@ -3,13 +3,34 @@ import { z } from 'zod';
 import { findBotByExternalId } from '~~/shared/bots';
 import { loadCredential } from '~~/shared/credentials';
 import { getKek } from '~~/shared/kek';
+import { showLineLoadingAnimation } from '~~/server/utils/bots/line';
 
 const MAX_BODY_BYTES = 256 * 1024;
+
+// Only `message` events from a `user` source can show a loading
+// animation — group / room chats don't surface the indicator and
+// non-message events (follow / postback / etc.) don't expect one.
+const userMessageEventSchema = z.object({
+  type: z.literal('message'),
+  source: z.object({
+    type: z.literal('user'),
+    userId: z.string().min(1),
+  }),
+});
 
 const webhookBodySchema = z.looseObject({
   destination: z.string().min(1),
   events: z.array(z.unknown()).default([]),
 });
+
+const collectUserSourceIds = (events: unknown[]): string[] => {
+  const ids = new Set<string>();
+  for (const event of events) {
+    const parsed = userMessageEventSchema.safeParse(event);
+    if (parsed.success) ids.add(parsed.data.source.userId);
+  }
+  return [...ids];
+};
 
 // Hostname must match this for fermi to forward the service-role
 // bearer to /functions/v1/agent. A misconfigured SUPABASE_URL would
@@ -66,6 +87,27 @@ export default defineEventHandler(async (event) => {
 
   if (!validateSignature(rawBody, channelSecret, signature)) {
     throw createError({ statusCode: 401, statusMessage: 'Invalid signature' });
+  }
+
+  // Prime the LINE typing indicator before the agent loop even starts.
+  // pg_cron drain can lag the worker by up to its tick interval (~8s);
+  // firing here makes the "..." appear within tens of ms of the user
+  // pressing send. Best-effort: a missing access-token row or LINE 5xx
+  // must never block the 200 we owe LINE inside their 1-second window.
+  const userIds = collectUserSourceIds(payload.events);
+  if (userIds.length > 0) {
+    try {
+      const { plaintext: accessToken } = await loadCredential(admin, kek, {
+        userId: bot.ownerId,
+        botId: bot.id,
+        keyType: 'line_channel_access_token',
+      });
+      for (const userId of userIds) {
+        void showLineLoadingAnimation(accessToken, userId).catch(console.error);
+      }
+    } catch (err) {
+      console.error('loading animation prime failed', err);
+    }
   }
 
   await enqueueWebhookEvent(admin, {
