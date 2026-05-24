@@ -9,7 +9,7 @@ const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 
-const { data: openrouter, refresh } = await useFetch<OpenRouterStatus>('/api/oauth/openrouter', {
+const { data: openrouter, refresh, pending } = useLazyFetch<OpenRouterStatus>('/api/oauth/openrouter', {
   headers: useRequestHeaders(['cookie']),
 });
 const disconnecting = ref(false);
@@ -58,44 +58,55 @@ const disconnect = async () => {
       <DashboardBreadcrumb :items="[{ label: 'Connections' }]" />
     </template>
 
-    <div class="p-6 sm:p-8 max-w-3xl space-y-8">
-      <section>
-        <h2 class="font-mono text-xs uppercase tracking-wider text-toned mb-4">
-          llm providers
-        </h2>
-        <UCard>
-          <div class="flex items-center justify-between gap-4">
-            <div class="min-w-0">
-              <p class="font-medium">
-                OpenRouter
-              </p>
-              <p class="text-sm text-muted mt-1">
-                <template v-if="openrouter?.connected">
-                  Connected as {{ openrouter.openrouterUserId ?? 'user' }}
-                </template>
-                <template v-else>
-                  Powers your bot's replies (text and images).
-                </template>
-              </p>
-            </div>
+    <div class="p-6 sm:p-8 pb-12 max-w-3xl flex flex-col gap-8">
+      <h1 class="text-2xl font-semibold">
+        Connections
+      </h1>
 
-            <UButton
-              v-if="openrouter?.connected"
-              color="error"
-              variant="outline"
-              :loading="disconnecting"
-              @click="disconnect"
-            >
-              Disconnect
-            </UButton>
-            <UButton
-              v-else
-              @click="connectOpenRouter"
-            >
-              Connect
-            </UButton>
+      <section class="flex flex-col gap-3">
+        <h2 class="text-sm font-medium text-toned">
+          LLM providers
+        </h2>
+
+        <div
+          v-if="pending"
+          class="h-16 rounded-md border border-muted bg-elevated/40 animate-pulse"
+        />
+
+        <div
+          v-else
+          class="flex items-center justify-between gap-4 p-4 rounded-md border border-muted bg-elevated/40"
+        >
+          <div class="min-w-0">
+            <p class="text-sm font-medium">
+              OpenRouter
+            </p>
+            <p class="text-sm text-muted mt-1 truncate">
+              <template v-if="openrouter?.connected">
+                Connected as {{ openrouter.openrouterUserId ?? 'user' }}
+              </template>
+              <template v-else>
+                Connects your bot to AI models like Claude, GPT, and Gemini.
+              </template>
+            </p>
           </div>
-        </UCard>
+
+          <UButton
+            v-if="openrouter?.connected"
+            color="error"
+            variant="outline"
+            :loading="disconnecting"
+            @click="disconnect"
+          >
+            Disconnect
+          </UButton>
+          <UButton
+            v-else
+            @click="connectOpenRouter"
+          >
+            Connect
+          </UButton>
+        </div>
       </section>
     </div>
   </NuxtLayout>
