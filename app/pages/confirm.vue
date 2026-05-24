@@ -1,12 +1,21 @@
 <script setup lang="ts">
+import { normalizeLocale } from '~~/shared/locale';
+
 const supabase = useSupabaseClient();
 
 onMounted(async () => {
   const { error } = await supabase.auth.exchangeCodeForSession(window.location.search);
   if (error) {
-    await navigateTo('/login');
+    await navigateTo('/sign-in');
     return;
   }
+
+  // Best-effort locale sync; session is valid even if PATCH fails.
+  await $fetch('/api/me/profile', {
+    method: 'PATCH',
+    body: { locale: normalizeLocale(navigator.language) },
+  }).catch(() => {});
+
   await navigateTo('/dashboard');
 });
 </script>
