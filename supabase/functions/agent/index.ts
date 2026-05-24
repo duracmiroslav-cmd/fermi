@@ -182,8 +182,8 @@ const runAgentLoop = async (params: {
       type: 'llm_response',
       payload: {
         model: result.model,
-        prompt_tokens: result.promptTokens,
-        completion_tokens: result.completionTokens,
+        finish_reason: result.finishReason,
+        usage: result.usage,
       },
       latencyMs: llmLatency,
       costUsd: result.costUsd,

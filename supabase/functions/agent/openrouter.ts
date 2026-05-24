@@ -8,13 +8,34 @@ export interface ChatMessage {
   content: string;
 }
 
+// OpenRouter's usage object — full passthrough. New fields appear
+// from upstream (cache_write_tokens, reasoning_tokens, etc.) without
+// requiring a wrapper change.
+export interface ChatCompletionUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  cost?: number;
+  cost_details?: {
+    upstream_inference_cost?: number;
+  };
+  prompt_tokens_details?: {
+    cached_tokens?: number;
+    cache_write_tokens?: number;
+    audio_tokens?: number;
+  };
+  completion_tokens_details?: {
+    reasoning_tokens?: number;
+  };
+}
+
 export interface ChatCompletionResult {
   text: string;
   generationId: string;
-  costUsd: number;
-  promptTokens: number;
-  completionTokens: number;
   model: string;
+  finishReason: string;
+  costUsd: number;
+  usage: ChatCompletionUsage;
 }
 
 export class OpenRouterError extends Error {
@@ -30,11 +51,7 @@ interface RawCompletionResponse {
     message: { role: string; content: string | null };
     finish_reason: string;
   }>;
-  usage: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    cost?: number;
-  };
+  usage: ChatCompletionUsage;
 }
 
 export const chatCompletion = async (params: {
@@ -68,9 +85,9 @@ export const chatCompletion = async (params: {
   return {
     text,
     generationId: data.id,
-    costUsd: data.usage.cost ?? 0,
-    promptTokens: data.usage.prompt_tokens,
-    completionTokens: data.usage.completion_tokens,
     model: data.model,
+    finishReason: data.choices[0]?.finish_reason ?? 'unknown',
+    costUsd: data.usage.cost ?? 0,
+    usage: data.usage,
   };
 };
