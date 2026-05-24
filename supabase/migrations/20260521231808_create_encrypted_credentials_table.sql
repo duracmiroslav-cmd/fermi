@@ -2,9 +2,9 @@
 -- on behalf of a user. Ciphertext is service_role-only; never exposed
 -- to clients.
 --
--- Identity tuple `(user_id, key_type, channel_id)`. Channel-agnostic
--- credentials carry NULL `channel_id`; a partial unique index gives
--- them one-per-(user, key_type) enforcement.
+-- Identity tuple `(user_id, key_type, bot_id)`. Account-level
+-- credentials carry NULL `bot_id`; a partial unique index gives them
+-- one-per-(user, key_type) enforcement.
 --
 -- KEK rotation needs only re-wrapping each DEK, not re-encrypting any
 -- ciphertext.
@@ -12,7 +12,7 @@
 create table public.encrypted_credentials (
   id                  uuid primary key default gen_random_uuid(),
   user_id             uuid not null references public.users(id) on delete cascade,
-  channel_id          uuid references public.channels(id) on delete cascade,
+  bot_id              uuid references public.bots(id) on delete cascade,
   key_type            text not null check (key_type in (
                         'openrouter',
                         'line_channel_access_token',
@@ -34,21 +34,21 @@ create table public.encrypted_credentials (
   metadata            jsonb,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
-  unique (user_id, key_type, channel_id),
+  unique (user_id, key_type, bot_id),
   check (
     (refresh_ciphertext is null and refresh_iv is null) or
     (refresh_ciphertext is not null and refresh_iv is not null)
   )
 );
 
--- Partial unique index: channel-agnostic creds (channel_id IS NULL) get
--- one-per-(user, key_type) enforcement, since SQL UNIQUE treats NULLs as
--- distinct and would otherwise allow duplicates.
-create unique index encrypted_credentials_user_keytype_no_channel_uq
+-- Partial unique index: account-level creds (bot_id IS NULL) get
+-- one-per-(user, key_type) enforcement, since SQL UNIQUE treats NULLs
+-- as distinct and would otherwise allow duplicates.
+create unique index encrypted_credentials_user_keytype_no_bot_uq
   on public.encrypted_credentials (user_id, key_type)
-  where channel_id is null;
+  where bot_id is null;
 
-create index encrypted_credentials_channel_id_idx on public.encrypted_credentials(channel_id);
+create index encrypted_credentials_bot_id_idx on public.encrypted_credentials(bot_id);
 
 create trigger encrypted_credentials_set_updated_at
   before update on public.encrypted_credentials

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { decryptCredential, encryptCredential, loadKek } from '../../shared/crypto';
 
 const TEST_KEY = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))));
-const AAD = 'user-uuid-1:line_channel_access_token:channel-uuid-1';
+const AAD = 'user-uuid-1:line_channel_access_token:bot-uuid-1';
 
 describe('envelope encryption', () => {
   describe('round-trip', () => {

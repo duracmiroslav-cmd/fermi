@@ -5,17 +5,17 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id');
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing channel id' });
+    throw createError({ statusCode: 400, statusMessage: 'Missing bot id' });
   }
 
   const admin = useSupabaseAdmin();
-  const { data, error } = await admin.rpc('delete_channel', {
-    p_channel_id: id,
+  const { data, error } = await admin.rpc('delete_bot', {
+    p_bot_id: id,
     p_owner_id: user.id,
   });
   if (error) {
-    if (error.message?.includes('channel_not_found')) {
-      throw createError({ statusCode: 404, statusMessage: 'Channel not found' });
+    if (error.message?.includes('bot_not_found')) {
+      throw createError({ statusCode: 404, statusMessage: 'Bot not found' });
     }
     throw error;
   }

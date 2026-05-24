@@ -23,12 +23,12 @@ const pgHexToBytes = (hex: string): Bytes => {
   return bytes;
 };
 
-const buildAad = (userId: string, keyType: KeyType, channelId: string | null): string =>
-  `${userId}:${keyType}:${channelId ?? ''}`;
+const buildAad = (userId: string, keyType: KeyType, botId: string | null): string =>
+  `${userId}:${keyType}:${botId ?? ''}`;
 
 export interface LoadCredentialParams {
   userId: string;
-  channelId: string | null;
+  botId: string | null;
   keyType: KeyType;
 }
 
@@ -43,12 +43,12 @@ export const storeCredential = async (
   kek: CryptoKey,
   params: StoreCredentialParams,
 ): Promise<void> => {
-  const { userId, channelId, keyType, plaintext, refreshPlaintext, metadata } = params;
-  const aad = buildAad(userId, keyType, channelId);
+  const { userId, botId, keyType, plaintext, refreshPlaintext, metadata } = params;
+  const aad = buildAad(userId, keyType, botId);
   const enc = await encryptCredential(plaintext, kek, aad, refreshPlaintext);
   const { error } = await admin.from('encrypted_credentials').insert({
     user_id: userId,
-    channel_id: channelId,
+    bot_id: botId,
     key_type: keyType,
     ciphertext: bytesToPgHex(enc.ciphertext),
     iv: bytesToPgHex(enc.iv),
@@ -67,18 +67,18 @@ export const loadCredential = async (
   kek: CryptoKey,
   params: LoadCredentialParams,
 ): Promise<{ plaintext: string; refreshPlaintext?: string }> => {
-  const { userId, channelId, keyType } = params;
+  const { userId, botId, keyType } = params;
   const query = admin
     .from('encrypted_credentials')
     .select('ciphertext, iv, wrapped_dek, wrapped_dek_iv, alg, refresh_ciphertext, refresh_iv')
     .eq('user_id', userId)
     .eq('key_type', keyType);
-  const { data, error } = channelId
-    ? await query.eq('channel_id', channelId).single()
-    : await query.is('channel_id', null).single();
+  const { data, error } = botId
+    ? await query.eq('bot_id', botId).single()
+    : await query.is('bot_id', null).single();
   if (error) throw error;
 
-  const aad = buildAad(userId, keyType, channelId);
+  const aad = buildAad(userId, keyType, botId);
   const sealed: EncryptedCredential = {
     ciphertext: pgHexToBytes(data.ciphertext),
     iv: pgHexToBytes(data.iv),

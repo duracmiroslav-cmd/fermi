@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { findChannelById } from '../../../shared/channels.ts';
+import { findBotById } from '../../../shared/bots.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
 import { getKek } from '../../../shared/kek.ts';
 
@@ -21,8 +21,8 @@ interface LineEvent {
 }
 
 interface LinePayload {
-  channelType: 'line';
-  channelId: string;
+  platform: 'line';
+  botId: string;
   destination?: string;
   events?: LineEvent[];
 }
@@ -66,18 +66,18 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
   const events = payload.events ?? [];
   if (events.length === 0) return;
 
-  const channel = await findChannelById(admin, payload.channelId);
-  if (!channel) {
-    // Channel was disconnected while message sat in the queue. Skip
-    // and let the caller archive so we don't loop forever.
-    console.warn('channel deleted; dropping message', { channelId: payload.channelId });
+  const bot = await findBotById(admin, payload.botId);
+  if (!bot) {
+    // Bot was disconnected while message sat in the queue. Skip and
+    // let the caller archive so we don't loop forever.
+    console.warn('bot deleted; dropping message', { botId: payload.botId });
     return;
   }
 
   const kek = await getKek(fermiKek);
   const { plaintext: accessToken } = await loadCredential(admin, kek, {
-    userId: channel.ownerId,
-    channelId: payload.channelId,
+    userId: bot.ownerId,
+    botId: payload.botId,
     keyType: 'line_channel_access_token',
   });
 
@@ -89,7 +89,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         // 400 from Reply API is terminal (expired or already-used
         // replyToken); retrying will just 400 again forever. Drop it.
         if (err instanceof LineReplyError && err.status === 400) {
-          console.warn('reply token expired; dropping event', { channelId: payload.channelId });
+          console.warn('reply token expired; dropping event', { botId: payload.botId });
           continue;
         }
         throw err;
@@ -99,14 +99,14 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
 };
 
 const processMessage = async (payload: QueuePayload): Promise<void> => {
-  switch (payload.channelType) {
+  switch (payload.platform) {
     case 'line':
       await processLineMessage(payload);
       return;
     default: {
-      // Adding a new ChannelType without a case here will fail compile.
-      const exhaustive: never = payload.channelType;
-      console.warn('unknown channel type; dropping', { channelType: exhaustive });
+      // Adding a new platform without a case here will fail compile.
+      const exhaustive: never = payload.platform;
+      console.warn('unknown platform; dropping', { platform: exhaustive });
     }
   }
 };

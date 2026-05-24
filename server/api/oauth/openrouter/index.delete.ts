@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
     .delete()
     .eq('user_id', user.id)
     .eq('key_type', 'openrouter')
-    .is('channel_id', null);
+    .is('bot_id', null);
   if (error) throw error;
 
   return { ok: true as const };

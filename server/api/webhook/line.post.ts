@@ -1,6 +1,6 @@
 import { validateSignature } from '@line/bot-sdk';
 import { z } from 'zod';
-import { findChannelByDestination } from '~~/shared/channels';
+import { findBotByExternalId } from '~~/shared/bots';
 import { loadCredential } from '~~/shared/credentials';
 import { getKek } from '~~/shared/kek';
 
@@ -38,9 +38,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: 'Missing signature' });
   }
 
-  // destination identifies which channel's secret to use, so the body
-  // must be parsed before signature verification. It stays untrusted
-  // until validateSignature succeeds below.
+  // destination identifies which bot's secret to use, so the body must
+  // be parsed before signature verification. It stays untrusted until
+  // validateSignature succeeds below.
   const parsedBody = webhookBodySchema.safeParse(JSON.parse(rawBody));
   if (!parsedBody.success) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid webhook body' });
@@ -48,8 +48,8 @@ export default defineEventHandler(async (event) => {
   const payload = parsedBody.data;
 
   const admin = useSupabaseAdmin();
-  const channel = await findChannelByDestination(admin, 'line', payload.destination);
-  if (!channel) {
+  const bot = await findBotByExternalId(admin, 'line', payload.destination);
+  if (!bot) {
     // Unknown or disconnected destination. Return 200 so LINE drops
     // the retry; a 4xx here would keep LINE redelivering until the
     // webhook is marked broken on their side.
@@ -59,8 +59,8 @@ export default defineEventHandler(async (event) => {
   const { fermiKek, supabaseUrl, supabaseServiceRoleKey } = useRuntimeConfig(event);
   const kek = await getKek(fermiKek);
   const { plaintext: channelSecret } = await loadCredential(admin, kek, {
-    userId: channel.ownerId,
-    channelId: channel.id,
+    userId: bot.ownerId,
+    botId: bot.id,
     keyType: 'line_channel_secret',
   });
 
@@ -69,8 +69,8 @@ export default defineEventHandler(async (event) => {
   }
 
   await enqueueWebhookEvent(admin, {
-    channelType: 'line',
-    channelId: channel.id,
+    platform: 'line',
+    botId: bot.id,
     destination: payload.destination,
     events: payload.events,
   });

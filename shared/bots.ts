@@ -1,0 +1,37 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+export interface BotRef {
+  id: string;
+  ownerId: string;
+  agentId: string | null;
+}
+
+export const findBotByExternalId = async (
+  admin: SupabaseClient,
+  platform: string,
+  externalId: string,
+): Promise<BotRef | null> => {
+  const { data, error } = await admin
+    .from('bots')
+    .select('id, owner_id, agent_id')
+    .eq('platform', platform)
+    .eq('external_id', externalId)
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? { id: data.id, ownerId: data.owner_id, agentId: data.agent_id } : null;
+};
+
+export const findBotById = async (
+  admin: SupabaseClient,
+  botId: string,
+): Promise<BotRef | null> => {
+  const { data, error } = await admin
+    .from('bots')
+    .select('id, owner_id, agent_id')
+    .eq('id', botId)
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? { id: data.id, ownerId: data.owner_id, agentId: data.agent_id } : null;
+};

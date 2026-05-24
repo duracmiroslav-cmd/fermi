@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
   try {
     await storeCredential(admin, kek, {
       userId: user.id,
-      channelId: null,
+      botId: null,
       keyType: 'openrouter',
       plaintext: exchange.key,
       metadata: exchange.userId ? { openrouter_user_id: exchange.userId } : undefined,

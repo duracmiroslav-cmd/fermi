@@ -40,9 +40,28 @@ export default defineNuxtConfig({
     },
   },
   typescript: {
+    tsConfig: {
+      compilerOptions: {
+        allowImportingTsExtensions: true,
+      },
+    },
     sharedTsConfig: {
       compilerOptions: {
         allowImportingTsExtensions: true,
+      },
+    },
+    nodeTsConfig: {
+      compilerOptions: {
+        allowImportingTsExtensions: true,
+      },
+    },
+  },
+  nitro: {
+    typescript: {
+      tsConfig: {
+        compilerOptions: {
+          allowImportingTsExtensions: true,
+        },
       },
     },
   },
