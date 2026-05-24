@@ -60,15 +60,13 @@ const onFileChange = async (event: Event) => {
     if (uploadErr) throw uploadErr;
     const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
     emit('change', publicUrl);
-  }
-  catch (e) {
+  } catch (e) {
     toast.add({
       title: 'Upload failed',
       description: e instanceof Error ? e.message : 'Unknown error',
       color: 'error',
     });
-  }
-  finally {
+  } finally {
     uploading.value = false;
     input.value = '';
   }

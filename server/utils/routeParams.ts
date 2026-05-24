@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import type { H3Event } from 'h3';
+import { z } from 'zod';
 
 const uuidSchema = z.string().uuid();
 

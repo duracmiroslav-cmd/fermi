@@ -41,7 +41,7 @@ const onSubmit = () => {
       label="Channel Secret"
       name="channelSecret"
       required
-      help='Find this in your LINE channel&apos;s "Basic settings" tab.'
+      help="Find this in your LINE channel&apos;s &quot;Basic settings&quot; tab."
     >
       <UInput
         v-model="state.channelSecret"
@@ -55,7 +55,7 @@ const onSubmit = () => {
       label="Channel Access Token"
       name="channelAccessToken"
       required
-      help='Find this in your LINE channel&apos;s "Messaging API" tab.'
+      help="Find this in your LINE channel&apos;s &quot;Messaging API&quot; tab."
     >
       <UTextarea
         v-model="state.channelAccessToken"

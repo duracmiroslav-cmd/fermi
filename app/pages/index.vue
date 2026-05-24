@@ -84,9 +84,18 @@ const submit = async () => {
           </div>
 
           <h1 class="font-mono text-highlighted text-3xl sm:text-5xl md:text-6xl leading-none tracking-tight font-medium">
-            <span class="block reveal" style="animation-delay: 60ms">agentic AI,</span>
-            <span class="block reveal mt-2 sm:mt-3" style="animation-delay: 180ms">in the chat</span>
-            <span class="block reveal mt-2 sm:mt-3" style="animation-delay: 300ms">
+            <span
+              class="block reveal"
+              style="animation-delay: 60ms"
+            >agentic AI,</span>
+            <span
+              class="block reveal mt-2 sm:mt-3"
+              style="animation-delay: 180ms"
+            >in the chat</span>
+            <span
+              class="block reveal mt-2 sm:mt-3"
+              style="animation-delay: 300ms"
+            >
               you already use<span class="text-primary">.</span>
             </span>
           </h1>
@@ -103,7 +112,15 @@ const submit = async () => {
             style="animation-delay: 680ms"
             @submit.prevent="submit"
           >
-            <template v-if="!submitted">
+            <div
+              v-if="submitted"
+              class="rounded-lg border border-default bg-elevated/40 px-4 py-3 font-mono text-sm text-highlighted flex items-center gap-2"
+            >
+              <span class="text-primary">→</span>
+              you're on the list. we'll write to <span class="text-toned">{{ email }}</span>.
+            </div>
+
+            <template v-else>
               <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <UInput
                   v-model="email"
@@ -125,21 +142,19 @@ const submit = async () => {
                   join wait-list
                 </UButton>
               </div>
-              <p v-if="errorMessage" class="mt-2 font-mono text-xs text-error">
+              <p
+                v-if="errorMessage"
+                class="mt-2 font-mono text-xs text-error"
+              >
                 ! {{ errorMessage }}
               </p>
-              <p v-else class="mt-3 font-mono text-xs text-dimmed">
+              <p
+                v-else
+                class="mt-3 font-mono text-xs text-dimmed"
+              >
                 no spam. we ping you the moment beta opens.
               </p>
             </template>
-
-            <div
-              v-else
-              class="rounded-lg border border-default bg-elevated/40 px-4 py-3 font-mono text-sm text-highlighted flex items-center gap-2"
-            >
-              <span class="text-primary">→</span>
-              you're on the list. we'll write to <span class="text-toned">{{ email }}</span>.
-            </div>
           </form>
         </div>
       </main>

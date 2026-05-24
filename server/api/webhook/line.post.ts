@@ -1,9 +1,9 @@
 import { validateSignature } from '@line/bot-sdk';
 import { z } from 'zod';
+import { showLineLoadingAnimation } from '~~/server/utils/bots/line';
 import { findBotByExternalId } from '~~/shared/bots';
 import { loadCredential } from '~~/shared/credentials';
 import { getKek } from '~~/shared/kek';
-import { showLineLoadingAnimation } from '~~/server/utils/bots/line';
 
 const MAX_BODY_BYTES = 256 * 1024;
 

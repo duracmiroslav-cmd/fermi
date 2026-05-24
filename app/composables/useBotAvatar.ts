@@ -22,23 +22,20 @@ export const useBotAvatar = (onSynced: () => Promise<unknown> | unknown) => {
       await onSynced();
       if (res.avatarUrl) {
         toast.add({ title: 'Avatar synced from LINE', color: 'success' });
-      }
-      else {
+      } else {
         toast.add({
           title: 'LINE OA has no profile picture yet',
           description: 'Upload one in LINE Official Account Manager, then sync again.',
           color: 'warning',
         });
       }
-    }
-    catch (e) {
+    } catch (e) {
       toast.add({
         title: 'Sync failed',
         description: e instanceof Error ? e.message : 'Unknown error',
         color: 'error',
       });
-    }
-    finally {
+    } finally {
       syncingId.value = null;
     }
   };
