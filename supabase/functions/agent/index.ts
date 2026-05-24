@@ -1,7 +1,16 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { findAgentById } from '../../../shared/agents.ts';
 import { findBotById } from '../../../shared/bots.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
 import { getKek } from '../../../shared/kek.ts';
+import {
+  appendMessage,
+  loadRecentMessages,
+  resolveLatestThread,
+  upsertConversation,
+} from './conversation.ts';
+import { logEvent } from './events.ts';
+import { OpenRouterError, chatCompletion } from './openrouter.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -11,13 +20,21 @@ const admin = createClient(supabaseUrl, supabaseServiceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
+const DEFAULT_MODEL = 'anthropic/claude-opus-4.7';
+const HISTORY_WINDOW = 20;
+
+interface LineSource {
+  type: 'user' | 'group' | 'room';
+  userId?: string;
+  groupId?: string;
+  roomId?: string;
+}
+
 interface LineEvent {
   type: string;
   replyToken?: string;
-  message?: {
-    type: string;
-    text?: string;
-  };
+  source?: LineSource;
+  message?: { type: string; text?: string };
 }
 
 interface LinePayload {
@@ -62,39 +79,221 @@ const replyText = async (
   }
 };
 
+// LINE Reply tokens are single-use and expire shortly; a 400 from
+// the Reply API is terminal. Other errors bubble up so pgmq retries
+// the whole webhook payload.
+const safeReply = async (
+  accessToken: string,
+  replyToken: string,
+  text: string,
+): Promise<void> => {
+  try {
+    await replyText(accessToken, replyToken, text);
+  } catch (err) {
+    if (err instanceof LineReplyError && err.status === 400) {
+      console.warn('reply token expired or already used; dropping', { replyToken });
+      return;
+    }
+    throw err;
+  }
+};
+
+const NO_AGENT_NOTICE = '⚙️ 這個 bot 還沒設定 agent，請到 https://fermi.tw/dashboard 綁定一個。';
+const NO_OPENROUTER_NOTICE = '⚙️ fermi 還沒連接 OpenRouter，請到 https://fermi.tw/dashboard/connections 連接。';
+
+const tryLoadOpenRouterKey = async (
+  admin: SupabaseClient,
+  kek: CryptoKey,
+  userId: string,
+): Promise<string | null> => {
+  try {
+    const { plaintext } = await loadCredential(admin, kek, {
+      userId,
+      botId: null,
+      keyType: 'openrouter',
+    });
+    return plaintext;
+  } catch (err) {
+    // PGRST116 from PostgREST's .single() when no rows match — the
+    // user simply hasn't connected OpenRouter yet.
+    if ((err as { code?: string })?.code === 'PGRST116') return null;
+    throw err;
+  }
+};
+
+const isTextMessageFromUser = (event: LineEvent): event is LineEvent & {
+  replyToken: string;
+  source: LineSource & { userId: string };
+  message: { type: 'text'; text: string };
+} => (
+  event.type === 'message'
+  && event.message?.type === 'text'
+  && typeof event.message.text === 'string'
+  && typeof event.replyToken === 'string'
+  && event.source?.type === 'user'
+  && typeof event.source.userId === 'string'
+);
+
+const runAgentLoop = async (params: {
+  bot: { id: string; ownerId: string };
+  agent: { id: string; name: string; systemPrompt: string | null; defaultModel: string | null };
+  openrouterKey: string;
+  lineAccessToken: string;
+  externalUserId: string;
+  replyToken: string;
+  userText: string;
+}): Promise<void> => {
+  const { bot, agent, openrouterKey, lineAccessToken, externalUserId, replyToken, userText } = params;
+
+  const conversationId = await upsertConversation(admin, bot.id, externalUserId);
+  const threadId = await resolveLatestThread(admin, conversationId);
+  await appendMessage(admin, threadId, 'user', { type: 'text', text: userText });
+
+  let step = 1;
+  await logEvent(admin, { conversationId, threadId, step: step++, type: 'worker_started' });
+
+  try {
+    const history = await loadRecentMessages(admin, threadId, HISTORY_WINDOW);
+    const systemPrompt = agent.systemPrompt
+      ?? `You are ${agent.name}, a helpful assistant on LINE. Reply in the user's language.`;
+    const model = agent.defaultModel ?? DEFAULT_MODEL;
+
+    await logEvent(admin, {
+      conversationId,
+      threadId,
+      step: step++,
+      type: 'llm_request',
+      payload: { model, message_count: history.length },
+    });
+
+    const llmStart = performance.now();
+    const result = await chatCompletion({
+      apiKey: openrouterKey,
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...history,
+      ],
+    });
+    const llmLatency = Math.round(performance.now() - llmStart);
+
+    await logEvent(admin, {
+      conversationId,
+      threadId,
+      step: step++,
+      type: 'llm_response',
+      payload: {
+        model: result.model,
+        prompt_tokens: result.promptTokens,
+        completion_tokens: result.completionTokens,
+      },
+      latencyMs: llmLatency,
+      costUsd: result.costUsd,
+      openrouterGenId: result.generationId,
+    });
+
+    await appendMessage(admin, threadId, 'assistant', { type: 'text', text: result.text });
+
+    try {
+      await replyText(lineAccessToken, replyToken, `🤖 ${result.text}`);
+      await logEvent(admin, {
+        conversationId,
+        threadId,
+        step: step++,
+        type: 'push_sent',
+      });
+    } catch (err) {
+      const payload: Record<string, unknown> = { message: String(err) };
+      if (err instanceof LineReplyError) payload.status = err.status;
+      await logEvent(admin, {
+        conversationId,
+        threadId,
+        step: step++,
+        type: 'push_failed',
+        payload,
+      });
+
+      if (err instanceof LineReplyError && err.status === 400) {
+        // Terminal — the reply window closed. Drop without retry.
+        return;
+      }
+      throw err;
+    }
+  } catch (err) {
+    const payload: Record<string, unknown> = { message: String(err) };
+    if (err instanceof OpenRouterError) payload.status = err.status;
+    await logEvent(admin, {
+      conversationId,
+      threadId,
+      step: step++,
+      type: 'error',
+      payload,
+    });
+    throw err;
+  }
+};
+
 const processLineMessage = async (payload: LinePayload): Promise<void> => {
   const events = payload.events ?? [];
   if (events.length === 0) return;
 
   const bot = await findBotById(admin, payload.botId);
   if (!bot) {
-    // Bot was disconnected while message sat in the queue. Skip and
-    // let the caller archive so we don't loop forever.
     console.warn('bot deleted; dropping message', { botId: payload.botId });
     return;
   }
 
   const kek = await getKek(fermiKek);
-  const { plaintext: accessToken } = await loadCredential(admin, kek, {
+  const { plaintext: lineAccessToken } = await loadCredential(admin, kek, {
     userId: bot.ownerId,
-    botId: payload.botId,
+    botId: bot.id,
     keyType: 'line_channel_access_token',
   });
 
-  for (const event of events) {
-    if (event.type === 'message' && event.message?.type === 'text' && event.replyToken) {
-      try {
-        await replyText(accessToken, event.replyToken, event.message.text ?? '');
-      } catch (err) {
-        // 400 from Reply API is terminal (expired or already-used
-        // replyToken); retrying will just 400 again forever. Drop it.
-        if (err instanceof LineReplyError && err.status === 400) {
-          console.warn('reply token expired; dropping event', { botId: payload.botId });
-          continue;
-        }
-        throw err;
+  // Bot has no agent bound, or the binding was cleared (agent soft-
+  // deleted). Reply with an actionable message instead of silence.
+  if (!bot.agentId) {
+    for (const event of events) {
+      if (isTextMessageFromUser(event)) {
+        await safeReply(lineAccessToken, event.replyToken, NO_AGENT_NOTICE);
       }
     }
+    return;
+  }
+
+  const agent = await findAgentById(admin, bot.agentId);
+  if (!agent) {
+    // Defensive: bot points to an agent that findAgentById can't load
+    // (race or manual SQL). Same UX as no-agent.
+    for (const event of events) {
+      if (isTextMessageFromUser(event)) {
+        await safeReply(lineAccessToken, event.replyToken, NO_AGENT_NOTICE);
+      }
+    }
+    return;
+  }
+
+  const openrouterKey = await tryLoadOpenRouterKey(admin, kek, bot.ownerId);
+  if (!openrouterKey) {
+    for (const event of events) {
+      if (isTextMessageFromUser(event)) {
+        await safeReply(lineAccessToken, event.replyToken, NO_OPENROUTER_NOTICE);
+      }
+    }
+    return;
+  }
+
+  for (const event of events) {
+    if (!isTextMessageFromUser(event)) continue;
+    await runAgentLoop({
+      bot,
+      agent,
+      openrouterKey,
+      lineAccessToken,
+      externalUserId: event.source.userId,
+      replyToken: event.replyToken,
+      userText: event.message.text,
+    });
   }
 };
 

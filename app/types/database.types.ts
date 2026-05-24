@@ -39,6 +39,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_events: {
+        Row: {
+          conversation_id: string
+          cost_usd: number | null
+          created_at: string
+          id: string
+          latency_ms: number | null
+          openrouter_gen_id: string | null
+          payload: Json
+          step: number
+          thread_id: string | null
+          type: string
+        }
+        Insert: {
+          conversation_id: string
+          cost_usd?: number | null
+          created_at?: string
+          id?: string
+          latency_ms?: number | null
+          openrouter_gen_id?: string | null
+          payload?: Json
+          step: number
+          thread_id?: string | null
+          type: string
+        }
+        Update: {
+          conversation_id?: string
+          cost_usd?: number | null
+          created_at?: string
+          id?: string
+          latency_ms?: number | null
+          openrouter_gen_id?: string | null
+          payload?: Json
+          step?: number
+          thread_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_events_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_events_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agents: {
         Row: {
           avatar_url: string | null
