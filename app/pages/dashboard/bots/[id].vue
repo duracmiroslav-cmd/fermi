@@ -78,7 +78,15 @@ const onDelete = async () => {
 
 <template>
   <NuxtLayout name="dashboard">
-    <template #title />
+    <template #title>
+      <DashboardBreadcrumb
+        :items="[
+          { label: 'Bots', to: '/dashboard/bots' },
+          { label: bot?.displayName ?? '' },
+        ]"
+        :loading="!bot"
+      />
+    </template>
 
     <template
       v-if="bot"
@@ -103,7 +111,7 @@ const onDelete = async () => {
       class="p-6 sm:p-8 max-w-3xl"
     >
       <div class="border border-dashed border-default rounded-md py-16 px-6 text-center">
-        <p class="font-mono text-sm text-muted mb-2">
+        <p class="text-sm text-muted mb-2">
           Bot not found
         </p>
         <p class="text-sm text-dimmed mb-6 max-w-md mx-auto">
@@ -165,7 +173,7 @@ const onDelete = async () => {
         label="Webhook URL"
         help='Paste this under "Webhook settings" in your LINE channel&apos;s "Messaging API" tab, then turn on "Use webhook".'
       >
-        <div class="flex items-center gap-2 p-3 rounded-md border border-default bg-elevated/40">
+        <div class="flex items-center gap-2 p-3 rounded-md border border-muted bg-elevated/40">
           <code class="flex-1 font-mono text-sm text-highlighted truncate select-all">
             {{ bot.webhookUrl }}
           </code>
@@ -190,14 +198,14 @@ const onDelete = async () => {
       />
 
       <UFormField label="Details">
-        <div class="p-4 rounded-md border border-default bg-elevated/40">
-          <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 font-mono text-xs">
-            <dt class="text-dimmed text-right">External ID</dt>
-            <dd class="text-toned break-all">{{ bot.externalId }}</dd>
-            <dt class="text-dimmed text-right">Created</dt>
-            <dd class="text-toned"><TimeAgo :date="bot.createdAt" /></dd>
-            <dt class="text-dimmed text-right">Updated</dt>
-            <dd class="text-toned"><TimeAgo :date="bot.updatedAt" /></dd>
+        <div class="p-4 rounded-md border border-muted bg-elevated/40">
+          <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+            <dt class="text-muted text-right">External ID</dt>
+            <dd class="text-highlighted break-all">{{ bot.externalId }}</dd>
+            <dt class="text-muted text-right">Created</dt>
+            <dd class="text-highlighted"><TimeAgo :date="bot.createdAt" /></dd>
+            <dt class="text-muted text-right">Updated</dt>
+            <dd class="text-highlighted"><TimeAgo :date="bot.updatedAt" /></dd>
           </dl>
         </div>
       </UFormField>

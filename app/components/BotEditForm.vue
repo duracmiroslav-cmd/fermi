@@ -20,8 +20,15 @@ const emit = defineEmits<{
   submit: [value: BotEditFormValue];
 }>();
 
-const { data: agents } = useLazyFetch<AgentOption[]>('/api/agents', {
+const { data: agents, pending: agentsPending } = useLazyFetch<AgentOption[]>('/api/agents', {
   headers: useRequestHeaders(['cookie']),
+});
+
+// Hide the selected value while items are loading, otherwise the trigger
+// flashes the raw UUID before the matching label is resolved.
+const displayAgentId = computed({
+  get: () => (agentsPending.value ? null : state.agentId),
+  set: (v) => { state.agentId = v; },
 });
 
 const agentItems = computed(() =>
@@ -61,11 +68,12 @@ const onSubmit = () => {
       name="agentId"
     >
       <USelectMenu
-        v-model="state.agentId"
+        v-model="displayAgentId"
         :items="agentItems"
         value-key="value"
         clear
         placeholder="Select an agent"
+        :loading="agentsPending"
         :ui="{ base: 'font-mono' }"
       />
       <template #help>

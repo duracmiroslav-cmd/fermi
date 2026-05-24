@@ -40,7 +40,12 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
 <template>
   <NuxtLayout name="dashboard">
     <template #title>
-      New bot
+      <DashboardBreadcrumb
+        :items="[
+          { label: 'Bots', to: '/dashboard/bots' },
+          { label: 'New' },
+        ]"
+      />
     </template>
 
     <template

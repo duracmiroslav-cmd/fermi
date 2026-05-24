@@ -12,12 +12,19 @@ interface AgentRow {
 const { items: agents, limit, used, atLimit, pending, limitMessage } = useTierLimit<AgentRow>('agents');
 
 const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
+
+const search = ref('');
+const filteredAgents = computed(() => {
+  const q = search.value.trim().toLowerCase();
+  if (!q) return agents.value ?? [];
+  return (agents.value ?? []).filter(a => a.name.toLowerCase().includes(q));
+});
 </script>
 
 <template>
   <NuxtLayout name="dashboard">
     <template #title>
-      Agents <span class="text-dimmed">({{ used }})</span>
+      <DashboardBreadcrumb :items="[{ label: 'Agents' }]" />
     </template>
     <template #actions>
       <UTooltip
@@ -26,7 +33,6 @@ const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
       >
         <UButton
           icon="i-lucide-plus"
-          size="sm"
           disabled
         >
           New agent
@@ -35,66 +41,97 @@ const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
       <UButton
         v-else
         icon="i-lucide-plus"
-        size="sm"
         to="/dashboard/agents/new"
       >
         New agent
       </UButton>
     </template>
 
-    <div class="p-6 sm:p-8">
-      <DashboardListSkeleton
-        v-if="pending && !agents?.length"
-        :rows="3"
-      />
+    <div class="p-6 sm:p-8 flex flex-col gap-8 max-w-3xl">
+      <h1 class="text-2xl font-semibold">
+        Agents <span class="text-dimmed font-normal">({{ used }})</span>
+      </h1>
 
-      <div
-        v-else-if="!agents?.length"
-        class="border border-dashed border-default rounded-md py-16 px-6 text-center"
-      >
-        <p class="font-mono text-sm text-muted mb-2">
-          No agents yet
-        </p>
-        <p class="text-sm text-dimmed mb-6 max-w-md mx-auto">
-          An agent is a persona with a name, a system prompt, and a default model. Attach one to a bot to bring it to life.
-        </p>
-        <UButton
-          v-if="!atLimit"
-          to="/dashboard/agents/new"
-          icon="i-lucide-plus"
+      <div class="flex flex-col gap-4">
+        <UInput
+          v-if="agents?.length"
+          v-model="search"
+          icon="i-lucide-search"
+          placeholder="Search agents..."
         >
-          Create your first agent
-        </UButton>
-      </div>
+          <template #trailing>
+            <UButton
+              v-if="search"
+              color="neutral"
+              variant="link"
+              size="sm"
+              icon="i-lucide-x"
+              aria-label="Clear search"
+              @click="search = ''"
+            />
+          </template>
+        </UInput>
 
-      <div
-        v-else
-        class="space-y-2 max-w-3xl"
-      >
-        <NuxtLink
-          v-for="agent in agents"
-          :key="agent.id"
-          :to="`/dashboard/agents/${agent.id}`"
-          class="group flex items-center gap-4 p-4 rounded-md border border-default hover:bg-muted transition-colors"
+        <DashboardListSkeleton
+          v-if="pending && !agents?.length"
+          :rows="3"
+        />
+
+        <div
+          v-else-if="!agents?.length"
+          class="border border-dashed border-default rounded-md py-16 px-6 text-center"
         >
-          <UAvatar
-            :src="agent.avatarUrl ?? undefined"
-            :text="initial(agent.name)"
-            size="lg"
-            color="primary"
-          />
-          <div class="flex-1 min-w-0">
-            <p class="font-medium truncate">
-              {{ agent.name }}
-            </p>
-            <p class="font-mono text-xs text-dimmed truncate mt-0.5">
-              {{ agent.defaultModel || '—' }}
-            </p>
-          </div>
-          <span class="font-mono text-xs text-dimmed shrink-0">
-            <TimeAgo :date="agent.updatedAt" />
-          </span>
-        </NuxtLink>
+          <p class="text-sm text-muted mb-2">
+            No agents yet
+          </p>
+          <p class="text-sm text-dimmed mb-6 max-w-md mx-auto">
+            An agent is a persona with a name, a system prompt, and a default model. Attach one to a bot to bring it to life.
+          </p>
+          <UButton
+            v-if="!atLimit"
+            to="/dashboard/agents/new"
+            icon="i-lucide-plus"
+          >
+            Create your first agent
+          </UButton>
+        </div>
+
+        <p
+          v-else-if="!filteredAgents.length"
+          class="text-sm text-muted text-center py-8"
+        >
+          No agents match "{{ search }}".
+        </p>
+
+        <div
+          v-else
+          class="space-y-2"
+        >
+          <NuxtLink
+            v-for="agent in filteredAgents"
+            :key="agent.id"
+            :to="`/dashboard/agents/${agent.id}`"
+            class="group flex items-center gap-4 p-4 rounded-md border border-muted hover:bg-muted transition-colors"
+          >
+            <UAvatar
+              :src="agent.avatarUrl ?? undefined"
+              :text="initial(agent.name)"
+              size="lg"
+              color="primary"
+            />
+            <div class="flex-1 min-w-0">
+              <p class="font-medium truncate">
+                {{ agent.name }}
+              </p>
+              <p class="text-sm text-muted truncate mt-0.5">
+                {{ agent.defaultModel || '—' }}
+              </p>
+            </div>
+            <span class="text-sm text-muted shrink-0">
+              <TimeAgo :date="agent.updatedAt" />
+            </span>
+          </NuxtLink>
+        </div>
       </div>
     </div>
   </NuxtLayout>

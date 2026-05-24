@@ -1,11 +1,11 @@
 <template>
   <NuxtLayout name="dashboard">
     <template #title>
-      Dashboard
+      <DashboardBreadcrumb :items="[]" />
     </template>
 
     <div class="p-6 sm:p-8">
-      <p class="font-mono text-sm text-muted">
+      <p class="text-sm text-muted">
         Pick a section from the sidebar to get started.
       </p>
     </div>

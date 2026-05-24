@@ -32,7 +32,12 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultMode
 <template>
   <NuxtLayout name="dashboard">
     <template #title>
-      New agent
+      <DashboardBreadcrumb
+        :items="[
+          { label: 'Agents', to: '/dashboard/agents' },
+          { label: 'New' },
+        ]"
+      />
     </template>
 
     <template #actions>

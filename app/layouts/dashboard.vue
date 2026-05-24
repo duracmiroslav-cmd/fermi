@@ -35,9 +35,9 @@ watch(() => route.path, () => {
           class="md:hidden"
           @click="drawerOpen = true"
         />
-        <h1 class="flex-1 font-mono text-base text-highlighted tracking-tight truncate">
-          <slot name="title">dashboard</slot>
-        </h1>
+        <div class="flex-1 min-w-0 truncate">
+          <slot name="title" />
+        </div>
         <div class="flex items-center gap-2">
           <slot name="actions" />
         </div>

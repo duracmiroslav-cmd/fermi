@@ -60,7 +60,7 @@ const onSubmit = () => {
       help="The persona instructions the agent follows. Sets its voice and behavior."
     >
       <template #hint>
-        <span class="font-mono text-xs text-dimmed">
+        <span class="text-sm text-muted">
           {{ promptCharCount }} / 8000
         </span>
       </template>

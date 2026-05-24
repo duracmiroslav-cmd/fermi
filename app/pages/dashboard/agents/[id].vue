@@ -85,7 +85,15 @@ const onDelete = async () => {
 
 <template>
   <NuxtLayout name="dashboard">
-    <template #title />
+    <template #title>
+      <DashboardBreadcrumb
+        :items="[
+          { label: 'Agents', to: '/dashboard/agents' },
+          { label: agent?.name ?? '' },
+        ]"
+        :loading="!agent"
+      />
+    </template>
 
     <template
       v-if="agent"
@@ -109,7 +117,7 @@ const onDelete = async () => {
       class="p-6 sm:p-8 max-w-3xl"
     >
       <div class="border border-dashed border-default rounded-md py-16 px-6 text-center">
-        <p class="font-mono text-sm text-muted mb-2">
+        <p class="text-sm text-muted mb-2">
           Agent not found
         </p>
         <p class="text-sm text-dimmed mb-6 max-w-md mx-auto">
@@ -151,14 +159,14 @@ const onDelete = async () => {
       />
 
       <UFormField label="Details">
-        <div class="p-4 rounded-md border border-default bg-elevated/40">
-          <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 font-mono text-xs">
-            <dt class="text-dimmed text-right">ID</dt>
-            <dd class="text-toned break-all">{{ agent.id }}</dd>
-            <dt class="text-dimmed text-right">Created</dt>
-            <dd class="text-toned"><TimeAgo :date="agent.createdAt" /></dd>
-            <dt class="text-dimmed text-right">Updated</dt>
-            <dd class="text-toned"><TimeAgo :date="agent.updatedAt" /></dd>
+        <div class="p-4 rounded-md border border-muted bg-elevated/40">
+          <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+            <dt class="text-muted text-right">ID</dt>
+            <dd class="text-highlighted break-all">{{ agent.id }}</dd>
+            <dt class="text-muted text-right">Created</dt>
+            <dd class="text-highlighted"><TimeAgo :date="agent.createdAt" /></dd>
+            <dt class="text-muted text-right">Updated</dt>
+            <dd class="text-highlighted"><TimeAgo :date="agent.updatedAt" /></dd>
           </dl>
         </div>
       </UFormField>

@@ -55,7 +55,7 @@ const disconnect = async () => {
 <template>
   <NuxtLayout name="dashboard">
     <template #title>
-      Connections
+      <DashboardBreadcrumb :items="[{ label: 'Connections' }]" />
     </template>
 
     <div class="p-6 sm:p-8 max-w-3xl space-y-8">
