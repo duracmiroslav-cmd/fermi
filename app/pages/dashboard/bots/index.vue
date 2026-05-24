@@ -11,7 +11,7 @@ interface BotRow {
   webhookUrl: string;
 }
 
-const { items: bots, limit, used, atLimit } = useTierLimit<BotRow>('bots');
+const { items: bots, limit, used, atLimit, pending } = useTierLimit<BotRow>('bots');
 
 const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
 </script>
@@ -49,8 +49,13 @@ const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
         {{ used }} / {{ limit }} bots
       </p>
 
+      <DashboardListSkeleton
+        v-if="pending && !bots?.length"
+        :rows="3"
+      />
+
       <div
-        v-if="!bots?.length"
+        v-else-if="!bots?.length"
         class="border border-dashed border-default rounded-md py-16 px-6 text-center"
       >
         <p class="font-mono text-sm text-muted mb-2">

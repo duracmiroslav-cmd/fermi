@@ -9,7 +9,7 @@ interface AgentRow {
   updatedAt: string;
 }
 
-const { items: agents, limit, used, atLimit } = useTierLimit<AgentRow>('agents');
+const { items: agents, limit, used, atLimit, pending } = useTierLimit<AgentRow>('agents');
 
 const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
 </script>
@@ -47,8 +47,13 @@ const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
         {{ used }} / {{ limit }} agents
       </p>
 
+      <DashboardListSkeleton
+        v-if="pending && !agents?.length"
+        :rows="3"
+      />
+
       <div
-        v-if="!agents?.length"
+        v-else-if="!agents?.length"
         class="border border-dashed border-default rounded-md py-16 px-6 text-center"
       >
         <p class="font-mono text-sm text-muted mb-2">

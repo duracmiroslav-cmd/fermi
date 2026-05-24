@@ -13,6 +13,7 @@ export const useTierLimit = <T = unknown>(kind: 'agents' | 'bots') => {
   const limit = computed(() => LIMIT_MAP[kind][(profile.data.value?.tier ?? 'free') as Tier]);
   const used = computed(() => items.data.value?.length ?? 0);
   const atLimit = computed(() => used.value >= limit.value);
+  const pending = computed(() => profile.pending.value || items.pending.value);
 
-  return { items: items.data, limit, used, atLimit };
+  return { items: items.data, limit, used, atLimit, pending };
 };
