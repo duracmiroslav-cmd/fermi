@@ -24,10 +24,9 @@ const { data: agents } = await useFetch<AgentOption[]>('/api/agents', {
   headers: useRequestHeaders(['cookie']),
 });
 
-const agentItems = computed(() => [
-  { label: '(no agent)', value: null },
-  ...(agents.value ?? []).map(a => ({ label: a.name, value: a.id })),
-]);
+const agentItems = computed(() =>
+  (agents.value ?? []).map(a => ({ label: a.name, value: a.id })),
+);
 
 const state = reactive<BotEditFormValue>({
   agentId: props.initialValue.agentId,
@@ -42,7 +41,10 @@ const enabled = computed({
 });
 
 const onSubmit = () => {
-  emit('submit', { ...state });
+  emit('submit', {
+    agentId: state.agentId ?? null,
+    disabledAt: state.disabledAt,
+  });
 };
 </script>
 
@@ -59,17 +61,20 @@ const onSubmit = () => {
         agent
       </h2>
       <UFormField
-        label="Use agent"
+        label="Agent"
         name="agentId"
       >
-        <USelect
+        <USelectMenu
           v-model="state.agentId"
           :items="agentItems"
+          value-key="value"
+          clear
+          placeholder="Select an agent"
           class="w-full"
           :ui="{ base: 'font-mono' }"
         />
         <template #help>
-          The agent's persona drives this bot's responses. Leave empty to pause replies.
+          Drives this bot's replies. Clear to pause.
         </template>
       </UFormField>
     </section>
