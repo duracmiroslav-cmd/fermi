@@ -48,6 +48,14 @@ watch(() => route.path, () => {
       <main class="flex-1 overflow-y-auto">
         <slot />
       </main>
+
+      <footer
+        v-if="$slots.footer"
+        class="border-t border-default bg-default px-4 sm:px-8 py-3 flex items-center justify-end gap-3 shrink-0"
+        style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));"
+      >
+        <slot name="footer" />
+      </footer>
     </div>
   </div>
 </template>
