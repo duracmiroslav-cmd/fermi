@@ -19,7 +19,7 @@ const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
 <template>
   <NuxtLayout name="dashboard">
     <template #title>
-      Bots
+      Bots <span class="text-dimmed">({{ used }} / {{ limit }})</span>
     </template>
     <template #actions>
       <UTooltip
@@ -45,10 +45,6 @@ const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
     </template>
 
     <div class="p-6 sm:p-8">
-      <p class="font-mono text-xs text-dimmed mb-6">
-        {{ used }} / {{ limit }} bots
-      </p>
-
       <DashboardListSkeleton
         v-if="pending && !bots?.length"
         :rows="3"
