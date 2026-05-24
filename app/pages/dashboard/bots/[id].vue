@@ -28,39 +28,11 @@ if (error.value) {
 
 const saving = ref(false);
 const deleting = ref(false);
-const syncing = ref(false);
 const deleteDialogOpen = ref(false);
 const webhookCopied = ref(false);
 
-const syncFromLine = async () => {
-  if (!bot.value || syncing.value) return;
-  syncing.value = true;
-  try {
-    const res = await $fetch<{ avatarUrl: string | null }>(
-      `/api/bots/${route.params.id}/refresh`,
-      { method: 'POST' },
-    );
-    // Re-fetch from the server rather than patching `bot.value` —
-    // keeps the page in lockstep with the DB and sidesteps the
-    // ref-mutation reactivity edge cases.
-    await refresh();
-    toast.add({
-      title: res.avatarUrl ? 'Synced from LINE' : 'Synced — LINE OA has no profile picture yet',
-      description: res.avatarUrl ? undefined : 'Upload one in LINE Official Account Manager, then sync again.',
-      color: res.avatarUrl ? 'success' : 'warning',
-    });
-  }
-  catch (e) {
-    toast.add({
-      title: 'Sync failed',
-      description: e instanceof Error ? e.message : 'Unknown error',
-      color: 'error',
-    });
-  }
-  finally {
-    syncing.value = false;
-  }
-};
+const { syncingId, sync: syncFromLine } = useBotAvatar(refresh);
+const syncing = computed(() => syncingId.value !== null);
 
 const copyWebhook = async () => {
   if (!bot.value) return;
@@ -174,7 +146,7 @@ const onDelete = async () => {
             color="neutral"
             variant="outline"
             :loading="syncing"
-            @click="syncFromLine"
+            @click="syncFromLine(bot.id)"
           >
             Sync from LINE
           </UButton>

@@ -13,46 +13,9 @@ interface BotRow {
 }
 
 const { items: bots, limit, used, atLimit, pending, refresh } = useTierLimit<BotRow>('bots');
-const toast = useToast();
-const syncingId = ref<string | null>(null);
+const { syncingId, sync: syncAvatar } = useBotAvatar(refresh);
 
 const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
-
-const syncAvatar = async (bot: BotRow) => {
-  if (syncingId.value) return;
-  syncingId.value = bot.id;
-  try {
-    const res = await $fetch<{ avatarUrl: string | null }>(
-      `/api/bots/${bot.id}/refresh`,
-      { method: 'POST' },
-    );
-    // Server is the source of truth — re-fetch the list rather than
-    // patching local cache. Manual mutation through useFetch's data
-    // ref is reactivity-fragile (the shallow-vs-deep distinction
-    // tripped us up here) and easy to fall out of sync with the DB.
-    await refresh();
-    if (res.avatarUrl) {
-      toast.add({ title: 'Avatar synced from LINE', color: 'success' });
-    }
-    else {
-      toast.add({
-        title: 'LINE OA has no profile picture yet',
-        description: 'Upload one in LINE Official Account Manager, then sync again.',
-        color: 'warning',
-      });
-    }
-  }
-  catch (e) {
-    toast.add({
-      title: 'Sync failed',
-      description: e instanceof Error ? e.message : 'Unknown error',
-      color: 'error',
-    });
-  }
-  finally {
-    syncingId.value = null;
-  }
-};
 </script>
 
 <template>
@@ -132,7 +95,7 @@ const syncAvatar = async (bot: BotRow) => {
               type="button"
               :disabled="syncingId === bot.id"
               class="relative size-8 shrink-0 rounded-full bg-primary/10 border border-primary/30 hover:bg-primary/20 hover:border-primary/50 transition-colors group disabled:opacity-60 cursor-pointer"
-              @click.stop.prevent="syncAvatar(bot)"
+              @click.stop.prevent="syncAvatar(bot.id)"
             >
               <UIcon
                 v-if="syncingId === bot.id"
