@@ -39,7 +39,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      agent_events: {
+      agent_run_steps: {
         Row: {
           cost_usd: number | null
           created_at: string
@@ -47,8 +47,8 @@ export type Database = {
           latency_ms: number | null
           openrouter_gen_id: string | null
           payload: Json
+          run_id: string
           step: number
-          thread_id: string
           type: string
         }
         Insert: {
@@ -58,8 +58,8 @@ export type Database = {
           latency_ms?: number | null
           openrouter_gen_id?: string | null
           payload?: Json
+          run_id: string
           step: number
-          thread_id: string
           type: string
         }
         Update: {
@@ -69,13 +69,51 @@ export type Database = {
           latency_ms?: number | null
           openrouter_gen_id?: string | null
           payload?: Json
+          run_id?: string
           step?: number
-          thread_id?: string
           type?: string
         }
         Relationships: [
           {
-            foreignKeyName: "agent_events_thread_id_fkey"
+            foreignKeyName: "agent_run_steps_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_runs: {
+        Row: {
+          created_at: string
+          finished_at: string | null
+          id: string
+          status: string
+          thread_id: string
+          total_cost_usd: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          status?: string
+          thread_id: string
+          total_cost_usd?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          status?: string
+          thread_id?: string
+          total_cost_usd?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_runs_thread_id_fkey"
             columns: ["thread_id"]
             isOneToOne: false
             referencedRelation: "threads"

@@ -3,8 +3,8 @@ import { findAgentById } from '../../../shared/agents.ts';
 import { findBotById } from '../../../shared/bots.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
 import { getKek } from '../../../shared/kek.ts';
-import { logEvent } from './events.ts';
 import { OpenRouterError, chatCompletion } from './openrouter.ts';
+import { finishRun, logStep, startRun } from './runs.ts';
 import {
   appendMessage,
   loadRecentMessages,
@@ -147,8 +147,9 @@ const runAgentLoop = async (params: {
   const threadId = await resolveOrCreateLatestThread(admin, bot.id, externalUserId);
   await appendMessage(admin, threadId, 'user', { type: 'text', text: userText });
 
+  const runId = await startRun(admin, threadId);
   let step = 1;
-  await logEvent(admin, { threadId, step: step++, type: 'worker_started' });
+  let totalCostUsd = 0;
 
   try {
     const history = await loadRecentMessages(admin, threadId, HISTORY_WINDOW);
@@ -156,8 +157,8 @@ const runAgentLoop = async (params: {
       ?? `You are ${agent.name}, a helpful assistant on LINE. Reply in the user's language.`;
     const model = agent.defaultModel ?? DEFAULT_MODEL;
 
-    await logEvent(admin, {
-      threadId,
+    await logStep(admin, {
+      runId,
       step: step++,
       type: 'llm_request',
       payload: { model, message_count: history.length },
@@ -173,9 +174,10 @@ const runAgentLoop = async (params: {
       ],
     });
     const llmLatency = Math.round(performance.now() - llmStart);
+    totalCostUsd += result.costUsd;
 
-    await logEvent(admin, {
-      threadId,
+    await logStep(admin, {
+      runId,
       step: step++,
       type: 'llm_response',
       payload: {
@@ -192,20 +194,22 @@ const runAgentLoop = async (params: {
 
     try {
       await replyText(lineAccessToken, replyToken, `🤖 ${result.text}`);
-      await logEvent(admin, {
-        threadId,
+      await logStep(admin, {
+        runId,
         step: step++,
         type: 'push_sent',
       });
+      await finishRun(admin, runId, 'succeeded', totalCostUsd);
     } catch (err) {
       const payload: Record<string, unknown> = { message: String(err) };
       if (err instanceof LineReplyError) payload.status = err.status;
-      await logEvent(admin, {
-        threadId,
+      await logStep(admin, {
+        runId,
         step: step++,
         type: 'push_failed',
         payload,
       });
+      await finishRun(admin, runId, 'failed', totalCostUsd);
 
       if (err instanceof LineReplyError && err.status === 400) {
         // Terminal — the reply window closed. Drop without retry.
@@ -216,12 +220,13 @@ const runAgentLoop = async (params: {
   } catch (err) {
     const payload: Record<string, unknown> = { message: String(err) };
     if (err instanceof OpenRouterError) payload.status = err.status;
-    await logEvent(admin, {
-      threadId,
+    await logStep(admin, {
+      runId,
       step: step++,
       type: 'error',
       payload,
     });
+    await finishRun(admin, runId, 'failed', totalCostUsd);
     throw err;
   }
 };
