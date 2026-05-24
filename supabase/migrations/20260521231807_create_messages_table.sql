@@ -1,5 +1,5 @@
--- Creates the `messages` table. Each row is one turn (user / assistant
--- / tool) inside a thread. `content` is jsonb so the same row shape
+-- Creates the `messages` table, one row per turn (user / assistant /
+-- tool) inside a thread. `content` is jsonb so the same row shape
 -- carries text, image refs, tool calls, and tool results.
 
 create table public.messages (

@@ -1,9 +1,10 @@
--- Creates `public.dequeue_webhook_events` and `public.archive_webhook_event`,
--- the SECURITY DEFINER wrappers the Edge Function worker uses to drain the
--- `webhook_events` queue without touching the `pgmq` schema directly.
+-- Creates the `dequeue_webhook_events` and `archive_webhook_event`
+-- SECURITY DEFINER wrappers the Edge Function worker uses to drain
+-- the `webhook_events` queue without touching the `pgmq` schema
+-- directly.
 --
--- Both functions are granted to `service_role` only; anon and authenticated
--- roles cannot consume the queue.
+-- Granted to service_role only; anon and authenticated cannot
+-- consume the queue.
 
 create function public.dequeue_webhook_events(
   batch_size integer default 10,

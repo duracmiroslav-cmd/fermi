@@ -1,10 +1,10 @@
 -- Creates the `webhook_events` pgmq queue and the
--- `public.enqueue_webhook_event` SECURITY DEFINER wrapper used by the
--- Nuxt webhook handler to enqueue jobs without touching the `pgmq`
+-- `enqueue_webhook_event` SECURITY DEFINER wrapper. The Nuxt webhook
+-- handler enqueues via the wrapper instead of touching the `pgmq`
 -- schema directly.
 --
--- The wrapper is granted to `service_role` only; anon and authenticated
--- roles cannot enqueue, so a leaked anon key cannot flood the queue.
+-- Granted to service_role only; anon and authenticated cannot
+-- enqueue, so a leaked anon key cannot flood the queue.
 
 create extension if not exists pgmq;
 

@@ -1,13 +1,12 @@
--- Envelope-encrypted storage for any third-party credential fermi holds
--- on behalf of a user. Ciphertext is service_role-only; never exposed
--- to clients.
+-- Creates the `encrypted_credentials` table, envelope-encrypted
+-- storage for any third-party credential fermi holds on behalf of a
+-- user. Ciphertext is service_role-only; never exposed to clients.
 --
 -- Identity tuple `(user_id, key_type, bot_id)`. Account-level
 -- credentials carry NULL `bot_id`; a partial unique index gives them
 -- one-per-(user, key_type) enforcement.
 --
--- KEK rotation needs only re-wrapping each DEK, not re-encrypting any
--- ciphertext.
+-- KEK rotation re-wraps each DEK; ciphertext is not touched.
 
 create table public.encrypted_credentials (
   id                  uuid primary key default gen_random_uuid(),

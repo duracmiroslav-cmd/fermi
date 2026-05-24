@@ -1,8 +1,8 @@
--- delete_bot: moves a bot to the trash (soft-delete). Credentials
--- linger until purge_orphaned_credentials sweeps them at 30 days, so a
--- bot restored before then keeps its LINE connection; after that the
--- bot can still be restored but credentials need to be re-pasted from
--- the LINE Developer Console.
+-- Creates the `delete_bot` function that moves a bot to the trash
+-- (soft-delete). Credentials linger until `purge_orphaned_credentials`
+-- sweeps them at 30 days, so a bot restored before then keeps its
+-- LINE connection; after that the bot can still be restored but
+-- credentials need to be re-pasted from the LINE Developer Console.
 --
 -- Raises bot_not_found (P0002) if the bot does not exist, is already
 -- trashed, or belongs to a different owner.

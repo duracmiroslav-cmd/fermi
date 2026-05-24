@@ -1,6 +1,7 @@
--- agent_events: per-step trace of agent loop execution. The bot owner
--- can read their own events to debug / tune the persona; nobody writes
--- from the client — the worker is the only producer.
+-- Creates the `agent_events` table, a per-step trace of agent loop
+-- execution. The bot owner can read their own events to debug / tune
+-- the persona; nobody writes from the client — the worker is the
+-- only producer.
 
 create table public.agent_events (
   id                uuid primary key default gen_random_uuid(),

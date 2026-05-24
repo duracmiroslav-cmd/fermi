@@ -1,12 +1,12 @@
 -- Creates the `drain-webhook-events` pg_cron job that POSTs to the
--- `agent` Edge Function once a minute, draining the `webhook_events`
--- queue. Sub-minute scheduling is not available on managed Supabase,
--- so latency-sensitive paths trigger the worker directly from the
--- webhook handler; this cron is the fallback.
+-- `agent` Edge Function once a minute as a queue-drain fallback.
+-- Sub-minute scheduling is not available on managed Supabase, so
+-- latency-sensitive paths trigger the worker directly from the
+-- webhook handler.
 --
 -- The job authenticates with the service role key read from Supabase
--- Vault. Before the cron can succeed, create the secret once from the
--- Supabase SQL editor:
+-- Vault. Create the secret once from the SQL editor before the cron
+-- can succeed:
 --
 --   select vault.create_secret('<service-role-key>', 'service_role_key');
 

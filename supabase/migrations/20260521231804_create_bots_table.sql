@@ -1,5 +1,6 @@
--- Deployment / transport layer. Persona lives on `agents`; the FK
--- below uses `set null` so an agent delete leaves the bot rebindable.
+-- Creates the `bots` table, the deployment / transport layer.
+-- Persona lives on `agents`; the `agent_id` FK uses `set null` so
+-- an agent delete leaves the bot rebindable.
 
 create table public.bots (
   id            uuid primary key default gen_random_uuid(),

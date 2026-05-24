@@ -1,6 +1,7 @@
--- delete_agent: moves an agent to the trash and clears the binding on
--- any bot still pointing to it. Releasing the binding lets the bot be
--- attached to a different agent immediately.
+-- Creates the `delete_agent` function that moves an agent to the
+-- trash and clears the binding on any bot still pointing to it.
+-- Releasing the binding lets the bot be attached to a different
+-- agent immediately.
 --
 -- Raises agent_not_found (P0002) if the agent does not exist, is
 -- already trashed, or belongs to a different owner.

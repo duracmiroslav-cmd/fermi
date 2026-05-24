@@ -1,6 +1,7 @@
--- Public bucket for agent avatars. Files are organized by user_id
--- so RLS enforces "users only manage their own folder". Public read
--- lets browsers fetch avatar URLs without auth.
+-- Creates the `agent-avatars` storage bucket for agent avatar images
+-- plus RLS policies that scope writes to the owner's `user_id`
+-- folder and allow public read. Public read lets browsers fetch
+-- avatar URLs without auth.
 --
 -- Path convention: <user_id>/<agent_id>.<ext>
 

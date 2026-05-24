@@ -1,8 +1,8 @@
--- Creates the `conversations` table. Each row is the persistent
--- relationship between a bot and one external end-user (e.g., a LINE
--- userId). The end-user lives on the bot's platform and is not a
--- fermi account holder. Thread-level message history hangs off this
--- via the `threads` and `messages` tables.
+-- Creates the `conversations` table, the persistent relationship
+-- between a bot and one external end-user (e.g., a LINE userId). The
+-- end-user lives on the bot's platform and is not a fermi account
+-- holder. Thread-level message history hangs off this via `threads`
+-- and `messages`.
 
 create table public.conversations (
   id                    uuid primary key default gen_random_uuid(),

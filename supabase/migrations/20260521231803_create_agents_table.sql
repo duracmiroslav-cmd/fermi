@@ -1,5 +1,6 @@
--- Persona layer. The FK on `bots.agent_id` is `set null`, so deleting
--- an agent leaves the deployment intact and rebindable.
+-- Creates the `agents` table, the persona layer (system prompt,
+-- default model, avatar). The FK on `bots.agent_id` uses `set null`
+-- so deleting an agent leaves the deployment intact and rebindable.
 
 create table public.agents (
   id              uuid primary key default gen_random_uuid(),

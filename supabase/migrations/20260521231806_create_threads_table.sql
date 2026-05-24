@@ -1,6 +1,6 @@
--- Creates the `threads` table. A thread is a discrete session within
--- a conversation; the `/new` command opens a fresh thread, and LINE
--- routes incoming messages to the latest by `last_message_at`.
+-- Creates the `threads` table, a discrete session within a
+-- conversation. The `/new` command opens a fresh thread; LINE routes
+-- incoming messages to the latest by `last_message_at`.
 
 create table public.threads (
   id                uuid primary key default gen_random_uuid(),

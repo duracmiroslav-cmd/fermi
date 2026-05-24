@@ -1,5 +1,5 @@
 -- Creates the `handle_new_user` trigger that mirrors `auth.users`
--- inserts into `public.users` on signup, extracting `display_name` and
+-- inserts into `public.users` on signup, pulling `display_name` and
 -- `avatar_url` from OAuth provider metadata.
 --
 -- The function runs as `SECURITY DEFINER` with a locked `search_path`
