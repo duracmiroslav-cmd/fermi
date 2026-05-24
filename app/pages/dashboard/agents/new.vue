@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ layout: false });
+
 const toast = useToast();
 const saving = ref(false);
 
@@ -15,46 +17,46 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultMode
     });
     toast.add({ title: 'Agent created', color: 'success' });
     await navigateTo(`/dashboard/agents/${created.id}`);
-  }
-  catch (e) {
+  } catch (e) {
     toast.add({
       title: 'Create failed',
       description: e instanceof Error ? e.message : 'Unknown error',
       color: 'error',
     });
-  }
-  finally {
+  } finally {
     saving.value = false;
   }
 };
 </script>
 
 <template>
-  <NuxtLayout name="dashboard">
-    <template #title>
-      <DashboardBreadcrumb
-        :items="[
-          { label: 'Agents', to: '/dashboard/agents' },
-          { label: 'New' },
-        ]"
-      />
-    </template>
+  <div>
+    <NuxtLayout name="dashboard">
+      <template #title>
+        <DashboardBreadcrumb
+          :items="[
+            { label: 'Agents', to: '/dashboard/agents' },
+            { label: 'New' },
+          ]"
+        />
+      </template>
 
-    <template #actions>
-      <UButton
-        type="submit"
-        form="agent-form"
-        :loading="saving"
-      >
-        Create
-      </UButton>
-    </template>
+      <template #actions>
+        <UButton
+          type="submit"
+          form="agent-form"
+          :loading="saving"
+        >
+          Create
+        </UButton>
+      </template>
 
-    <div class="p-6 sm:p-8 pb-12 max-w-3xl">
-      <AgentForm
-        form-id="agent-form"
-        @submit="onSubmit"
-      />
-    </div>
-  </NuxtLayout>
+      <div class="p-6 sm:p-8 pb-12 max-w-3xl">
+        <AgentForm
+          form-id="agent-form"
+          @submit="onSubmit"
+        />
+      </div>
+    </NuxtLayout>
+  </div>
 </template>

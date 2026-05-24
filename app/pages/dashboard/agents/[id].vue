@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ layout: false });
+
 interface AgentDetail {
   id: string;
   name: string;
@@ -34,15 +36,13 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultMode
     });
     toast.add({ title: 'Agent updated', color: 'success' });
     await navigateTo('/dashboard/agents');
-  }
-  catch (e) {
+  } catch (e) {
     toast.add({
       title: 'Update failed',
       description: e instanceof Error ? e.message : 'Unknown error',
       color: 'error',
     });
-  }
-  finally {
+  } finally {
     saving.value = false;
   }
 };
@@ -55,8 +55,7 @@ const onAvatarChange = async (url: string | null) => {
     });
     if (agent.value) agent.value.avatarUrl = url;
     toast.add({ title: url ? 'Avatar updated' : 'Avatar removed', color: 'success' });
-  }
-  catch (e) {
+  } catch (e) {
     toast.add({
       title: 'Avatar update failed',
       description: e instanceof Error ? e.message : 'Unknown error',
@@ -71,8 +70,7 @@ const onDelete = async () => {
     await $fetch(`/api/agents/${route.params.id}`, { method: 'DELETE' });
     toast.add({ title: 'Agent deleted', color: 'success' });
     await navigateTo('/dashboard/agents');
-  }
-  catch (e) {
+  } catch (e) {
     toast.add({
       title: 'Delete failed',
       description: e instanceof Error ? e.message : 'Unknown error',
@@ -84,130 +82,144 @@ const onDelete = async () => {
 </script>
 
 <template>
-  <NuxtLayout name="dashboard">
-    <template #title>
-      <DashboardBreadcrumb
-        :items="[
-          { label: 'Agents', to: '/dashboard/agents' },
-          { label: agent?.name ?? '' },
-        ]"
-        :loading="!agent"
-      />
-    </template>
-
-    <template
-      v-if="agent"
-      #actions
-    >
-      <UButton
-        type="submit"
-        form="agent-form"
-        :loading="saving"
-      >
-        Save
-      </UButton>
-    </template>
-    <DashboardDetailSkeleton
-      v-if="pending && !agent"
-      :fields="3"
-    />
-
-    <div
-      v-else-if="error"
-      class="p-6 sm:p-8 max-w-3xl"
-    >
-      <div class="border border-dashed border-default rounded-md py-16 px-6 text-center">
-        <p class="text-sm text-muted mb-2">
-          Agent not found
-        </p>
-        <p class="text-sm text-dimmed mb-6 max-w-md mx-auto">
-          This agent may have been deleted, or the link is wrong.
-        </p>
-        <UButton
-          to="/dashboard/agents"
-          icon="i-lucide-arrow-left"
-        >
-          Back to agents
-        </UButton>
-      </div>
-    </div>
-
-    <div
-      v-if="agent"
-      class="p-6 sm:p-8 pb-12 max-w-3xl flex flex-col gap-6"
-    >
-      <div class="flex items-center gap-4">
-        <AgentAvatarUpload
-          :agent-id="agent.id"
-          :current-url="agent.avatarUrl"
-          :fallback="(agent.name ?? '?').charAt(0).toUpperCase()"
-          @change="onAvatarChange"
+  <div>
+    <NuxtLayout name="dashboard">
+      <template #title>
+        <DashboardBreadcrumb
+          :items="[
+            { label: 'Agents', to: '/dashboard/agents' },
+            { label: agent?.name ?? '' },
+          ]"
+          :loading="!agent"
         />
-        <h1 class="text-2xl font-semibold truncate">
-          {{ agent.name || '(unnamed)' }}
-        </h1>
-      </div>
+      </template>
 
-      <AgentForm
-        form-id="agent-form"
-        :initial-value="{
-          name: agent.name,
-          systemPrompt: agent.systemPrompt ?? '',
-          defaultModel: agent.defaultModel ?? undefined,
-        }"
-        @submit="onSubmit"
+      <template
+        v-if="agent"
+        #actions
+      >
+        <UButton
+          type="submit"
+          form="agent-form"
+          :loading="saving"
+        >
+          Save
+        </UButton>
+      </template>
+      <DashboardDetailSkeleton
+        v-if="pending && !agent"
+        :fields="3"
       />
 
-      <UFormField label="Details">
-        <div class="p-4 rounded-md border border-muted bg-elevated/40">
-          <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-            <dt class="text-muted text-right">ID</dt>
-            <dd class="text-highlighted break-all">{{ agent.id }}</dd>
-            <dt class="text-muted text-right">Created</dt>
-            <dd class="text-highlighted"><TimeAgo :date="agent.createdAt" /></dd>
-            <dt class="text-muted text-right">Updated</dt>
-            <dd class="text-highlighted"><TimeAgo :date="agent.updatedAt" /></dd>
-          </dl>
-        </div>
-      </UFormField>
-
-      <section>
-        <h2 class="text-sm font-medium text-error mb-3">
-          Danger zone
-        </h2>
-        <div class="flex items-center justify-between gap-4 p-4 rounded-md border border-error/40">
-          <div class="min-w-0">
-            <p class="text-sm font-medium">
-              Delete this agent
-            </p>
-            <p class="text-sm text-muted mt-1">
-              Permanent. Bots using this agent will stop replying.
-            </p>
-          </div>
+      <div
+        v-else-if="error"
+        class="p-6 sm:p-8 max-w-3xl"
+      >
+        <div class="border border-dashed border-default rounded-md py-16 px-6 text-center">
+          <p class="text-sm text-muted mb-2">
+            Agent not found
+          </p>
+          <p class="text-sm text-dimmed mb-6 max-w-md mx-auto">
+            This agent may have been deleted, or the link is wrong.
+          </p>
           <UButton
-            color="error"
-            variant="outline"
-            @click="deleteDialogOpen = true"
+            to="/dashboard/agents"
+            icon="i-lucide-arrow-left"
           >
-            Delete agent
+            Back to agents
           </UButton>
         </div>
-      </section>
+      </div>
 
-      <DeleteConfirmDialog
-        v-model:open="deleteDialogOpen"
-        title="Delete agent"
-        :item-name="agent.name"
-        confirm-label="Delete"
-        :loading="deleting"
-        @confirm="onDelete"
+      <div
+        v-if="agent"
+        class="p-6 sm:p-8 pb-12 max-w-3xl flex flex-col gap-6"
       >
-        <p>
-          Permanently deletes
-          <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{{ agent.name }}</span>.
-          Bots using this agent stop replying.
-        </p>
-      </DeleteConfirmDialog>
-    </div>
-  </NuxtLayout>
+        <div class="flex items-center gap-4">
+          <AgentAvatarUpload
+            :agent-id="agent.id"
+            :current-url="agent.avatarUrl"
+            :fallback="(agent.name ?? '?').charAt(0).toUpperCase()"
+            @change="onAvatarChange"
+          />
+          <h1 class="text-2xl font-semibold truncate">
+            {{ agent.name || '(unnamed)' }}
+          </h1>
+        </div>
+
+        <AgentForm
+          form-id="agent-form"
+          :initial-value="{
+            name: agent.name,
+            systemPrompt: agent.systemPrompt ?? '',
+            defaultModel: agent.defaultModel ?? undefined,
+          }"
+          @submit="onSubmit"
+        />
+
+        <UFormField label="Details">
+          <div class="p-4 rounded-md border border-muted bg-elevated/40">
+            <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <dt class="text-muted text-right">
+                ID
+              </dt>
+              <dd class="text-highlighted break-all">
+                {{ agent.id }}
+              </dd>
+              <dt class="text-muted text-right">
+                Created
+              </dt>
+              <dd class="text-highlighted">
+                <TimeAgo :date="agent.createdAt" />
+              </dd>
+              <dt class="text-muted text-right">
+                Updated
+              </dt>
+              <dd class="text-highlighted">
+                <TimeAgo :date="agent.updatedAt" />
+              </dd>
+            </dl>
+          </div>
+        </UFormField>
+
+        <section>
+          <h2 class="text-sm font-medium text-error mb-3">
+            Danger zone
+          </h2>
+          <div class="flex items-center justify-between gap-4 p-4 rounded-md border border-error/40">
+            <div class="min-w-0">
+              <p class="text-sm font-medium">
+                Delete this agent
+              </p>
+              <p class="text-sm text-muted mt-1">
+                Permanent. Bots using this agent will stop replying.
+              </p>
+            </div>
+            <UButton
+              color="error"
+              variant="outline"
+              @click="deleteDialogOpen = true"
+            >
+              Delete agent
+            </UButton>
+          </div>
+        </section>
+
+        <DeleteConfirmDialog
+          v-model:open="deleteDialogOpen"
+          title="Delete agent"
+          :item-name="agent.name"
+          confirm-label="Delete"
+          :loading="deleting"
+          @confirm="onDelete"
+        >
+          <p>
+            Permanently deletes
+            <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{{ agent.name }}</span>.
+            Bots using this agent stop replying.
+          </p>
+        </DeleteConfirmDialog>
+      </div>
+    </NuxtLayout>
+  </div>
 </template>

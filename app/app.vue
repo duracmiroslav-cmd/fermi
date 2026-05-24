@@ -2,7 +2,9 @@
   <UApp>
     <div class="bg-default text-default min-h-screen">
       <NuxtRouteAnnouncer />
-      <NuxtPage />
+      <NuxtLayout>
+        <NuxtPage />
+      </NuxtLayout>
     </div>
   </UApp>
 </template>
