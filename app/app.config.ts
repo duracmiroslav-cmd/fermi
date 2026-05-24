@@ -22,11 +22,13 @@ export default defineAppConfig({
     select: {
       slots: {
         base: 'w-full cursor-pointer',
+        item: 'cursor-pointer',
       },
     },
     selectMenu: {
       slots: {
         base: 'w-full cursor-pointer',
+        item: 'cursor-pointer',
       },
     },
     switch: {

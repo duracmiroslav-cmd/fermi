@@ -3,10 +3,7 @@ import { getCurrentUser } from '~~/server/utils/auth';
 export default defineEventHandler(async (event) => {
   const user = await getCurrentUser(event);
 
-  const id = getRouterParam(event, 'id');
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing bot id' });
-  }
+  const id = getUuidParam(event, 'id');
 
   const admin = useSupabaseAdmin();
   const { data, error } = await admin.rpc('delete_bot', {

@@ -4,10 +4,7 @@ import { updateAgentInputSchema } from '~~/shared/schemas/agents';
 export default defineEventHandler(async (event) => {
   const user = await getCurrentUser(event);
 
-  const id = getRouterParam(event, 'id');
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing agent id' });
-  }
+  const id = getUuidParam(event, 'id');
 
   const body = await readBody(event);
   const parsed = updateAgentInputSchema.safeParse(body);

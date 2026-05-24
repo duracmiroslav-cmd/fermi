@@ -20,7 +20,7 @@ const emit = defineEmits<{
   submit: [value: BotEditFormValue];
 }>();
 
-const { data: agents } = await useFetch<AgentOption[]>('/api/agents', {
+const { data: agents } = useLazyFetch<AgentOption[]>('/api/agents', {
   headers: useRequestHeaders(['cookie']),
 });
 

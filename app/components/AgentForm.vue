@@ -46,6 +46,7 @@ const onSubmit = () => {
       label="Name"
       name="name"
       required
+      help="A label for you to recognize this agent. Users on LINE never see it."
     >
       <UInput
         v-model="state.name"
@@ -56,6 +57,7 @@ const onSubmit = () => {
     <UFormField
       label="System prompt"
       name="systemPrompt"
+      help="The persona instructions the agent follows. Sets its voice and behavior."
     >
       <template #hint>
         <span class="font-mono text-xs text-dimmed">
@@ -73,6 +75,7 @@ const onSubmit = () => {
     <UFormField
       label="Default model"
       name="defaultModel"
+      help="The AI model that generates this agent's replies."
     >
       <USelect
         v-model="state.defaultModel"

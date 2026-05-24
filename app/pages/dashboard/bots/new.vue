@@ -57,7 +57,10 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
     </template>
 
     <div class="p-6 sm:p-8 pb-12 max-w-3xl flex flex-col gap-6">
-      <UFormField label="Platform">
+      <UFormField
+        label="Platform"
+        help="Which messaging service this bot connects to."
+      >
         <USelect
           v-model="platform"
           :items="platformOptions"

@@ -4,10 +4,7 @@ import { updateBotInputSchema } from '~~/shared/schemas/bots';
 export default defineEventHandler(async (event) => {
   const user = await getCurrentUser(event);
 
-  const id = getRouterParam(event, 'id');
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing bot id' });
-  }
+  const id = getUuidParam(event, 'id');
 
   const body = await readBody(event);
   const parsed = updateBotInputSchema.safeParse(body);

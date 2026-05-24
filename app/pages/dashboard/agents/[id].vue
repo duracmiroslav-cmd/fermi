@@ -12,14 +12,10 @@ interface AgentDetail {
 const route = useRoute();
 const toast = useToast();
 
-const { data: agent, error } = await useFetch<AgentDetail>(
+const { data: agent, error, pending } = useLazyFetch<AgentDetail>(
   () => `/api/agents/${route.params.id}`,
   { headers: useRequestHeaders(['cookie']) },
 );
-
-if (error.value) {
-  throw createError({ statusCode: 404, statusMessage: 'Agent not found' });
-}
 
 const saving = ref(false);
 const deleting = ref(false);
@@ -103,6 +99,31 @@ const onDelete = async () => {
         Save
       </UButton>
     </template>
+    <DashboardDetailSkeleton
+      v-if="pending && !agent"
+      :fields="3"
+    />
+
+    <div
+      v-else-if="error"
+      class="p-6 sm:p-8 max-w-3xl"
+    >
+      <div class="border border-dashed border-default rounded-md py-16 px-6 text-center">
+        <p class="font-mono text-sm text-muted mb-2">
+          Agent not found
+        </p>
+        <p class="text-sm text-dimmed mb-6 max-w-md mx-auto">
+          This agent may have been deleted, or the link is wrong.
+        </p>
+        <UButton
+          to="/dashboard/agents"
+          icon="i-lucide-arrow-left"
+        >
+          Back to agents
+        </UButton>
+      </div>
+    </div>
+
     <div
       v-if="agent"
       class="p-6 sm:p-8 pb-12 max-w-3xl flex flex-col gap-6"
@@ -143,8 +164,8 @@ const onDelete = async () => {
       </UFormField>
 
       <section>
-        <h2 class="font-mono text-xs uppercase tracking-wider text-error mb-3">
-          danger zone
+        <h2 class="text-sm font-medium text-error mb-3">
+          Danger zone
         </h2>
         <div class="flex items-center justify-between gap-4 p-4 rounded-md border border-error/40">
           <div class="min-w-0">
