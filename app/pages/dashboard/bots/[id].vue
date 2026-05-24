@@ -17,7 +17,7 @@ interface BotDetail {
 const route = useRoute();
 const toast = useToast();
 
-const { data: bot, error } = await useFetch<BotDetail>(
+const { data: bot, error, refresh } = await useFetch<BotDetail>(
   () => `/api/bots/${route.params.id}`,
   { headers: useRequestHeaders(['cookie']) },
 );
@@ -36,12 +36,14 @@ const syncFromLine = async () => {
   if (!bot.value || syncing.value) return;
   syncing.value = true;
   try {
-    const res = await $fetch<{ avatarUrl: string | null; displayName: string | null }>(
+    const res = await $fetch<{ avatarUrl: string | null }>(
       `/api/bots/${route.params.id}/refresh`,
       { method: 'POST' },
     );
-    bot.value.avatarUrl = res.avatarUrl;
-    bot.value.displayName = res.displayName;
+    // Re-fetch from the server rather than patching `bot.value` —
+    // keeps the page in lockstep with the DB and sidesteps the
+    // ref-mutation reactivity edge cases.
+    await refresh();
     toast.add({
       title: res.avatarUrl ? 'Synced from LINE' : 'Synced — LINE OA has no profile picture yet',
       description: res.avatarUrl ? undefined : 'Upload one in LINE Official Account Manager, then sync again.',

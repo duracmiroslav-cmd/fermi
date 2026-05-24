@@ -15,5 +15,5 @@ export const useTierLimit = <T = unknown>(kind: 'agents' | 'bots') => {
   const atLimit = computed(() => used.value >= limit.value);
   const pending = computed(() => profile.pending.value || items.pending.value);
 
-  return { items: items.data, limit, used, atLimit, pending };
+  return { items: items.data, limit, used, atLimit, pending, refresh: items.refresh };
 };

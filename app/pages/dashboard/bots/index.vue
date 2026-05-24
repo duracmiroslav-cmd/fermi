@@ -12,7 +12,7 @@ interface BotRow {
   webhookUrl: string;
 }
 
-const { items: bots, limit, used, atLimit, pending } = useTierLimit<BotRow>('bots');
+const { items: bots, limit, used, atLimit, pending, refresh } = useTierLimit<BotRow>('bots');
 const toast = useToast();
 const syncingId = ref<string | null>(null);
 
@@ -22,12 +22,15 @@ const syncAvatar = async (bot: BotRow) => {
   if (syncingId.value) return;
   syncingId.value = bot.id;
   try {
-    const res = await $fetch<{ avatarUrl: string | null; displayName: string | null }>(
+    const res = await $fetch<{ avatarUrl: string | null }>(
       `/api/bots/${bot.id}/refresh`,
       { method: 'POST' },
     );
-    bot.avatarUrl = res.avatarUrl;
-    bot.displayName = res.displayName;
+    // Server is the source of truth — re-fetch the list rather than
+    // patching local cache. Manual mutation through useFetch's data
+    // ref is reactivity-fragile (the shallow-vs-deep distinction
+    // tripped us up here) and easy to fall out of sync with the DB.
+    await refresh();
     if (res.avatarUrl) {
       toast.add({ title: 'Avatar synced from LINE', color: 'success' });
     }
