@@ -425,16 +425,10 @@ export type Database = {
           id: string
         }[]
       }
-      permanently_delete_agent: {
-        Args: { p_agent_id: string; p_owner_id: string }
-        Returns: string
+      purge_orphaned_credentials: {
+        Args: { older_than?: string }
+        Returns: number
       }
-      permanently_delete_bot: {
-        Args: { p_bot_id: string; p_owner_id: string }
-        Returns: string
-      }
-      purge_deleted_agents: { Args: { older_than?: string }; Returns: number }
-      purge_deleted_bots: { Args: { older_than?: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never
