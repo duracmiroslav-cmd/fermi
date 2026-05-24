@@ -169,6 +169,7 @@ export type Database = {
         Row: {
           agent_id: string | null
           allow_groups: boolean
+          avatar_url: string | null
           created_at: string
           deleted_at: string | null
           disabled_at: string | null
@@ -182,6 +183,7 @@ export type Database = {
         Insert: {
           agent_id?: string | null
           allow_groups?: boolean
+          avatar_url?: string | null
           created_at?: string
           deleted_at?: string | null
           disabled_at?: string | null
@@ -195,6 +197,7 @@ export type Database = {
         Update: {
           agent_id?: string | null
           allow_groups?: boolean
+          avatar_url?: string | null
           created_at?: string
           deleted_at?: string | null
           disabled_at?: string | null

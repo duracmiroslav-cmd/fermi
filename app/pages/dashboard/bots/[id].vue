@@ -4,6 +4,7 @@ interface BotDetail {
   platform: string;
   externalId: string;
   displayName: string | null;
+  avatarUrl: string | null;
   agentId: string | null;
   disabledAt: string | null;
   allowGroups: boolean;
@@ -27,8 +28,37 @@ if (error.value) {
 
 const saving = ref(false);
 const deleting = ref(false);
+const syncing = ref(false);
 const deleteDialogOpen = ref(false);
 const webhookCopied = ref(false);
+
+const syncFromLine = async () => {
+  if (!bot.value || syncing.value) return;
+  syncing.value = true;
+  try {
+    const res = await $fetch<{ avatarUrl: string | null; displayName: string | null }>(
+      `/api/bots/${route.params.id}/refresh`,
+      { method: 'POST' },
+    );
+    bot.value.avatarUrl = res.avatarUrl;
+    bot.value.displayName = res.displayName;
+    toast.add({
+      title: res.avatarUrl ? 'Synced from LINE' : 'Synced — LINE OA has no profile picture yet',
+      description: res.avatarUrl ? undefined : 'Upload one in LINE Official Account Manager, then sync again.',
+      color: res.avatarUrl ? 'success' : 'warning',
+    });
+  }
+  catch (e) {
+    toast.add({
+      title: 'Sync failed',
+      description: e instanceof Error ? e.message : 'Unknown error',
+      color: 'error',
+    });
+  }
+  finally {
+    syncing.value = false;
+  }
+};
 
 const copyWebhook = async () => {
   if (!bot.value) return;
@@ -111,6 +141,43 @@ const onDelete = async () => {
           </NuxtLink>
         </template>
       </p>
+
+      <section>
+        <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-3">
+          avatar
+        </h2>
+        <div class="flex items-center gap-4 p-4 rounded-md border border-default">
+          <UAvatar
+            v-if="bot.avatarUrl"
+            :src="bot.avatarUrl"
+            size="lg"
+          />
+          <div
+            v-else
+            class="size-12 rounded-full border border-dashed border-default flex items-center justify-center text-dimmed"
+          >
+            <UIcon name="i-lucide-image-off" />
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm">
+              {{ bot.avatarUrl ? 'Synced from LINE' : 'No avatar synced yet' }}
+            </p>
+            <p class="text-xs text-dimmed mt-1">
+              fermi mirrors your LINE OA picture. Set it in LINE Official Account Manager, then sync here.
+            </p>
+          </div>
+          <UButton
+            icon="i-lucide-refresh-cw"
+            size="sm"
+            color="neutral"
+            variant="outline"
+            :loading="syncing"
+            @click="syncFromLine"
+          >
+            Sync from LINE
+          </UButton>
+        </div>
+      </section>
 
       <section>
         <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-3">
