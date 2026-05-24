@@ -9,7 +9,7 @@ interface AgentRow {
   updatedAt: string;
 }
 
-const { items: agents, limit, used, atLimit, pending } = useTierLimit<AgentRow>('agents');
+const { items: agents, limit, used, atLimit, pending, limitMessage } = useTierLimit<AgentRow>('agents');
 
 const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
 </script>
@@ -22,7 +22,7 @@ const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
     <template #actions>
       <UTooltip
         v-if="atLimit"
-        :text="`Free tier limit (${used}/${limit}) · upgrade`"
+        :text="limitMessage"
       >
         <UButton
           icon="i-lucide-plus"
