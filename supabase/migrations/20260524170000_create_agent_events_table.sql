@@ -5,8 +5,7 @@
 
 create table public.agent_events (
   id                uuid primary key default gen_random_uuid(),
-  conversation_id   uuid not null references public.conversations(id) on delete cascade,
-  thread_id         uuid references public.threads(id) on delete cascade,
+  thread_id         uuid not null references public.threads(id) on delete cascade,
   step              int not null,
   type              text not null check (type in (
                       'worker_started',
@@ -23,28 +22,22 @@ create table public.agent_events (
   created_at        timestamptz not null default now()
 );
 
--- Timeline view groups by conversation + walks step in order.
-create index agent_events_conversation_step_idx
-  on public.agent_events(conversation_id, step);
-
--- Per-thread timeline (admin viewer / future "show events for this
--- thread" panel).
-create index agent_events_thread_created_idx
-  on public.agent_events(thread_id, created_at);
+-- Timeline view walks events for a thread in order.
+create index agent_events_thread_step_idx
+  on public.agent_events(thread_id, step);
 
 alter table public.agent_events enable row level security;
 
--- Bot owners can debug their own agent loops. Mirrors the
--- threads / messages visibility chain so trashed conversations or
--- bots hide their events too.
+-- Bot owners can debug their own agent loops. Mirrors the `messages`
+-- visibility chain so trashed threads or bots hide their events too.
 create policy "Users can view their own agent events." on public.agent_events
   for select using (
     exists (
       select 1
-      from public.conversations c
-      join public.bots b on b.id = c.bot_id
-      where c.id = agent_events.conversation_id
-        and c.deleted_at is null
+      from public.threads t
+      join public.bots b on b.id = t.bot_id
+      where t.id = agent_events.thread_id
+        and t.deleted_at is null
         and b.owner_id = (select auth.uid())
         and b.deleted_at is null
     )

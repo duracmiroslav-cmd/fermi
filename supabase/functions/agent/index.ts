@@ -3,14 +3,13 @@ import { findAgentById } from '../../../shared/agents.ts';
 import { findBotById } from '../../../shared/bots.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
 import { getKek } from '../../../shared/kek.ts';
+import { logEvent } from './events.ts';
+import { OpenRouterError, chatCompletion } from './openrouter.ts';
 import {
   appendMessage,
   loadRecentMessages,
-  resolveLatestThread,
-  upsertConversation,
-} from './conversation.ts';
-import { logEvent } from './events.ts';
-import { OpenRouterError, chatCompletion } from './openrouter.ts';
+  resolveOrCreateLatestThread,
+} from './threads.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -145,12 +144,11 @@ const runAgentLoop = async (params: {
 }): Promise<void> => {
   const { bot, agent, openrouterKey, lineAccessToken, externalUserId, replyToken, userText } = params;
 
-  const conversationId = await upsertConversation(admin, bot.id, externalUserId);
-  const threadId = await resolveLatestThread(admin, conversationId);
+  const threadId = await resolveOrCreateLatestThread(admin, bot.id, externalUserId);
   await appendMessage(admin, threadId, 'user', { type: 'text', text: userText });
 
   let step = 1;
-  await logEvent(admin, { conversationId, threadId, step: step++, type: 'worker_started' });
+  await logEvent(admin, { threadId, step: step++, type: 'worker_started' });
 
   try {
     const history = await loadRecentMessages(admin, threadId, HISTORY_WINDOW);
@@ -159,7 +157,6 @@ const runAgentLoop = async (params: {
     const model = agent.defaultModel ?? DEFAULT_MODEL;
 
     await logEvent(admin, {
-      conversationId,
       threadId,
       step: step++,
       type: 'llm_request',
@@ -178,7 +175,6 @@ const runAgentLoop = async (params: {
     const llmLatency = Math.round(performance.now() - llmStart);
 
     await logEvent(admin, {
-      conversationId,
       threadId,
       step: step++,
       type: 'llm_response',
@@ -197,7 +193,6 @@ const runAgentLoop = async (params: {
     try {
       await replyText(lineAccessToken, replyToken, `🤖 ${result.text}`);
       await logEvent(admin, {
-        conversationId,
         threadId,
         step: step++,
         type: 'push_sent',
@@ -206,7 +201,6 @@ const runAgentLoop = async (params: {
       const payload: Record<string, unknown> = { message: String(err) };
       if (err instanceof LineReplyError) payload.status = err.status;
       await logEvent(admin, {
-        conversationId,
         threadId,
         step: step++,
         type: 'push_failed',
@@ -223,7 +217,6 @@ const runAgentLoop = async (params: {
     const payload: Record<string, unknown> = { message: String(err) };
     if (err instanceof OpenRouterError) payload.status = err.status;
     await logEvent(admin, {
-      conversationId,
       threadId,
       step: step++,
       type: 'error',

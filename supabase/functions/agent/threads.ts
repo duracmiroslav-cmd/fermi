@@ -8,40 +8,21 @@ export type MessageContent = TextContent;
 
 export type MessageRole = 'user' | 'assistant' | 'tool';
 
-export const upsertConversation = async (
+// Returns the most recent active thread for the (bot, external_user)
+// pair, or creates one if none exists. The `/new` command (when
+// added) will open a fresh thread by inserting; this resolver always
+// picks the latest by `last_message_at`.
+export const resolveOrCreateLatestThread = async (
   admin: SupabaseClient,
   botId: string,
   externalUserId: string,
 ): Promise<string> => {
-  const { data: existing, error: selectErr } = await admin
-    .from('conversations')
-    .select('id')
-    .eq('bot_id', botId)
-    .eq('external_user_id', externalUserId)
-    .maybeSingle();
-  if (selectErr) throw selectErr;
-  if (existing) return existing.id;
-
-  const { data: inserted, error: insertErr } = await admin
-    .from('conversations')
-    .insert({ bot_id: botId, external_user_id: externalUserId })
-    .select('id')
-    .single();
-  if (insertErr) throw insertErr;
-  return inserted.id;
-};
-
-// Returns the most recent thread by last_message_at, or creates a
-// fresh one. The `/new` command (when added) will open a new thread
-// the same way — by inserting; this resolver always picks latest.
-export const resolveLatestThread = async (
-  admin: SupabaseClient,
-  conversationId: string,
-): Promise<string> => {
   const { data: latest, error } = await admin
     .from('threads')
     .select('id')
-    .eq('conversation_id', conversationId)
+    .eq('bot_id', botId)
+    .eq('external_user_id', externalUserId)
+    .is('deleted_at', null)
     .order('last_message_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -50,7 +31,7 @@ export const resolveLatestThread = async (
 
   const { data: created, error: insertErr } = await admin
     .from('threads')
-    .insert({ conversation_id: conversationId })
+    .insert({ bot_id: botId, external_user_id: externalUserId })
     .select('id')
     .single();
   if (insertErr) throw insertErr;

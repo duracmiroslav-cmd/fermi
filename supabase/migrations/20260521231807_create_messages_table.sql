@@ -25,10 +25,9 @@ create policy "Users can view their own messages." on public.messages
     exists (
       select 1
       from public.threads t
-      join public.conversations c on c.id = t.conversation_id
-      join public.bots b on b.id = c.bot_id
+      join public.bots b on b.id = t.bot_id
       where t.id = messages.thread_id
-        and c.deleted_at is null
+        and t.deleted_at is null
         and b.owner_id = (select auth.uid())
         and b.deleted_at is null
     )

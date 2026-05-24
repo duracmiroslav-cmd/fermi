@@ -9,8 +9,7 @@ export type EventType
     | 'error';
 
 export interface LogEventInput {
-  conversationId: string;
-  threadId?: string | null;
+  threadId: string;
   step: number;
   type: EventType;
   payload?: Record<string, unknown>;
@@ -27,8 +26,7 @@ export const logEvent = async (
 ): Promise<void> => {
   try {
     const { error } = await admin.from('agent_events').insert({
-      conversation_id: input.conversationId,
-      thread_id: input.threadId ?? null,
+      thread_id: input.threadId,
       step: input.step,
       type: input.type,
       payload: input.payload ?? {},

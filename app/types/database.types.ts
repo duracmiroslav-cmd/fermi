@@ -41,7 +41,6 @@ export type Database = {
     Tables: {
       agent_events: {
         Row: {
-          conversation_id: string
           cost_usd: number | null
           created_at: string
           id: string
@@ -49,11 +48,10 @@ export type Database = {
           openrouter_gen_id: string | null
           payload: Json
           step: number
-          thread_id: string | null
+          thread_id: string
           type: string
         }
         Insert: {
-          conversation_id: string
           cost_usd?: number | null
           created_at?: string
           id?: string
@@ -61,11 +59,10 @@ export type Database = {
           openrouter_gen_id?: string | null
           payload?: Json
           step: number
-          thread_id?: string | null
+          thread_id: string
           type: string
         }
         Update: {
-          conversation_id?: string
           cost_usd?: number | null
           created_at?: string
           id?: string
@@ -73,17 +70,10 @@ export type Database = {
           openrouter_gen_id?: string | null
           payload?: Json
           step?: number
-          thread_id?: string | null
+          thread_id?: string
           type?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "agent_events_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "agent_events_thread_id_fkey"
             columns: ["thread_id"]
@@ -190,53 +180,6 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      conversations: {
-        Row: {
-          bot_id: string
-          created_at: string
-          deleted_at: string | null
-          display_name: string | null
-          external_user_id: string
-          external_user_locale: string | null
-          id: string
-          is_active: boolean
-          last_message_at: string | null
-          updated_at: string
-        }
-        Insert: {
-          bot_id: string
-          created_at?: string
-          deleted_at?: string | null
-          display_name?: string | null
-          external_user_id: string
-          external_user_locale?: string | null
-          id?: string
-          is_active?: boolean
-          last_message_at?: string | null
-          updated_at?: string
-        }
-        Update: {
-          bot_id?: string
-          created_at?: string
-          deleted_at?: string | null
-          display_name?: string | null
-          external_user_id?: string
-          external_user_locale?: string | null
-          id?: string
-          is_active?: boolean
-          last_message_at?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "conversations_bot_id_fkey"
-            columns: ["bot_id"]
-            isOneToOne: false
-            referencedRelation: "bots"
             referencedColumns: ["id"]
           },
         ]
@@ -353,35 +296,38 @@ export type Database = {
       }
       threads: {
         Row: {
-          conversation_id: string
+          bot_id: string
           created_at: string
+          deleted_at: string | null
+          external_user_id: string
           id: string
           last_message_at: string
-          title: string | null
           updated_at: string
         }
         Insert: {
-          conversation_id: string
+          bot_id: string
           created_at?: string
+          deleted_at?: string | null
+          external_user_id: string
           id?: string
           last_message_at?: string
-          title?: string | null
           updated_at?: string
         }
         Update: {
-          conversation_id?: string
+          bot_id?: string
           created_at?: string
+          deleted_at?: string | null
+          external_user_id?: string
           id?: string
           last_message_at?: string
-          title?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "threads_conversation_id_fkey"
-            columns: ["conversation_id"]
+            foreignKeyName: "threads_bot_id_fkey"
+            columns: ["bot_id"]
             isOneToOne: false
-            referencedRelation: "conversations"
+            referencedRelation: "bots"
             referencedColumns: ["id"]
           },
         ]
