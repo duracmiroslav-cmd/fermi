@@ -31,6 +31,7 @@ interface LineSource {
 
 interface LineEvent {
   type: string;
+  timestamp?: number;
   replyToken?: string;
   source?: LineSource;
   message?: { type: string; text?: string };
@@ -56,6 +57,18 @@ class LineReplyError extends Error {
   }
 }
 
+class LinePushError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+  }
+}
+
+// LINE reply tokens are valid roughly one minute from webhook delivery.
+// Switch to Push API once we've burned ~25s — leaves comfortable
+// headroom for the LLM call still in flight and the LINE round-trip,
+// and avoids a Reply 400 wasting the only delivery attempt.
+const REPLY_BUDGET_MS = 25_000;
+
 const replyText = async (
   accessToken: string,
   replyToken: string,
@@ -75,6 +88,60 @@ const replyText = async (
   if (!res.ok) {
     const body = await res.text();
     throw new LineReplyError(res.status, `LINE Reply API ${res.status}: ${body}`);
+  }
+};
+
+const pushText = async (
+  accessToken: string,
+  to: string,
+  text: string,
+): Promise<void> => {
+  const res = await fetch('https://api.line.me/v2/bot/message/push', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      to,
+      messages: [{ type: 'text', text }],
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new LinePushError(res.status, `LINE Push API ${res.status}: ${body}`);
+  }
+};
+
+export type DeliveryMethod = 'reply' | 'push';
+
+// Delivers the bot's response, picking Reply (free) when we're inside
+// the reply-token window and Push (quota) when we're not. If a Reply
+// attempt fails with 400 (token expired or already used), falls back
+// to Push so the message isn't dropped on the floor.
+const deliverMessage = async (params: {
+  accessToken: string;
+  replyToken: string;
+  userId: string;
+  text: string;
+  elapsedMs: number;
+}): Promise<DeliveryMethod> => {
+  const { accessToken, replyToken, userId, text, elapsedMs } = params;
+
+  if (elapsedMs >= REPLY_BUDGET_MS) {
+    await pushText(accessToken, userId, text);
+    return 'push';
+  }
+
+  try {
+    await replyText(accessToken, replyToken, text);
+    return 'reply';
+  } catch (err) {
+    if (err instanceof LineReplyError && err.status === 400) {
+      await pushText(accessToken, userId, text);
+      return 'push';
+    }
+    throw err;
   }
 };
 
@@ -141,8 +208,12 @@ const runAgentLoop = async (params: {
   externalUserId: string;
   replyToken: string;
   userText: string;
+  // Webhook timestamp from LINE (ms since epoch). Anchors the
+  // reply-token budget — we time elapsed from when LINE delivered
+  // the event, not when our worker dequeued it.
+  eventTimestamp: number;
 }): Promise<void> => {
-  const { bot, agent, openrouterKey, lineAccessToken, externalUserId, replyToken, userText } = params;
+  const { bot, agent, openrouterKey, lineAccessToken, externalUserId, replyToken, userText, eventTimestamp } = params;
 
   const threadId = await resolveOrCreateLatestThread(admin, bot.id, externalUserId);
   await appendMessage(admin, threadId, 'user', { type: 'text', text: userText });
@@ -192,17 +263,32 @@ const runAgentLoop = async (params: {
 
     await appendMessage(admin, threadId, 'assistant', { type: 'text', text: result.text });
 
+    const elapsedMs = Date.now() - eventTimestamp;
     try {
-      await replyText(lineAccessToken, replyToken, `🤖 ${result.text}`);
+      const method = await deliverMessage({
+        accessToken: lineAccessToken,
+        replyToken,
+        userId: externalUserId,
+        text: `🤖 ${result.text}`,
+        elapsedMs,
+      });
       await logStep(admin, {
         runId,
         step: step++,
         type: 'push_succeeded',
+        payload: { method, elapsed_ms: elapsedMs },
       });
       await finishRun(admin, runId, 'succeeded', totalCostUsd);
     } catch (err) {
-      const payload: Record<string, unknown> = { message: String(err) };
-      if (err instanceof LineReplyError) payload.status = err.status;
+      const payload: Record<string, unknown> = { message: String(err), elapsed_ms: elapsedMs };
+      if (err instanceof LineReplyError) {
+        payload.status = err.status;
+        payload.method = 'reply';
+      }
+      if (err instanceof LinePushError) {
+        payload.status = err.status;
+        payload.method = 'push';
+      }
       await logStep(admin, {
         runId,
         step: step++,
@@ -210,11 +296,11 @@ const runAgentLoop = async (params: {
         payload,
       });
       await finishRun(admin, runId, 'failed', totalCostUsd);
-
-      if (err instanceof LineReplyError && err.status === 400) {
-        // Terminal — the reply window closed. Drop without retry.
-        return;
-      }
+      // Both Reply 400 (fallback to Push already tried) and Push 4xx
+      // are terminal for this event — retrying via pgmq would just
+      // duplicate the failure or, worse, re-charge a successful Push.
+      // Bubble for any other error so pgmq retries the whole payload.
+      if (err instanceof LinePushError) return;
       throw err;
     }
   } catch (err) {
@@ -293,6 +379,10 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       externalUserId: event.source.userId,
       replyToken: event.replyToken,
       userText: event.message.text,
+      // LINE always sets `timestamp` on webhook events. The fallback
+      // covers malformed payloads only; assuming "just arrived" keeps
+      // us on Reply, and a 400 still falls back to Push internally.
+      eventTimestamp: typeof event.timestamp === 'number' ? event.timestamp : Date.now(),
     });
   }
 };
