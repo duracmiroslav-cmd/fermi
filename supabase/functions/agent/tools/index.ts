@@ -1,4 +1,5 @@
 import { getCurrentTime } from './get-current-time.ts';
+import { webSearch } from './web-search.ts';
 
 export interface Tool {
   name: string;
@@ -8,7 +9,7 @@ export interface Tool {
   execute: (args: Record<string, unknown>) => unknown | Promise<unknown>;
 }
 
-const tools: Tool[] = [getCurrentTime];
+const tools: Tool[] = [getCurrentTime, webSearch];
 
 const byName = new Map(tools.map(t => [t.name, t]));
 
