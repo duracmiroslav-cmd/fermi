@@ -41,7 +41,7 @@ const copyWebhook = async () => {
   setTimeout(() => { webhookCopied.value = false; }, 1500);
 };
 
-const onSubmit = async (value: { displayName: string; agentId: string | null; disabledAt: string | null; allowGroups: boolean }) => {
+const onSubmit = async (value: { agentId: string | null; disabledAt: string | null; allowGroups: boolean }) => {
   saving.value = true;
   try {
     await $fetch(`/api/bots/${route.params.id}`, {
@@ -118,7 +118,7 @@ const onDelete = async () => {
 
       <section>
         <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-3">
-          avatar
+          identity
         </h2>
         <div class="flex items-center gap-4 p-4 rounded-md border border-default">
           <UAvatar
@@ -128,16 +128,16 @@ const onDelete = async () => {
           />
           <div
             v-else
-            class="size-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center font-mono text-xl font-semibold text-primary"
+            class="size-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center font-mono text-xl font-semibold text-primary shrink-0"
           >
             {{ (bot.displayName ?? '?').charAt(0).toUpperCase() }}
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm">
-              {{ bot.avatarUrl ? 'Synced from LINE' : 'No avatar synced yet' }}
+            <p class="text-sm truncate">
+              {{ bot.displayName || '(unnamed)' }}
             </p>
             <p class="text-xs text-dimmed mt-1">
-              fermi mirrors your LINE OA picture. Set it in LINE Official Account Manager, then sync here.
+              Name and avatar mirror your LINE OA. Edit them in LINE Official Account Manager, then sync.
             </p>
           </div>
           <UButton
@@ -178,7 +178,6 @@ const onDelete = async () => {
       <BotEditForm
         form-id="bot-form"
         :initial-value="{
-          displayName: bot.displayName ?? '',
           agentId: bot.agentId,
           disabledAt: bot.disabledAt,
           allowGroups: bot.allowGroups,

@@ -20,7 +20,6 @@ export default defineEventHandler(async (event) => {
   // rejects unknown keys upstream.
   const patch: Record<string, unknown> = {};
   if ('agentId' in input) patch.agent_id = input.agentId;
-  if ('displayName' in input) patch.display_name = input.displayName;
   if ('disabledAt' in input) patch.disabled_at = input.disabledAt;
   if ('allowGroups' in input) patch.allow_groups = input.allowGroups;
 

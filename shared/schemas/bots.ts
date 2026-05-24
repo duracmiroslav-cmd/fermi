@@ -15,12 +15,15 @@ export const connectBotInputSchema = z.discriminatedUnion('platform', [
 
 export const updateBotInputSchema = z.object({
   agentId: z.string().uuid().nullable().optional(),
-  displayName: z.string().min(1).max(120).nullable().optional(),
   // `null` re-enables the bot; an ISO-8601 timestamp marks it disabled.
   // The form sends `new Date().toISOString()` on disable.
   disabledAt: z.string().datetime().nullable().optional(),
   allowGroups: z.boolean().optional(),
 }).strict();
+// `displayName` is intentionally not editable here — fermi mirrors
+// LINE's OA name through the connect / refresh flows so the two
+// dashboards can't drift. To rename the bot, rename it in LINE
+// Official Account Manager and hit "Sync from LINE".
 
 export type ConnectBotInput = z.infer<typeof connectBotInputSchema>;
 export type LineBotInput = z.infer<typeof lineBotInputSchema>;

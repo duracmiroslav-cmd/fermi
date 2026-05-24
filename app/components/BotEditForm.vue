@@ -2,7 +2,6 @@
 import { updateBotInputSchema } from '~~/shared/schemas/bots';
 
 interface BotEditFormValue {
-  displayName: string;
   agentId: string | null;
   disabledAt: string | null;
   allowGroups: boolean;
@@ -32,7 +31,6 @@ const agentItems = computed(() => [
 ]);
 
 const state = reactive<BotEditFormValue>({
-  displayName: props.initialValue.displayName,
   agentId: props.initialValue.agentId,
   disabledAt: props.initialValue.disabledAt,
   allowGroups: props.initialValue.allowGroups,
@@ -58,25 +56,6 @@ const onSubmit = () => {
     class="space-y-8"
     @submit="onSubmit"
   >
-    <section>
-      <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-4">
-        identity
-      </h2>
-      <UFormField
-        label="Display name"
-        name="displayName"
-      >
-        <UInput
-          v-model="state.displayName"
-          placeholder="fermi-prod-line"
-          class="w-full"
-        />
-        <template #help>
-          Only shown in fermi. LINE's bot name is not affected.
-        </template>
-      </UFormField>
-    </section>
-
     <section>
       <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-4">
         agent
