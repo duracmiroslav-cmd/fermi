@@ -314,10 +314,10 @@ const runAgentLoop = async (params: {
     });
     // Surface the failure to LINE so the user (and dogfooding owner)
     // sees what went wrong instead of staring at a vanished `...`.
-    // Best-effort: a failed notice must not break the outer retry
-    // semantics. v1 ships the raw error string for fast dogfooding
-    // — once we have non-trusted users this needs to switch to a
-    // friendly notice + admin-only debug link (see roadmap M3 P1).
+    // v1 ships the raw error string for fast dogfooding — once we
+    // have non-trusted users this needs to switch to a friendly
+    // notice + admin-only debug link (see roadmap M3 P1).
+    let userNotified = false;
     try {
       await deliverMessage({
         accessToken: lineAccessToken,
@@ -326,10 +326,17 @@ const runAgentLoop = async (params: {
         text: formatErrorForLine(err),
         elapsedMs: Date.now() - eventTimestamp,
       });
+      userNotified = true;
     } catch (notifyErr) {
       console.error('error notice delivery failed', notifyErr);
     }
     await finishRun(admin, runId, 'failed', totalCostUsd);
+    // Retry semantics flip on whether the user saw the error: once
+    // notified, throwing would have pgmq redeliver and we'd spam the
+    // chat with a duplicate ⚠️ every visibility-timeout (~30s). If
+    // notice itself failed (LINE 5xx), keep the throw so pgmq can
+    // retry — maybe the next attempt lands while LINE is back up.
+    if (userNotified) return;
     throw err;
   }
 };
