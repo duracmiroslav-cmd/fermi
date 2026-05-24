@@ -237,7 +237,9 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
 
   const bot = await findBotById(admin, payload.botId);
   if (!bot) {
-    console.warn('bot deleted; dropping message', { botId: payload.botId });
+    // Bot was deleted or disabled between enqueue and dequeue. Either
+    // way the right move is to drop the queued event silently.
+    console.warn('bot inactive; dropping message', { botId: payload.botId });
     return;
   }
 
