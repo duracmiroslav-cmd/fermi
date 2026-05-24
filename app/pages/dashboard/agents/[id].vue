@@ -93,6 +93,19 @@ const onDelete = async () => {
     <template #title>
       {{ agent?.name || 'Agent' }}
     </template>
+
+    <template
+      v-if="agent"
+      #actions
+    >
+      <UButton
+        type="submit"
+        form="agent-form"
+        :loading="saving"
+      >
+        Save changes
+      </UButton>
+    </template>
     <div
       v-if="agent"
       class="p-6 sm:p-8 pb-12 max-w-3xl space-y-12"
@@ -185,18 +198,5 @@ const onDelete = async () => {
         </p>
       </DeleteConfirmDialog>
     </div>
-
-    <template
-      v-if="agent"
-      #footer
-    >
-      <UButton
-        type="submit"
-        form="agent-form"
-        :loading="saving"
-      >
-        Save changes
-      </UButton>
-    </template>
   </NuxtLayout>
 </template>

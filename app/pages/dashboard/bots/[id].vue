@@ -86,6 +86,19 @@ const onDelete = async () => {
       {{ bot?.displayName || 'Bot' }}
     </template>
 
+    <template
+      v-if="bot"
+      #actions
+    >
+      <UButton
+        type="submit"
+        form="bot-form"
+        :loading="saving"
+      >
+        Save changes
+      </UButton>
+    </template>
+
     <div
       v-if="bot"
       class="p-6 sm:p-8 pb-12 max-w-3xl space-y-12"
@@ -200,18 +213,5 @@ const onDelete = async () => {
         </p>
       </DeleteConfirmDialog>
     </div>
-
-    <template
-      v-if="bot"
-      #footer
-    >
-      <UButton
-        type="submit"
-        form="bot-form"
-        :loading="saving"
-      >
-        Save changes
-      </UButton>
-    </template>
   </NuxtLayout>
 </template>
