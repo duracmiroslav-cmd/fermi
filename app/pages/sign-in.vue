@@ -39,13 +39,27 @@ const generateNonce = async (): Promise<[string, string]> => {
   return [rawNonce, hashedNonce];
 };
 
-onMounted(async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) {
-    await navigateTo('/dashboard');
-    return;
-  }
+const handleGoogleCredential = (rawNonce: string) => async (response: CredentialResponse) => {
+  try {
+    const { error } = await supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token: response.credential,
+      nonce: rawNonce,
+    });
+    if (error) throw error;
 
+    await $fetch('/api/me/profile', {
+      method: 'PATCH',
+      body: { locale: normalizeLocale(navigator.language) },
+    }).catch(() => {});
+
+    await navigateTo('/dashboard');
+  } catch (e) {
+    errorMessage.value = e instanceof Error ? e.message : 'Sign-in failed';
+  }
+};
+
+const initGoogleOneTap = async () => {
   await until(() => !!window.google).toBeTruthy({ timeout: 5000 });
 
   const [rawNonce, hashedNonce] = await generateNonce();
@@ -54,26 +68,7 @@ onMounted(async () => {
     client_id: config.public.googleClientId,
     nonce: hashedNonce,
     use_fedcm_for_prompt: true,
-    callback: async (response: CredentialResponse) => {
-      try {
-        const { error } = await supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: response.credential,
-          nonce: rawNonce,
-        });
-        if (error) throw error;
-
-        // Best-effort locale sync; session is valid even if PATCH fails.
-        await $fetch('/api/me/profile', {
-          method: 'PATCH',
-          body: { locale: normalizeLocale(navigator.language) },
-        }).catch(() => {});
-
-        await navigateTo('/dashboard');
-      } catch (e) {
-        errorMessage.value = e instanceof Error ? e.message : 'Sign-in failed';
-      }
-    },
+    callback: handleGoogleCredential(rawNonce),
   });
 
   const btn = document.getElementById('google-btn');
@@ -87,6 +82,15 @@ onMounted(async () => {
   }
 
   google.accounts.id.prompt();
+};
+
+onMounted(async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    await navigateTo('/dashboard');
+    return;
+  }
+  await initGoogleOneTap();
 });
 </script>
 
@@ -106,7 +110,7 @@ onMounted(async () => {
     <button
       type="button"
       :disabled="githubBusy"
-      class="flex items-center justify-center gap-3 w-[280px] h-10 rounded-full bg-black text-white text-sm font-medium hover:bg-stone-900 transition-colors disabled:opacity-60 cursor-pointer"
+      class="flex items-center justify-center gap-3 w-70 h-10 rounded-full bg-black text-white text-sm font-medium hover:bg-stone-900 transition-colors disabled:opacity-60 cursor-pointer"
       @click="signInWithGithub"
     >
       <svg

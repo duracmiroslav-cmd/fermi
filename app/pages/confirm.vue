@@ -10,7 +10,6 @@ onMounted(async () => {
     return;
   }
 
-  // Best-effort locale sync; session is valid even if PATCH fails.
   await $fetch('/api/me/profile', {
     method: 'PATCH',
     body: { locale: normalizeLocale(navigator.language) },
