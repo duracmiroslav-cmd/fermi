@@ -7,7 +7,6 @@ interface BotRow {
   avatarUrl: string | null;
   agentId: string | null;
   disabledAt: string | null;
-  allowGroups: boolean;
   createdAt: string;
   webhookUrl: string;
 }

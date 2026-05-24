@@ -7,7 +7,6 @@ interface BotDetail {
   avatarUrl: string | null;
   agentId: string | null;
   disabledAt: string | null;
-  allowGroups: boolean;
   createdAt: string;
   updatedAt: string;
   webhookUrl: string;
@@ -41,7 +40,7 @@ const copyWebhook = async () => {
   setTimeout(() => { webhookCopied.value = false; }, 1500);
 };
 
-const onSubmit = async (value: { agentId: string | null; disabledAt: string | null; allowGroups: boolean }) => {
+const onSubmit = async (value: { agentId: string | null; disabledAt: string | null }) => {
   saving.value = true;
   try {
     await $fetch(`/api/bots/${route.params.id}`, {
@@ -155,7 +154,6 @@ const onDelete = async () => {
         :initial-value="{
           agentId: bot.agentId,
           disabledAt: bot.disabledAt,
-          allowGroups: bot.allowGroups,
         }"
         @submit="onSubmit"
       />

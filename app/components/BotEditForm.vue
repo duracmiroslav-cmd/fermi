@@ -4,7 +4,6 @@ import { updateBotInputSchema } from '~~/shared/schemas/bots';
 interface BotEditFormValue {
   agentId: string | null;
   disabledAt: string | null;
-  allowGroups: boolean;
 }
 
 interface AgentOption {
@@ -33,7 +32,6 @@ const agentItems = computed(() => [
 const state = reactive<BotEditFormValue>({
   agentId: props.initialValue.agentId,
   disabledAt: props.initialValue.disabledAt,
-  allowGroups: props.initialValue.allowGroups,
 });
 
 // Bridges the boolean switch UX with the `disabled_at` timestamp DB
@@ -78,20 +76,13 @@ const onSubmit = () => {
 
     <section>
       <h2 class="font-mono text-xs uppercase tracking-wider text-dimmed mb-4">
-        behavior
+        status
       </h2>
-      <div class="space-y-4">
-        <USwitch
-          v-model="enabled"
-          label="Enabled"
-          description="When off, fermi receives webhook events but does not reply."
-        />
-        <USwitch
-          v-model="state.allowGroups"
-          label="Allow group chats"
-          description="When on, the bot also replies in LINE group conversations."
-        />
-      </div>
+      <USwitch
+        v-model="enabled"
+        label="Enabled"
+        description="When off, fermi receives webhook events but does not reply."
+      />
     </section>
   </UForm>
 </template>

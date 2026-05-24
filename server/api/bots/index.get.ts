@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const admin = useSupabaseAdmin();
   const { data, error } = await admin
     .from('bots')
-    .select('id, platform, external_id, display_name, avatar_url, agent_id, disabled_at, allow_groups, created_at')
+    .select('id, platform, external_id, display_name, avatar_url, agent_id, disabled_at, created_at')
     .eq('owner_id', user.id)
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
@@ -21,7 +21,6 @@ export default defineEventHandler(async (event) => {
     avatarUrl: row.avatar_url,
     agentId: row.agent_id,
     disabledAt: row.disabled_at,
-    allowGroups: row.allow_groups,
     createdAt: row.created_at,
     webhookUrl: `${url.origin}/api/webhook/${row.platform}`,
   }));
