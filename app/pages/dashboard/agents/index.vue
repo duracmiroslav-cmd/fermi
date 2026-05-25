@@ -53,7 +53,7 @@ const filteredAgents = computed(() => {
 
       <div class="p-6 sm:p-8 flex flex-col gap-8 max-w-3xl">
         <h1 class="text-2xl font-semibold">
-          Agents <span class="text-dimmed font-normal">({{ used }})</span>
+          Agents <span class="text-toned font-normal">({{ used }})</span>
         </h1>
 
         <div class="flex flex-col gap-4">
@@ -85,10 +85,10 @@ const filteredAgents = computed(() => {
             v-else-if="!agents?.length"
             class="border border-dashed border-default rounded-md py-16 px-6 text-center"
           >
-            <p class="text-sm text-muted mb-2">
+            <p class="font-semibold mb-2">
               No agents yet
             </p>
-            <p class="text-sm text-dimmed mb-6 max-w-md mx-auto">
+            <p class="text-sm text-toned mb-6 max-w-md mx-auto">
               An agent is a persona with a name, a system prompt, and a default model. Attach one to a bot to bring it to life.
             </p>
             <UButton
@@ -130,11 +130,11 @@ const filteredAgents = computed(() => {
                     Default
                   </UBadge>
                 </div>
-                <p class="text-sm text-muted truncate mt-0.5">
+                <p class="text-sm text-toned truncate mt-0.5">
                   {{ agent.defaultModel || '—' }}
                 </p>
               </div>
-              <span class="text-sm text-muted shrink-0">
+              <span class="text-sm text-toned shrink-0">
                 <TimeAgo :date="agent.updatedAt" />
               </span>
             </NuxtLink>
@@ -142,7 +142,7 @@ const filteredAgents = computed(() => {
 
           <p
             v-else
-            class="text-sm text-muted text-center py-8"
+            class="text-sm text-toned text-center py-8"
           >
             No agents match "{{ search }}".
           </p>

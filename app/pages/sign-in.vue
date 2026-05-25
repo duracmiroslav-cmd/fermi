@@ -36,7 +36,7 @@ onMounted(async () => {
       <h1 class="font-mono text-2xl text-highlighted tracking-tight">
         fermi
       </h1>
-      <p class="text-sm text-muted mt-2">
+      <p class="text-sm text-toned mt-2">
         Agentic AI in your LINE
       </p>
     </div>

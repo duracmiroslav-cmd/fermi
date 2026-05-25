@@ -35,9 +35,9 @@ const submit = async () => {
     <div class="glow-secondary pointer-events-none absolute bottom-0 right-1/4" />
 
     <aside class="pointer-events-none absolute top-32 right-6 sm:right-12 hidden md:block font-mono text-right select-none">
-      <p class="text-xs text-dimmed/70 leading-relaxed">
+      <p class="text-xs text-toned/70 leading-relaxed">
         <span class="block">"where is everyone?"</span>
-        <span class="block text-dimmed/50 mt-1">— enrico fermi, 1950</span>
+        <span class="block text-toned/50 mt-1">— enrico fermi, 1950</span>
       </p>
       <p class="mt-6 text-xs text-toned/70">
         <span class="text-primary/80">∴</span> they're on LINE.
@@ -48,21 +48,21 @@ const submit = async () => {
       <header class="flex items-center justify-between px-6 sm:px-12 py-6">
         <div class="flex items-baseline gap-3">
           <span class="font-mono text-base text-highlighted tracking-tight">fermi</span>
-          <span class="font-mono text-xs text-dimmed">v0.1-beta</span>
+          <span class="font-mono text-xs text-toned">v0.1-beta</span>
         </div>
         <nav class="flex items-center gap-6 font-mono text-xs">
           <a
             href="https://github.com/ipotesi/fermi"
             target="_blank"
             rel="noopener"
-            class="text-muted hover:text-highlighted transition-colors flex items-center gap-1.5"
+            class="text-toned hover:text-highlighted transition-colors flex items-center gap-1.5"
           >
             github
             <span aria-hidden="true">↗</span>
           </a>
           <NuxtLink
             :to="user ? '/dashboard' : '/sign-in'"
-            class="text-muted hover:text-highlighted transition-colors flex items-center gap-1.5"
+            class="text-toned hover:text-highlighted transition-colors flex items-center gap-1.5"
           >
             {{ user ? 'open dashboard' : 'sign in' }}
             <span
@@ -150,7 +150,7 @@ const submit = async () => {
               </p>
               <p
                 v-else
-                class="mt-3 font-mono text-xs text-dimmed"
+                class="mt-3 font-mono text-xs text-toned"
               >
                 no spam. we ping you the moment beta opens.
               </p>
@@ -163,26 +163,26 @@ const submit = async () => {
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-6 max-w-3xl font-mono">
           <div class="flex flex-col gap-1.5">
             <span class="text-2xl sm:text-3xl text-highlighted tracking-tight">
-              t ≈ <span class="text-primary">5</span><span class="text-muted text-base"> min</span>
+              t ≈ <span class="text-primary">5</span><span class="text-toned text-base"> min</span>
             </span>
-            <span class="text-xs text-dimmed uppercase tracking-wider">onboarding</span>
+            <span class="text-xs text-toned uppercase tracking-wider">onboarding</span>
           </div>
           <div class="flex flex-col gap-1.5">
             <span class="text-2xl sm:text-3xl text-highlighted tracking-tight">
-              n = <span class="text-primary">10<sup class="text-lg">2</sup></span><span class="text-muted text-base"> MCPs</span>
+              n = <span class="text-primary">10<sup class="text-lg">2</sup></span><span class="text-toned text-base"> MCPs</span>
             </span>
-            <span class="text-xs text-dimmed uppercase tracking-wider">ecosystem</span>
+            <span class="text-xs text-toned uppercase tracking-wider">ecosystem</span>
           </div>
           <div class="flex flex-col gap-1.5">
             <span class="text-2xl sm:text-3xl text-highlighted tracking-tight">
-              d = <span class="text-primary">0</span><span class="text-muted text-base"> deploys</span>
+              d = <span class="text-primary">0</span><span class="text-toned text-base"> deploys</span>
             </span>
-            <span class="text-xs text-dimmed uppercase tracking-wider">infrastructure</span>
+            <span class="text-xs text-toned uppercase tracking-wider">infrastructure</span>
           </div>
         </div>
       </section>
 
-      <footer class="px-6 sm:px-12 py-6 border-t border-default font-mono text-xs text-dimmed">
+      <footer class="px-6 sm:px-12 py-6 border-t border-default font-mono text-xs text-toned">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <span>© fermi · spiritual successor to gpt-ai-assistant</span>
           <a

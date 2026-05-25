@@ -5,7 +5,7 @@ paths:
 
 # Styling Rules
 
-Fermi uses a dark-mode-only design system. Apricot is primary; Stone is neutral.
+Fermi uses a dark-mode-only design system. Apricot is primary; Zinc is neutral.
 
 ## Decision tree for any UI task
 
@@ -36,7 +36,9 @@ Use semantic tokens. Never use raw color classes.
 - ✓ `text-muted`, `bg-default`, `border-default`
 
 Text intensity (high to low):
-`text-highlighted` > `text-default` (omit class) > `text-toned` > `text-muted` > `text-dimmed`
+`text-highlighted` > `text-default` (omit class) > `text-toned`
+
+`text-toned` is the only gray shade. Do NOT use `text-muted` or `text-dimmed` — all secondary/tertiary text collapses to a single tier. Hierarchy below `text-default` is signaled by size or weight, not by additional gray shades.
 
 Background elevation (low to high):
 `bg-default` (page) → `bg-muted` (hover/selected) → `bg-elevated` (cards) → `bg-accented` (modals/popovers)

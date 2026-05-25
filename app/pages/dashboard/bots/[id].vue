@@ -113,10 +113,10 @@ const onDelete = async () => {
         class="p-6 sm:p-8 max-w-3xl"
       >
         <div class="border border-dashed border-default rounded-md py-16 px-6 text-center">
-          <p class="text-sm text-muted mb-2">
+          <p class="font-semibold mb-2">
             Bot not found
           </p>
-          <p class="text-sm text-dimmed mb-6 max-w-md mx-auto">
+          <p class="text-sm text-toned mb-6 max-w-md mx-auto">
             This bot may have been deleted, or the link is wrong.
           </p>
           <UButton
@@ -200,19 +200,19 @@ const onDelete = async () => {
         <UFormField label="Details">
           <div class="p-4 rounded-md border border-muted bg-elevated/40">
             <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-              <dt class="text-muted text-right">
+              <dt class="text-toned text-right">
                 External ID
               </dt>
               <dd class="text-highlighted break-all">
                 {{ bot.externalId }}
               </dd>
-              <dt class="text-muted text-right">
+              <dt class="text-toned text-right">
                 Created
               </dt>
               <dd class="text-highlighted">
                 <TimeAgo :date="bot.createdAt" />
               </dd>
-              <dt class="text-muted text-right">
+              <dt class="text-toned text-right">
                 Updated
               </dt>
               <dd class="text-highlighted">
@@ -231,7 +231,7 @@ const onDelete = async () => {
               <p class="text-sm font-medium">
                 Delete this bot
               </p>
-              <p class="text-sm text-muted mt-1">
+              <p class="text-sm text-toned mt-1">
                 Permanent. The saved tokens are removed and any attached agent is unlinked.
               </p>
             </div>

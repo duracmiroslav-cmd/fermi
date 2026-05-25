@@ -10,7 +10,7 @@ definePageMeta({ layout: false });
       </template>
 
       <div class="p-6 sm:p-8">
-        <p class="text-sm text-muted">
+        <p class="text-sm text-toned">
           Pick a section from the sidebar to get started.
         </p>
       </div>

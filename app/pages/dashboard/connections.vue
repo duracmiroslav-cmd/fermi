@@ -81,7 +81,7 @@ const disconnect = async () => {
               <p class="text-sm font-medium">
                 OpenRouter
               </p>
-              <p class="text-sm text-muted mt-1 truncate">
+              <p class="text-sm text-toned mt-1 truncate">
                 <template v-if="openrouter?.connected">
                   Connected as {{ openrouter.openrouterUserId ?? 'user' }}
                 </template>

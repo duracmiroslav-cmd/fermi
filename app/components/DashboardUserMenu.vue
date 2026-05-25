@@ -20,7 +20,7 @@ const signOut = async () => {
       :text="initial"
       size="sm"
     />
-    <span class="flex-1 min-w-0 font-mono text-xs text-muted truncate">
+    <span class="flex-1 min-w-0 font-mono text-xs text-toned truncate">
       {{ email }}
     </span>
     <UTooltip text="Sign out">
