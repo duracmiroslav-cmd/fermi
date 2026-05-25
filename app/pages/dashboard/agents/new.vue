@@ -47,12 +47,12 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultMode
         </UButton>
       </template>
 
-      <div class="p-6 sm:p-8 pb-12 max-w-3xl">
+      <DashboardContainer>
         <AgentForm
           form-id="agent-form"
           @submit="onSubmit"
         />
-      </div>
+      </DashboardContainer>
     </NuxtLayout>
   </div>
 </template>
