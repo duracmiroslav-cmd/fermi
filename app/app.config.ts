@@ -48,13 +48,13 @@ export default defineAppConfig({
     input: {
       slots: {
         root: 'w-full',
-        base: 'font-mono',
+        base: 'font-mono read-only:cursor-default',
       },
     },
     textarea: {
       slots: {
         root: 'w-full',
-        base: 'font-mono',
+        base: 'font-mono read-only:cursor-default',
       },
     },
     select: {
