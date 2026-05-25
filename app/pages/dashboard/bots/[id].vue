@@ -119,10 +119,7 @@ const onDelete = async () => {
         </div>
       </div>
 
-      <div
-        v-if="bot"
-        class="p-6 sm:p-8 pb-12 max-w-3xl flex flex-col gap-6"
-      >
+      <DashboardContainer v-if="bot">
         <div class="flex items-center gap-4">
           <UAvatar
             v-if="bot.avatarUrl"
@@ -250,7 +247,7 @@ const onDelete = async () => {
             and its saved tokens. Any attached agent is detached but kept.
           </p>
         </DeleteConfirmDialog>
-      </div>
+      </DashboardContainer>
     </NuxtLayout>
   </div>
 </template>

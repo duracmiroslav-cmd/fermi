@@ -120,10 +120,7 @@ const onDelete = async () => {
         </div>
       </div>
 
-      <div
-        v-if="agent"
-        class="p-6 sm:p-8 pb-12 max-w-3xl flex flex-col gap-6"
-      >
+      <DashboardContainer v-if="agent">
         <div class="flex items-center gap-4">
           <AgentAvatarUpload
             :agent-id="agent.id"
@@ -234,7 +231,7 @@ const onDelete = async () => {
             Bots using this agent stop replying.
           </p>
         </DeleteConfirmDialog>
-      </div>
+      </DashboardContainer>
     </NuxtLayout>
   </div>
 </template>
