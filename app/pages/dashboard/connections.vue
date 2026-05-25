@@ -137,7 +137,7 @@ const disconnectTavily = async () => {
               </h3>
             </template>
 
-            <div class="flex flex-col gap-3">
+            <div class="flex flex-col gap-4">
               <p class="text-sm text-toned">
                 OpenRouter routes chat completions to Claude, GPT, Gemini, and free models.
               </p>
@@ -197,7 +197,7 @@ const disconnectTavily = async () => {
               </h3>
             </template>
 
-            <div class="flex flex-col gap-3">
+            <div class="flex flex-col gap-4">
               <div class="grid grid-cols-12 gap-4 items-center">
                 <p class="col-span-9 text-sm text-toned min-w-0">
                   <template v-if="tavily?.connected">
