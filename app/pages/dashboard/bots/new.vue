@@ -3,7 +3,7 @@ definePageMeta({ layout: false });
 
 type Platform = 'line';
 
-const toast = useToast();
+const notify = useNotify();
 const connecting = ref(false);
 
 const platformOptions: Array<{ label: string; value: Platform; icon: string }> = [
@@ -26,14 +26,10 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
         channelAccessToken: value.channelAccessToken,
       },
     });
-    toast.add({ title: 'Bot connected', color: 'success' });
+    notify.success('Bot connected');
     await navigateTo(`/dashboard/bots/${created.id}`);
   } catch (e) {
-    toast.add({
-      title: 'Connect failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Connect failed', e);
   } finally {
     connecting.value = false;
   }
@@ -65,7 +61,7 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
         </UButton>
       </template>
 
-      <div class="p-6 sm:p-8 pb-12 max-w-3xl flex flex-col gap-6">
+      <DashboardContainer>
         <UFormField
           label="Platform"
           help="Which messaging service this bot connects to."
@@ -83,7 +79,7 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
           form-id="line-bot-connect-form"
           @submit="onLineSubmit"
         />
-      </div>
+      </DashboardContainer>
     </NuxtLayout>
   </div>
 </template>

@@ -7,8 +7,7 @@ withDefaults(defineProps<{
 </script>
 
 <template>
-  <div
-    class="p-6 sm:p-8 pb-12 max-w-3xl flex flex-col gap-6"
+  <DashboardContainer
     aria-busy="true"
     aria-live="polite"
   >
@@ -30,5 +29,5 @@ withDefaults(defineProps<{
       <div class="h-4 w-16 rounded bg-elevated" />
       <div class="h-24 w-full rounded bg-elevated" />
     </div>
-  </div>
+  </DashboardContainer>
 </template>

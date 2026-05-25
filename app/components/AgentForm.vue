@@ -27,9 +27,7 @@ const emit = defineEmits<{
   submit: [value: AgentFormValue];
 }>();
 
-const { data: models, pending: modelsPending } = useLazyFetch<ProviderModel[]>('/api/providers/openrouter/models', {
-  headers: useRequestHeaders(['cookie']),
-});
+const { data: models, pending: modelsPending } = useApiFetch<ProviderModel[]>('/api/providers/openrouter/models');
 
 const formatContext = (n: number) =>
   n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M context` : `${Math.round(n / 1000)}k context`;

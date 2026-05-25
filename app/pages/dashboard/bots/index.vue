@@ -21,9 +21,7 @@ type BotStatus = 'ready' | 'paused' | 'unconfigured';
 
 const { items: bots, used, atLimit, pending, refresh, limitMessage } = useTierLimit<BotRow>('bots');
 const { syncingId, sync: syncAvatar } = useBotAvatar(refresh);
-const { data: openrouter } = useLazyFetch<OpenRouterStatus>('/api/oauth/openrouter', {
-  headers: useRequestHeaders(['cookie']),
-});
+const { data: openrouter } = useApiFetch<OpenRouterStatus>('/api/oauth/openrouter');
 
 const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
 
@@ -80,7 +78,7 @@ const filteredBots = computed(() => {
         </UButton>
       </template>
 
-      <div class="p-6 sm:p-8 flex flex-col gap-8 max-w-3xl">
+      <DashboardContainer>
         <h1 class="text-2xl font-semibold">
           Bots <span class="text-toned font-normal">({{ used }})</span>
         </h1>
@@ -199,7 +197,7 @@ const filteredBots = computed(() => {
             No bots match "{{ search }}".
           </p>
         </div>
-      </div>
+      </DashboardContainer>
     </NuxtLayout>
   </div>
 </template>

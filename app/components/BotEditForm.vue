@@ -23,9 +23,7 @@ const emit = defineEmits<{
   submit: [value: BotEditFormValue];
 }>();
 
-const { data: agents, pending: agentsPending } = useLazyFetch<AgentOption[]>('/api/agents', {
-  headers: useRequestHeaders(['cookie']),
-});
+const { data: agents, pending: agentsPending } = useApiFetch<AgentOption[]>('/api/agents');
 
 const state = reactive<BotEditFormValue>({
   agentId: props.initialValue.agentId,

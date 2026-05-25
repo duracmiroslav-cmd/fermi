@@ -51,7 +51,7 @@ const filteredAgents = computed(() => {
         </UButton>
       </template>
 
-      <div class="p-6 sm:p-8 flex flex-col gap-8 max-w-3xl">
+      <DashboardContainer>
         <h1 class="text-2xl font-semibold">
           Agents <span class="text-toned font-normal">({{ used }})</span>
         </h1>
@@ -147,7 +147,7 @@ const filteredAgents = computed(() => {
             No agents match "{{ search }}".
           </p>
         </div>
-      </div>
+      </DashboardContainer>
     </NuxtLayout>
   </div>
 </template>

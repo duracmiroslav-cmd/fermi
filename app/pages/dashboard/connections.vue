@@ -16,20 +16,16 @@ interface TavilyStatus {
 
 const route = useRoute();
 const router = useRouter();
-const toast = useToast();
+const notify = useNotify();
 
-const { data: openrouter, refresh, pending } = useLazyFetch<OpenRouterStatus>('/api/oauth/openrouter', {
-  headers: useRequestHeaders(['cookie']),
-});
+const { data: openrouter, refresh, pending } = useApiFetch<OpenRouterStatus>('/api/oauth/openrouter');
 const disconnecting = ref(false);
 
 const {
   data: tavily,
   refresh: refreshTavily,
   pending: tavilyPending,
-} = useLazyFetch<TavilyStatus>('/api/connections/tavily', {
-  headers: useRequestHeaders(['cookie']),
-});
+} = useApiFetch<TavilyStatus>('/api/connections/tavily');
 const tavilyKey = ref('');
 const tavilyConnecting = ref(false);
 const tavilyDisconnecting = ref(false);
@@ -37,10 +33,10 @@ const tavilyDisconnecting = ref(false);
 onMounted(() => {
   const result = route.query.openrouter;
   if (result === 'connected') {
-    toast.add({ title: 'OpenRouter connected', color: 'success' });
+    notify.success('OpenRouter connected');
   } else if (result === 'error') {
     const reason = typeof route.query.reason === 'string' ? route.query.reason : 'unknown';
-    toast.add({ title: 'OpenRouter connection failed', description: reason, color: 'error' });
+    notify.error('OpenRouter connection failed', reason);
   }
   if (result) {
     router.replace({ query: {} });
@@ -56,13 +52,9 @@ const disconnect = async () => {
   try {
     await $fetch('/api/oauth/openrouter', { method: 'DELETE' });
     await refresh();
-    toast.add({ title: 'OpenRouter disconnected', color: 'success' });
+    notify.success('OpenRouter disconnected');
   } catch (e) {
-    toast.add({
-      title: 'Disconnect failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Disconnect failed', e);
   } finally {
     disconnecting.value = false;
   }
@@ -79,13 +71,9 @@ const connectTavily = async () => {
     });
     tavilyKey.value = '';
     await refreshTavily();
-    toast.add({ title: 'Tavily connected', color: 'success' });
+    notify.success('Tavily connected');
   } catch (e) {
-    toast.add({
-      title: 'Tavily connection failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Tavily connection failed', e);
   } finally {
     tavilyConnecting.value = false;
   }
@@ -96,13 +84,9 @@ const disconnectTavily = async () => {
   try {
     await $fetch('/api/connections/tavily', { method: 'DELETE' });
     await refreshTavily();
-    toast.add({ title: 'Tavily disconnected', color: 'success' });
+    notify.success('Tavily disconnected');
   } catch (e) {
-    toast.add({
-      title: 'Disconnect failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Disconnect failed', e);
   } finally {
     tavilyDisconnecting.value = false;
   }
@@ -116,7 +100,7 @@ const disconnectTavily = async () => {
         <DashboardBreadcrumb :items="[{ label: 'Connections' }]" />
       </template>
 
-      <div class="p-6 sm:p-8 pb-12 max-w-3xl flex flex-col gap-8">
+      <DashboardContainer>
         <h1 class="text-2xl font-semibold">
           Connections
         </h1>
@@ -287,7 +271,7 @@ const disconnectTavily = async () => {
             </div>
           </UCard>
         </section>
-      </div>
+      </DashboardContainer>
     </NuxtLayout>
   </div>
 </template>

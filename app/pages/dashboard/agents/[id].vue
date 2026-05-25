@@ -14,11 +14,10 @@ interface AgentDetail {
 }
 
 const route = useRoute();
-const toast = useToast();
+const notify = useNotify();
 
-const { data: agent, error, pending } = useLazyFetch<AgentDetail>(
+const { data: agent, error, pending } = useApiFetch<AgentDetail>(
   () => `/api/agents/${route.params.id}`,
-  { headers: useRequestHeaders(['cookie']) },
 );
 
 const saving = ref(false);
@@ -36,14 +35,10 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultMode
         defaultModel: value.defaultModel || null,
       },
     });
-    toast.add({ title: 'Agent updated', color: 'success' });
+    notify.success('Agent updated');
     await navigateTo('/dashboard/agents');
   } catch (e) {
-    toast.add({
-      title: 'Update failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Update failed', e);
   } finally {
     saving.value = false;
   }
@@ -56,13 +51,9 @@ const onAvatarChange = async (url: string | null) => {
       body: { avatarUrl: url },
     });
     if (agent.value) agent.value.avatarUrl = url;
-    toast.add({ title: url ? 'Avatar updated' : 'Avatar removed', color: 'success' });
+    notify.success(url ? 'Avatar updated' : 'Avatar removed');
   } catch (e) {
-    toast.add({
-      title: 'Avatar update failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Avatar update failed', e);
   }
 };
 
@@ -70,14 +61,10 @@ const onDelete = async () => {
   deleting.value = true;
   try {
     await $fetch(`/api/agents/${route.params.id}`, { method: 'DELETE' });
-    toast.add({ title: 'Agent deleted', color: 'success' });
+    notify.success('Agent deleted');
     await navigateTo('/dashboard/agents');
   } catch (e) {
-    toast.add({
-      title: 'Delete failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Delete failed', e);
     deleting.value = false;
   }
 };
@@ -113,10 +100,7 @@ const onDelete = async () => {
         :fields="3"
       />
 
-      <div
-        v-else-if="error"
-        class="p-6 sm:p-8 max-w-3xl"
-      >
+      <DashboardContainer v-else-if="error">
         <div class="border border-dashed border-default rounded-md py-16 px-6 text-center">
           <p class="font-semibold mb-2">
             Agent not found
@@ -131,12 +115,9 @@ const onDelete = async () => {
             Back to agents
           </UButton>
         </div>
-      </div>
+      </DashboardContainer>
 
-      <div
-        v-if="agent"
-        class="p-6 sm:p-8 pb-12 max-w-3xl flex flex-col gap-6"
-      >
+      <DashboardContainer v-if="agent">
         <div class="flex items-center gap-4">
           <AgentAvatarUpload
             :agent-id="agent.id"
@@ -247,7 +228,7 @@ const onDelete = async () => {
             Bots using this agent stop replying.
           </p>
         </DeleteConfirmDialog>
-      </div>
+      </DashboardContainer>
     </NuxtLayout>
   </div>
 </template>

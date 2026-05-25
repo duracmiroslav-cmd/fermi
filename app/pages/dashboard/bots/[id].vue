@@ -16,11 +16,10 @@ interface BotDetail {
 }
 
 const route = useRoute();
-const toast = useToast();
+const notify = useNotify();
 
-const { data: bot, error, refresh, pending } = useLazyFetch<BotDetail>(
+const { data: bot, error, refresh, pending } = useApiFetch<BotDetail>(
   () => `/api/bots/${route.params.id}`,
-  { headers: useRequestHeaders(['cookie']) },
 );
 
 const saving = ref(false);
@@ -47,14 +46,10 @@ const onSubmit = async (value: { agentId: string; disabledAt: string | null }) =
       method: 'PATCH',
       body: value,
     });
-    toast.add({ title: 'Bot updated', color: 'success' });
+    notify.success('Bot updated');
     await navigateTo('/dashboard/bots');
   } catch (e) {
-    toast.add({
-      title: 'Update failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Update failed', e);
   } finally {
     saving.value = false;
   }
@@ -64,14 +59,10 @@ const onDelete = async () => {
   deleting.value = true;
   try {
     await $fetch(`/api/bots/${route.params.id}`, { method: 'DELETE' });
-    toast.add({ title: 'Bot deleted', color: 'success' });
+    notify.success('Bot deleted');
     await navigateTo('/dashboard/bots');
   } catch (e) {
-    toast.add({
-      title: 'Delete failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Delete failed', e);
     deleting.value = false;
   }
 };
@@ -108,10 +99,7 @@ const onDelete = async () => {
         :fields="2"
       />
 
-      <div
-        v-else-if="error"
-        class="p-6 sm:p-8 max-w-3xl"
-      >
+      <DashboardContainer v-else-if="error">
         <div class="border border-dashed border-default rounded-md py-16 px-6 text-center">
           <p class="font-semibold mb-2">
             Bot not found
@@ -126,12 +114,9 @@ const onDelete = async () => {
             Back to bots
           </UButton>
         </div>
-      </div>
+      </DashboardContainer>
 
-      <div
-        v-if="bot"
-        class="p-6 sm:p-8 pb-12 max-w-3xl flex flex-col gap-6"
-      >
+      <DashboardContainer v-if="bot">
         <div class="flex items-center gap-4">
           <UAvatar
             v-if="bot.avatarUrl"
@@ -259,7 +244,7 @@ const onDelete = async () => {
             and its saved tokens. Any attached agent is detached but kept.
           </p>
         </DeleteConfirmDialog>
-      </div>
+      </DashboardContainer>
     </NuxtLayout>
   </div>
 </template>
