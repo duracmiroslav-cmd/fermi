@@ -35,6 +35,8 @@ const agentItems = computed(() =>
   (agents.value ?? []).map(a => ({ label: a.name, value: a.id })),
 );
 
+const hasNoAgents = computed(() => !agentsPending.value && agentItems.value.length === 0);
+
 const state = reactive<BotEditFormValue>({
   agentId: props.initialValue.agentId,
   disabledAt: props.initialValue.disabledAt,
@@ -72,12 +74,30 @@ const onSubmit = () => {
         :items="agentItems"
         value-key="value"
         clear
-        placeholder="Select an agent"
+        :placeholder="hasNoAgents ? 'No agents yet' : 'Select an agent'"
         :loading="agentsPending"
+        :disabled="hasNoAgents"
         :ui="{ base: 'font-mono' }"
       />
       <template #help>
-        Pick the agent that replies. Leave empty to keep the bot quiet.
+        <template v-if="hasNoAgents">
+          No agents yet.
+          <NuxtLink
+            to="/dashboard/agents/new"
+            class="text-highlighted hover:underline"
+          >
+            Create your first →
+          </NuxtLink>
+        </template>
+        <template v-else>
+          Pick the agent that replies. Leave empty to keep the bot quiet. ·
+          <NuxtLink
+            to="/dashboard/agents/new"
+            class="text-toned hover:text-highlighted hover:underline"
+          >
+            new agent →
+          </NuxtLink>
+        </template>
       </template>
     </UFormField>
 
