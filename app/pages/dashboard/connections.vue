@@ -72,10 +72,7 @@ const onTavilyConnect = async () => {
             </p>
           </div>
 
-          <div
-            v-if="openrouterPending"
-            class="h-28 rounded-md border border-muted bg-elevated/50 animate-pulse"
-          />
+          <DashboardCardSkeleton v-if="openrouterPending" />
 
           <UCard v-else>
             <template #header>
@@ -155,10 +152,7 @@ const onTavilyConnect = async () => {
             </p>
           </div>
 
-          <div
-            v-if="tavilyPending"
-            class="h-28 rounded-md border border-muted bg-elevated/50 animate-pulse"
-          />
+          <DashboardCardSkeleton v-if="tavilyPending" />
 
           <UCard v-else>
             <template #header>
