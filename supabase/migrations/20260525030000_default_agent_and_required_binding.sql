@@ -6,7 +6,7 @@
 --      the updated `delete_agent` RPC.
 --
 --   2. `bots.agent_id` drops its `unique` constraint (1 agent : 1 bot
---      → 1 agent : N bots — one persona can run on multiple LINE OAs)
+--      → 1 agent : N bots — one persona can run on multiple LINE Official Accounts)
 --      and switches from `on delete set null` to `not null` + `on
 --      delete restrict`. Pause is now solely the `disabled_at` switch;
 --      "bot with no agent" is no longer a representable state.

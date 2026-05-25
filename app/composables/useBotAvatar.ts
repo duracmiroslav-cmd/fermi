@@ -24,7 +24,7 @@ export const useBotAvatar = (onSynced: () => Promise<unknown> | unknown) => {
         toast.add({ title: 'Avatar synced from LINE', color: 'success' });
       } else {
         toast.add({
-          title: 'LINE OA has no profile picture yet',
+          title: 'LINE Official Account has no profile picture yet',
           description: 'Upload one in LINE Official Account Manager, then sync again.',
           color: 'warning',
         });

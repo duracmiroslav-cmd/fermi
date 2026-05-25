@@ -1,4 +1,4 @@
--- Adds `bots.avatar_url` so the dashboard can show the LINE OA's
+-- Adds `bots.avatar_url` so the dashboard can show the LINE Official Account's
 -- profile picture instead of a letter-initial placeholder. Mirrors
 -- the `avatar_url` column on `agents` and `users` for visual /
 -- naming consistency across the schema.

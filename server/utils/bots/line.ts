@@ -144,7 +144,7 @@ export const connectLineBot = async (
     throw err;
   }
 
-  // Best-effort avatar capture. LINE OAs without a profile picture
+  // Best-effort avatar capture. LINE Official Accounts without a profile picture
   // leave pictureUrl undefined; a save failure here just means the
   // dashboard shows a "sync avatar" button until the owner clicks it.
   if (botInfo.pictureUrl) {
