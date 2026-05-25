@@ -192,7 +192,7 @@ const onDelete = async () => {
           </div>
         </UFormField>
 
-        <section>
+        <section v-if="!agent.isDefault">
           <h2 class="text-sm font-medium text-error mb-3">
             Danger zone
           </h2>
@@ -202,10 +202,7 @@ const onDelete = async () => {
                 Delete this agent
               </p>
               <p class="text-sm text-muted mt-1">
-                <template v-if="agent.isDefault">
-                  The default agent can't be deleted. Edit its name or persona instead.
-                </template>
-                <template v-else-if="agent.bots.length">
+                <template v-if="agent.bots.length">
                   Rebind {{ agent.bots.length }} bot{{ agent.bots.length === 1 ? '' : 's' }} to another agent first.
                 </template>
                 <template v-else>
@@ -214,8 +211,8 @@ const onDelete = async () => {
               </p>
             </div>
             <UTooltip
-              v-if="agent.isDefault || agent.bots.length"
-              :text="agent.isDefault ? 'Default agent is undeletable' : 'Agent still bound to a bot'"
+              v-if="agent.bots.length"
+              text="Agent still bound to a bot"
             >
               <UButton
                 color="error"
