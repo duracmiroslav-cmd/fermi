@@ -94,50 +94,40 @@ const onTavilyConnect = async () => {
                 Every message routes through OpenRouter. Pick from Claude, GPT, Gemini, or 200+ other models. Pay OpenRouter as you go, no minimum, fermi takes no cut.
               </p>
 
-              <div class="flex flex-col gap-2">
-                <div class="grid grid-cols-12 gap-4 items-end">
-                  <UFormField
-                    label="API key"
-                    class="col-span-9"
+              <UFormField label="API key">
+                <div class="flex items-end gap-4">
+                  <UInput
+                    :model-value="openrouter?.maskedKey ?? ''"
+                    readonly
+                    icon="i-lucide-key-round"
+                    :placeholder="openrouter?.connected ? 'Reconnect to view key' : 'Not connected'"
+                    autocomplete="off"
+                    class="flex-1 min-w-0"
+                  />
+                  <UButton
+                    v-if="openrouter?.connected"
+                    color="error"
+                    variant="outline"
+                    :loading="openrouterDisconnecting"
+                    @click="disconnectOpenRouter"
                   >
-                    <UInput
-                      :model-value="openrouter?.maskedKey ?? ''"
-                      readonly
-                      icon="i-lucide-key-round"
-                      :placeholder="openrouter?.connected ? 'Reconnect to view key' : 'Not connected'"
-                      autocomplete="off"
-                    />
-                  </UFormField>
-
-                  <div class="col-span-3">
-                    <UButton
-                      v-if="openrouter?.connected"
-                      block
-                      color="error"
-                      variant="outline"
-                      :loading="openrouterDisconnecting"
-                      @click="disconnectOpenRouter"
-                    >
-                      Disconnect
-                    </UButton>
-                    <UButton
-                      v-else
-                      block
-                      trailing-icon="i-lucide-arrow-up-right"
-                      @click="onOpenRouterConnect"
-                    >
-                      Connect
-                    </UButton>
-                  </div>
+                    Disconnect
+                  </UButton>
+                  <UButton
+                    v-else
+                    trailing-icon="i-lucide-arrow-up-right"
+                    @click="onOpenRouterConnect"
+                  >
+                    Connect
+                  </UButton>
                 </div>
-
-                <p
+                <template
                   v-if="!openrouter?.connected"
-                  class="text-xs text-toned"
+                  #help
                 >
                   New to OpenRouter? Free signup, takes a minute.
-                </p>
-              </div>
+                </template>
+              </UFormField>
             </div>
           </UCard>
         </section>
@@ -174,59 +164,46 @@ const onTavilyConnect = async () => {
                 Your agent queries Tavily when it needs the live web: citing sources, checking fresh facts, anything beyond the model's training data. Free for 1,000 searches a month, no card.
               </p>
 
-              <div class="flex flex-col gap-2">
-                <div
-                  v-if="tavily?.connected"
-                  class="grid grid-cols-12 gap-4 items-end"
-                >
-                  <UFormField
-                    label="API key"
-                    class="col-span-9"
+              <UFormField
+                v-if="tavily?.connected"
+                label="API key"
+              >
+                <div class="flex items-end gap-4">
+                  <UInput
+                    :model-value="tavily.maskedKey ?? ''"
+                    readonly
+                    icon="i-lucide-key-round"
+                    placeholder="Reconnect to view key"
+                    autocomplete="off"
+                    class="flex-1 min-w-0"
+                  />
+                  <UButton
+                    color="error"
+                    variant="outline"
+                    :loading="tavilyDisconnecting"
+                    @click="disconnectTavily"
                   >
-                    <UInput
-                      :model-value="tavily.maskedKey ?? ''"
-                      readonly
-                      icon="i-lucide-key-round"
-                      placeholder="Reconnect to view key"
-                      autocomplete="off"
-                    />
-                  </UFormField>
-
-                  <div class="col-span-3">
-                    <UButton
-                      block
-                      color="error"
-                      variant="outline"
-                      :loading="tavilyDisconnecting"
-                      @click="disconnectTavily"
-                    >
-                      Disconnect
-                    </UButton>
-                  </div>
+                    Disconnect
+                  </UButton>
                 </div>
+              </UFormField>
 
-                <form
-                  v-else
-                  class="grid grid-cols-12 gap-4 items-end"
-                  @submit.prevent="onTavilyConnect"
-                >
-                  <UFormField
-                    label="API key"
-                    class="col-span-9"
-                  >
+              <form
+                v-else
+                @submit.prevent="onTavilyConnect"
+              >
+                <UFormField label="API key">
+                  <div class="flex items-end gap-4">
                     <UInput
                       v-model.trim="tavilyKey"
                       icon="i-lucide-key-round"
                       placeholder="tvly-..."
                       type="password"
                       autocomplete="off"
+                      class="flex-1 min-w-0"
                     />
-                  </UFormField>
-
-                  <div class="col-span-3">
                     <UButton
                       type="submit"
-                      block
                       trailing-icon="i-lucide-arrow-right"
                       :loading="tavilyConnecting"
                       :disabled="!tavilyKey.trim()"
@@ -234,21 +211,17 @@ const onTavilyConnect = async () => {
                       Connect
                     </UButton>
                   </div>
-                </form>
-
-                <p
-                  v-if="!tavily?.connected"
-                  class="text-xs text-toned"
-                >
-                  Grab a key at
-                  <a
-                    href="https://app.tavily.com"
-                    target="_blank"
-                    rel="noopener"
-                    class="underline"
-                  >app.tavily.com</a>. 30 seconds, free, no credit card. Paste it back here when you're done.
-                </p>
-              </div>
+                  <template #help>
+                    Grab a key at
+                    <a
+                      href="https://app.tavily.com"
+                      target="_blank"
+                      rel="noopener"
+                      class="underline"
+                    >app.tavily.com</a>. 30 seconds, free, no credit card. Paste it back here when you're done.
+                  </template>
+                </UFormField>
+              </form>
             </div>
           </UCard>
         </section>

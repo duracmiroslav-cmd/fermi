@@ -204,8 +204,8 @@ const onDelete = async () => {
           <h2 class="text-sm font-medium text-error mb-3">
             Danger zone
           </h2>
-          <div class="flex items-center justify-between gap-4 p-4 rounded-md border border-error/40">
-            <div class="min-w-0">
+          <div class="grid grid-cols-12 gap-4 md:items-center p-4 rounded-md border border-error/40">
+            <div class="col-span-12 md:col-span-9 min-w-0">
               <p class="text-sm font-medium">
                 Delete this bot
               </p>
@@ -216,6 +216,7 @@ const onDelete = async () => {
             <UButton
               color="error"
               variant="outline"
+              class="col-span-12 md:col-span-3 justify-self-end"
               @click="deleteDialogOpen = true"
             >
               Delete bot

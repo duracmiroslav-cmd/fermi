@@ -170,8 +170,8 @@ const onDelete = async () => {
           <h2 class="text-sm font-medium text-error mb-3">
             Danger zone
           </h2>
-          <div class="flex items-center justify-between gap-4 p-4 rounded-md border border-error/40">
-            <div class="min-w-0">
+          <div class="grid grid-cols-12 gap-4 md:items-center p-4 rounded-md border border-error/40">
+            <div class="col-span-12 md:col-span-9 min-w-0">
               <p class="text-sm font-medium">
                 Delete this agent
               </p>
@@ -184,26 +184,28 @@ const onDelete = async () => {
                 </template>
               </p>
             </div>
-            <UTooltip
-              v-if="agent.bots.length"
-              text="Agent still bound to a bot"
-            >
+            <div class="col-span-12 md:col-span-3 justify-self-end">
+              <UTooltip
+                v-if="agent.bots.length"
+                text="Agent still bound to a bot"
+              >
+                <UButton
+                  color="error"
+                  variant="outline"
+                  disabled
+                >
+                  Delete agent
+                </UButton>
+              </UTooltip>
               <UButton
+                v-else
                 color="error"
                 variant="outline"
-                disabled
+                @click="deleteDialogOpen = true"
               >
                 Delete agent
               </UButton>
-            </UTooltip>
-            <UButton
-              v-else
-              color="error"
-              variant="outline"
-              @click="deleteDialogOpen = true"
-            >
-              Delete agent
-            </UButton>
+            </div>
           </div>
         </section>
 
