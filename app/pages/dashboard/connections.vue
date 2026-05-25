@@ -138,15 +138,23 @@ const disconnectTavily = async () => {
             </template>
 
             <div class="flex flex-col gap-3">
-              <div class="grid grid-cols-12 gap-4 items-center">
-                <p class="col-span-9 text-sm text-toned min-w-0">
-                  <template v-if="openrouter?.connected">
-                    Bots can use Claude, GPT, Gemini, and free models.
-                  </template>
-                  <template v-else>
-                    OpenRouter routes chat completions to Claude, GPT, Gemini, and free models.
-                  </template>
-                </p>
+              <p class="text-sm text-toned">
+                OpenRouter routes chat completions to Claude, GPT, Gemini, and free models.
+              </p>
+
+              <div class="grid grid-cols-12 gap-4 items-end">
+                <UFormField
+                  label="API key"
+                  class="col-span-9"
+                >
+                  <UInput
+                    :model-value="openrouter?.maskedKey ?? ''"
+                    readonly
+                    placeholder="Not connected"
+                    autocomplete="off"
+                    :ui="{ base: 'font-mono' }"
+                  />
+                </UFormField>
 
                 <div class="col-span-3">
                   <UButton
@@ -167,19 +175,6 @@ const disconnectTavily = async () => {
                     Connect
                   </UButton>
                 </div>
-              </div>
-
-              <div
-                v-if="openrouter?.connected && openrouter.maskedKey"
-                class="grid grid-cols-12 gap-4"
-              >
-                <UInput
-                  :model-value="openrouter.maskedKey"
-                  readonly
-                  autocomplete="off"
-                  class="col-span-12"
-                  :ui="{ base: 'font-mono' }"
-                />
               </div>
             </div>
           </UCard>
