@@ -15,18 +15,44 @@
   --color-apricot-900: #4d0a00;
   --color-apricot-950: #1f0000;
 
-  /* OKLCH scale, anchored at #97B975 (500) */
-  --color-pistachio-50:  #f9fbf8;
-  --color-pistachio-100: #e3ebdb;
-  --color-pistachio-200: #ccdcbe;
-  --color-pistachio-300: #b8cfa2;
-  --color-pistachio-400: #a5c388;
-  --color-pistachio-500: #97b975;
-  --color-pistachio-600: #6f8d4f;
-  --color-pistachio-700: #4d6a2b;
-  --color-pistachio-800: #2c4603;
-  --color-pistachio-900: #102200;
-  --color-pistachio-950: #010300;
+  /* OKLCH scale, anchored at #88BF68 (500) */
+  --color-matcha-50:  #f9fbf7;
+  --color-matcha-100: #dfedd8;
+  --color-matcha-200: #c6dfb9;
+  --color-matcha-300: #aed39a;
+  --color-matcha-400: #98c87e;
+  --color-matcha-500: #88bf68;
+  --color-matcha-600: #609242;
+  --color-matcha-700: #3d6e1a;
+  --color-matcha-800: #1c4a00;
+  --color-matcha-900: #042400;
+  --color-matcha-950: #000300;
+
+  /* OKLCH scale, anchored at #F03553 (500) */
+  --color-cherry-50:  #fff8f8;
+  --color-cherry-100: #ffd2d2;
+  --color-cherry-200: #fdabad;
+  --color-cherry-300: #fb838a;
+  --color-cherry-400: #f75b6b;
+  --color-cherry-500: #f03553;
+  --color-cherry-600: #c10036;
+  --color-cherry-700: #9f0019;
+  --color-cherry-800: #790000;
+  --color-cherry-900: #460000;
+  --color-cherry-950: #120000;
+
+  /* OKLCH scale, anchored at #ED9800 (500) */
+  --color-saffron-50:  #fdf9f5;
+  --color-saffron-100: #f9e4c9;
+  --color-saffron-200: #f5cf9b;
+  --color-saffron-300: #f3ba68;
+  --color-saffron-400: #f0a726;
+  --color-saffron-500: #ed9800;
+  --color-saffron-600: #bb6e00;
+  --color-saffron-700: #954800;
+  --color-saffron-800: #6d2300;
+  --color-saffron-900: #3b0600;
+  --color-saffron-950: #0a0000;
 
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;

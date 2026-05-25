@@ -2,11 +2,13 @@
   "cSpell.words": [
     "ciphertext",
     "fedcm",
+    "matcha",
     "openrouter",
     "pgmq",
     "pkce",
     "supabase",
-    "tavily"
+    "tavily",
+    "unconfigured"
   ],
   "deno.enablePaths": [
     "supabase"

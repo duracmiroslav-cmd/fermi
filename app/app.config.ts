@@ -3,7 +3,9 @@ export default defineAppConfig({
     colors: {
       primary: 'apricot',
       neutral: 'stone',
-      success: 'pistachio',
+      success: 'matcha',
+      warning: 'saffron',
+      error: 'cherry',
     },
     toast: {
       slots: {
