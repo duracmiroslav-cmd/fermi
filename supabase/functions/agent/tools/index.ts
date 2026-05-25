@@ -1,12 +1,22 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getCurrentTime } from './get-current-time.ts';
 import { webSearch } from './web-search.ts';
+
+// Per-call context passed to every tool so they can load the bot
+// owner's credentials (e.g., personal Tavily key) on the fly.
+// Kept minimal: tools that don't need it can ignore the second arg.
+export interface ToolContext {
+  admin: SupabaseClient;
+  kek: CryptoKey;
+  ownerId: string;
+}
 
 export interface Tool {
   name: string;
   description: string;
   // JSON Schema for arguments, passed straight to OpenRouter.
   parameters: Record<string, unknown>;
-  execute: (args: Record<string, unknown>) => unknown | Promise<unknown>;
+  execute: (args: Record<string, unknown>, ctx: ToolContext) => unknown | Promise<unknown>;
 }
 
 const tools: Tool[] = [getCurrentTime, webSearch];
@@ -38,6 +48,7 @@ export const toolSchemas: ToolSchema[] = tools.map(t => ({
 export const executeTool = async (
   name: string,
   argumentsJson: string,
+  ctx: ToolContext,
 ): Promise<string> => {
   const tool = byName.get(name);
   if (!tool) return JSON.stringify({ error: `Unknown tool: ${name}` });
@@ -50,7 +61,7 @@ export const executeTool = async (
   }
 
   try {
-    const result = await tool.execute(args);
+    const result = await tool.execute(args, ctx);
     return JSON.stringify(result);
   } catch (err) {
     return JSON.stringify({ error: `Tool execution failed: ${String(err)}` });

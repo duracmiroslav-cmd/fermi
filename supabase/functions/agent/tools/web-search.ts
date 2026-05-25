@@ -1,3 +1,4 @@
+import { loadCredential } from '../../../../shared/credentials.ts';
 import type { Tool } from './index.ts';
 
 interface Args {
@@ -45,10 +46,30 @@ export const webSearch: Tool = {
     required: ['query'],
     additionalProperties: false,
   },
-  execute: async (rawArgs) => {
-    const apiKey = Deno.env.get('TAVILY_API_KEY');
+  execute: async (rawArgs, ctx) => {
+    // Owner's personal Tavily key takes precedence; falls back to
+    // the fermi platform key (TAVILY_API_KEY env) so dogfooding bots
+    // stay working before the owner connects. If neither is present,
+    // surface a lazy-connect notice the LLM will relay in the user's
+    // language — pointing the user at the bot owner's dashboard.
+    let apiKey: string | null = null;
+    try {
+      const { plaintext } = await loadCredential(ctx.admin, ctx.kek, {
+        userId: ctx.ownerId,
+        botId: null,
+        keyType: 'tavily',
+      });
+      apiKey = plaintext;
+    } catch (err) {
+      // PGRST116 = no row from .single() — expected when owner
+      // hasn't connected Tavily yet. Re-throw anything else.
+      if ((err as { code?: string })?.code !== 'PGRST116') throw err;
+    }
+    if (!apiKey) apiKey = Deno.env.get('TAVILY_API_KEY') ?? null;
     if (!apiKey) {
-      return { error: 'web_search is not configured (TAVILY_API_KEY missing on this fermi instance).' };
+      return {
+        error: 'web_search requires a Tavily API key, which the bot owner has not connected. Tell the user that the bot owner needs to visit https://fermi.tw/dashboard/connections and connect a Tavily API key (free tier gives 1000 queries/month, takes about 30 seconds at https://tavily.com).',
+      };
     }
 
     const { query, max_results } = rawArgs as Args;

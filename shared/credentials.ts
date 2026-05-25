@@ -7,7 +7,8 @@ export type KeyType
     | 'line_channel_secret'
     | 'anthropic'
     | 'openai'
-    | 'gemini';
+    | 'gemini'
+    | 'tavily';
 
 type Bytes = Uint8Array<ArrayBuffer>;
 

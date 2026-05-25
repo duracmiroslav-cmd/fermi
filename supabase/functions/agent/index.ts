@@ -213,6 +213,7 @@ const runAgentLoop = async (params: {
   agent: { id: string; name: string; systemPrompt: string | null; defaultModel: string | null };
   openrouterKey: string;
   lineAccessToken: string;
+  kek: CryptoKey;
   externalUserId: string;
   replyToken: string;
   userText: string;
@@ -221,7 +222,7 @@ const runAgentLoop = async (params: {
   // the event, not when our worker dequeued it.
   eventTimestamp: number;
 }): Promise<void> => {
-  const { bot, agent, openrouterKey, lineAccessToken, externalUserId, replyToken, userText, eventTimestamp } = params;
+  const { bot, agent, openrouterKey, lineAccessToken, kek, externalUserId, replyToken, userText, eventTimestamp } = params;
 
   const threadId = await resolveOrCreateLatestThread(admin, bot.id, externalUserId);
   await appendMessage(admin, threadId, 'user', { type: 'text', text: userText });
@@ -316,7 +317,11 @@ const runAgentLoop = async (params: {
         });
 
         const toolStart = performance.now();
-        const toolResult = await executeTool(call.name, call.argumentsJson);
+        const toolResult = await executeTool(call.name, call.argumentsJson, {
+          admin,
+          kek,
+          ownerId: bot.ownerId,
+        });
         const toolLatency = Math.round(performance.now() - toolStart);
 
         await logStep(admin, {
@@ -522,6 +527,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       agent,
       openrouterKey,
       lineAccessToken,
+      kek,
       externalUserId: event.source.userId,
       replyToken: event.replyToken,
       userText: event.message.text,
