@@ -17,6 +17,10 @@ const emit = defineEmits<{
 }>();
 
 const models = [
+  { label: 'Llama 3.3 70B (Meta, free)', value: 'meta-llama/llama-3.3-70b-instruct:free' },
+  { label: 'Qwen3 Next 80B (Alibaba, free)', value: 'qwen/qwen3-next-80b-a3b-instruct:free' },
+  { label: 'DeepSeek V4 Flash (DeepSeek, free)', value: 'deepseek/deepseek-v4-flash:free' },
+  { label: 'GPT-OSS 120B (OpenAI, free)', value: 'openai/gpt-oss-120b:free' },
   { label: 'Gemma 4 31B (Google, free)', value: 'google/gemma-4-31b-it:free' },
   { label: 'Claude Sonnet 4.6 (Anthropic)', value: 'anthropic/claude-sonnet-4-6' },
 ];
