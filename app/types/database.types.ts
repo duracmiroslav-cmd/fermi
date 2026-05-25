@@ -345,6 +345,21 @@ export type Database = {
           },
         ]
       }
+      idempotency_keys: {
+        Row: {
+          key: string
+          seen_at: string
+        }
+        Insert: {
+          key: string
+          seen_at?: string
+        }
+        Update: {
+          key?: string
+          seen_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: Json
@@ -512,6 +527,7 @@ export type Database = {
           id: string
         }[]
       }
+      purge_idempotency_keys: { Args: { older_than?: string }; Returns: number }
       purge_orphaned_credentials: {
         Args: { older_than?: string }
         Returns: number

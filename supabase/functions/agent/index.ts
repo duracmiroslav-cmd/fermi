@@ -3,6 +3,7 @@ import { findAgentById } from '../../../shared/agents.ts';
 import { findBotById } from '../../../shared/bots.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
 import { getKek } from '../../../shared/kek.ts';
+import { tryClaimIdempotencyKey } from './dedup.ts';
 import { OpenRouterError, chatCompletion, type ChatMessage } from './openrouter.ts';
 import { errorCodeFromStatus, finishRun, logStep, startRun } from './runs.ts';
 import {
@@ -41,6 +42,7 @@ interface LineEvent {
   replyToken?: string;
   source?: LineSource;
   message?: { type: string; text?: string };
+  webhookEventId?: string;
 }
 
 interface LinePayload {
@@ -443,8 +445,26 @@ const formatErrorForLine = (err: unknown): string => {
   return `⚠️ ${message.slice(0, maxLen)}`;
 };
 
+// Filters out events whose webhookEventId we've already processed
+// (pgmq re-delivery, LINE webhook retry). Events without a
+// webhookEventId fall through unguarded — defensive only; LINE has
+// set this field on every webhook event since 2021.
+const claimFreshEvents = async (events: LineEvent[]): Promise<LineEvent[]> => {
+  const fresh: LineEvent[] = [];
+  for (const event of events) {
+    if (!event.webhookEventId) {
+      fresh.push(event);
+      continue;
+    }
+    const claimed = await tryClaimIdempotencyKey(admin, event.webhookEventId);
+    if (claimed) fresh.push(event);
+    else console.info('duplicate webhook event, skipping', { webhookEventId: event.webhookEventId });
+  }
+  return fresh;
+};
+
 const processLineMessage = async (payload: LinePayload): Promise<void> => {
-  const events = payload.events ?? [];
+  const events = await claimFreshEvents(payload.events ?? []);
   if (events.length === 0) return;
 
   const bot = await findBotById(admin, payload.botId);
@@ -529,7 +549,7 @@ const processMessage = async (payload: QueuePayload): Promise<void> => {
 Deno.serve(async () => {
   const { data, error } = await admin.rpc('dequeue_webhook_events', {
     batch_size: 10,
-    visibility_timeout: 30,
+    visibility_timeout: 120,
   });
 
   if (error) {
