@@ -87,13 +87,15 @@ const onSubmit = () => {
         </UTooltip>
       </div>
       <template #help>
-        The persona that drives this bot's replies. ·
-        <NuxtLink
-          to="/dashboard/agents/new"
-          class="text-toned hover:text-highlighted hover:underline"
-        >
-          new agent →
-        </NuxtLink>
+        <div class="flex items-center justify-between gap-4">
+          <span>The persona that drives this bot's replies.</span>
+          <NuxtLink
+            to="/dashboard/agents/new"
+            class="shrink-0 text-toned hover:text-highlighted hover:underline"
+          >
+            new agent →
+          </NuxtLink>
+        </div>
       </template>
     </UFormField>
 
