@@ -177,7 +177,7 @@ const onDelete = async () => {
               </p>
               <p class="text-sm text-toned mt-1">
                 <template v-if="agent.bots.length">
-                  Rebind {{ agent.bots.length }} bot{{ agent.bots.length === 1 ? '' : 's' }} to another agent first.
+                  Bound to {{ agent.bots.length }} bot{{ agent.bots.length === 1 ? '' : 's' }}. Rebind to another agent before deleting.
                 </template>
                 <template v-else>
                   Permanent. This agent isn't bound to any bot.
