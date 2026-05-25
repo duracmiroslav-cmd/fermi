@@ -4,7 +4,7 @@ import { findBotById } from '../../../shared/bots.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
 import { getKek } from '../../../shared/kek.ts';
 import { OpenRouterError, chatCompletion, type ChatMessage } from './openrouter.ts';
-import { finishRun, logStep, startRun } from './runs.ts';
+import { errorCodeFromStatus, finishRun, logStep, startRun } from './runs.ts';
 import {
   appendMessage,
   loadRecentMessages,
@@ -224,7 +224,12 @@ const runAgentLoop = async (params: {
   const threadId = await resolveOrCreateLatestThread(admin, bot.id, externalUserId);
   await appendMessage(admin, threadId, 'user', { type: 'text', text: userText });
 
-  const runId = await startRun(admin, threadId);
+  const runId = await startRun(admin, {
+    threadId,
+    botId:   bot.id,
+    agentId: agent.id,
+    ownerId: bot.ownerId,
+  });
   let step = 1;
   let totalCostUsd = 0;
 
@@ -359,6 +364,9 @@ const runAgentLoop = async (params: {
       });
       await finishRun(admin, runId, 'succeeded', totalCostUsd);
     } catch (err) {
+      const pushStatus = err instanceof LineReplyError || err instanceof LinePushError
+        ? err.status
+        : undefined;
       const payload: Record<string, unknown> = { message: String(err), elapsed_ms: elapsedMs };
       if (err instanceof LineReplyError) {
         payload.status = err.status;
@@ -374,7 +382,7 @@ const runAgentLoop = async (params: {
         type: 'push_failed',
         payload,
       });
-      await finishRun(admin, runId, 'failed', totalCostUsd);
+      await finishRun(admin, runId, 'failed', totalCostUsd, errorCodeFromStatus(pushStatus));
       // Both Reply 400 (fallback to Push already tried) and Push 4xx
       // are terminal for this event — retrying via pgmq would just
       // duplicate the failure or, worse, re-charge a successful Push.
@@ -383,6 +391,7 @@ const runAgentLoop = async (params: {
       throw err;
     }
   } catch (err) {
+    const errStatus = err instanceof OpenRouterError ? err.status : undefined;
     const payload: Record<string, unknown> = { message: String(err) };
     if (err instanceof OpenRouterError) payload.status = err.status;
     await logStep(admin, {
@@ -409,7 +418,7 @@ const runAgentLoop = async (params: {
     } catch (notifyErr) {
       console.error('error notice delivery failed', notifyErr);
     }
-    await finishRun(admin, runId, 'failed', totalCostUsd);
+    await finishRun(admin, runId, 'failed', totalCostUsd, errorCodeFromStatus(errStatus));
     // Retry semantics flip on whether the user saw the error: once
     // notified, throwing would have pgmq redeliver and we'd spam the
     // chat with a duplicate ⚠️ every visibility-timeout (~30s). If

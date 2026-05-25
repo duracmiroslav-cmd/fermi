@@ -41,34 +41,46 @@ export type Database = {
     Tables: {
       agent_run_steps: {
         Row: {
+          cached_tokens: number | null
+          completion_tokens: number | null
           cost_usd: number | null
           created_at: string
           id: string
           latency_ms: number | null
+          model: string | null
           openrouter_gen_id: string | null
           payload: Json
+          prompt_tokens: number | null
           run_id: string
           step: number
           type: string
         }
         Insert: {
+          cached_tokens?: number | null
+          completion_tokens?: number | null
           cost_usd?: number | null
           created_at?: string
           id?: string
           latency_ms?: number | null
+          model?: string | null
           openrouter_gen_id?: string | null
           payload?: Json
+          prompt_tokens?: number | null
           run_id: string
           step: number
           type: string
         }
         Update: {
+          cached_tokens?: number | null
+          completion_tokens?: number | null
           cost_usd?: number | null
           created_at?: string
           id?: string
           latency_ms?: number | null
+          model?: string | null
           openrouter_gen_id?: string | null
           payload?: Json
+          prompt_tokens?: number | null
           run_id?: string
           step?: number
           type?: string
@@ -85,33 +97,66 @@ export type Database = {
       }
       agent_runs: {
         Row: {
+          agent_id: string
+          bot_id: string
           created_at: string
+          error_code: string | null
           finished_at: string | null
           id: string
+          owner_id: string
           status: string
           thread_id: string
           total_cost_usd: number
           updated_at: string
         }
         Insert: {
+          agent_id: string
+          bot_id: string
           created_at?: string
+          error_code?: string | null
           finished_at?: string | null
           id?: string
+          owner_id: string
           status?: string
           thread_id: string
           total_cost_usd?: number
           updated_at?: string
         }
         Update: {
+          agent_id?: string
+          bot_id?: string
           created_at?: string
+          error_code?: string | null
           finished_at?: string | null
           id?: string
+          owner_id?: string
           status?: string
           thread_id?: string
           total_cost_usd?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "agent_runs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "agent_runs_thread_id_fkey"
             columns: ["thread_id"]
@@ -128,6 +173,7 @@ export type Database = {
           default_model: string | null
           deleted_at: string | null
           id: string
+          is_default: boolean
           name: string
           owner_id: string
           system_prompt: string | null
@@ -139,6 +185,7 @@ export type Database = {
           default_model?: string | null
           deleted_at?: string | null
           id?: string
+          is_default?: boolean
           name: string
           owner_id: string
           system_prompt?: string | null
@@ -150,6 +197,7 @@ export type Database = {
           default_model?: string | null
           deleted_at?: string | null
           id?: string
+          is_default?: boolean
           name?: string
           owner_id?: string
           system_prompt?: string | null
@@ -167,7 +215,7 @@ export type Database = {
       }
       bots: {
         Row: {
-          agent_id: string | null
+          agent_id: string
           avatar_url: string | null
           created_at: string
           deleted_at: string | null
@@ -180,7 +228,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          agent_id?: string | null
+          agent_id: string
           avatar_url?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -193,7 +241,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          agent_id?: string | null
+          agent_id?: string
           avatar_url?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -209,7 +257,7 @@ export type Database = {
           {
             foreignKeyName: "bots_agent_id_fkey"
             columns: ["agent_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "agents"
             referencedColumns: ["id"]
           },
@@ -452,6 +500,7 @@ export type Database = {
       }
       insert_bot_if_under_limit: {
         Args: {
+          p_agent_id: string
           p_display_name: string
           p_external_id: string
           p_limit: number
