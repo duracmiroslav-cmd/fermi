@@ -89,7 +89,7 @@ const onSubmit = () => {
         value-key="value"
         placeholder="Select an agent"
         :loading="agentsPending || isAgentPickerOpening"
-        size="lg"
+        :ui="{ base: 'ps-10!', itemLeadingAvatarSize: 'lg' }"
         @pointerdown="isAgentPickerOpening = true"
         @update:open="isAgentPickerOpening = false"
       >

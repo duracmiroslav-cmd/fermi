@@ -117,7 +117,7 @@ const onSubmit = () => {
         value-key="value"
         placeholder="Select a model"
         :loading="modelsPending || isModelPickerOpening"
-        size="lg"
+        :ui="{ base: 'ps-10!', itemLeadingAvatarSize: 'lg' }"
         @pointerdown="isModelPickerOpening = true"
         @update:open="isModelPickerOpening = false"
       >

@@ -73,6 +73,15 @@ Never use arbitrary values: ✗ `text-[13px]`, `mt-[7px]`, `p-[15px]`.
 - `<UButton>`: do not pass `color` / `variant` props unless intentionally overriding defaults.
 - Use Nuxt UI components first. Build custom only when no UI component fits.
 
+### Theming via `app.config.ts`
+
+Nuxt UI's `tv()` (tailwind-variants) merges slot values by **type**:
+
+- **CSS class strings** (e.g. `base: 'rounded-md font-bold'`) — tailwind-merge resolves conflicts. Override globally in `app.config.ts` freely.
+- **Size / enum tokens** (e.g. `itemLeadingAvatarSize: 'lg'`, `itemLeadingChipSize: 'md'`) — values are **concatenated with a space** (`'2xs lg'`), which the child component reads as invalid and falls back to default. Global overrides silently do nothing.
+
+For non-class tokens, override per-instance via `:ui="{ tokenName: 'value' }"` or per-item via `item.ui = { ... }`.
+
 ### Dark mode
 
 Single-mode project. Never write `dark:` prefix. Color mode is forced to dark in `nuxt.config.ts`.

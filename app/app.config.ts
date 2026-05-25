@@ -59,28 +59,18 @@ export default defineAppConfig({
     },
     select: {
       slots: {
-        base: 'w-full cursor-pointer font-mono ps-12! data-[state=open]:ring-2 data-[state=open]:ring-inset data-[state=open]:ring-primary focus-visible:ring! focus-visible:ring-default!',
+        base: 'w-full cursor-pointer font-mono data-[state=open]:ring-2 data-[state=open]:ring-inset data-[state=open]:ring-primary focus-visible:ring! focus-visible:ring-default!',
         item: 'cursor-pointer items-center data-highlighted:before:bg-elevated! data-[state=checked]:text-primary! data-[state=checked]:before:bg-primary/10!',
         group: 'space-y-1',
         viewport: 'divide-y-0',
-      },
-      variants: {
-        size: {
-          lg: { itemLeadingAvatar: 'shrink-0 size-9! text-lg!' },
-        },
       },
     },
     selectMenu: {
       slots: {
-        base: 'w-full cursor-pointer font-mono ps-12! data-[state=open]:ring-2 data-[state=open]:ring-inset data-[state=open]:ring-primary focus-visible:ring! focus-visible:ring-default!',
+        base: 'w-full cursor-pointer font-mono data-[state=open]:ring-2 data-[state=open]:ring-inset data-[state=open]:ring-primary focus-visible:ring! focus-visible:ring-default!',
         item: 'cursor-pointer items-center data-highlighted:before:bg-elevated! data-[state=checked]:text-primary! data-[state=checked]:before:bg-primary/10!',
         group: 'space-y-1',
         viewport: 'divide-y-0',
-      },
-      variants: {
-        size: {
-          lg: { itemLeadingAvatar: 'shrink-0 size-9! text-lg!' },
-        },
       },
     },
     switch: {

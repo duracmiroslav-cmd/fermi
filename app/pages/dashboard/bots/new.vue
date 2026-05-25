@@ -6,11 +6,14 @@ type Platform = 'line';
 const toast = useToast();
 const connecting = ref(false);
 
-const platformOptions: Array<{ label: string; value: Platform }> = [
-  { label: 'LINE', value: 'line' },
+const platformOptions: Array<{ label: string; value: Platform; icon: string }> = [
+  { label: 'LINE', value: 'line', icon: 'i-simple-icons-line' },
 ];
 
 const platform = ref<Platform>(platformOptions[0]!.value);
+const selectedPlatformIcon = computed(
+  () => platformOptions.find(o => o.value === platform.value)?.icon,
+);
 
 const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: string }) => {
   connecting.value = true;
@@ -70,6 +73,7 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
           <USelect
             v-model="platform"
             :items="platformOptions"
+            :icon="selectedPlatformIcon"
             placeholder="Pick a platform..."
           />
         </UFormField>

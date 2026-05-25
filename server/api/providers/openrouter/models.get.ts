@@ -29,36 +29,35 @@ const MIN_CONTEXT_LENGTH = 32_000;
 const EXCLUDED_TAG_SUFFIXES = [':beta', ':experimental', ':exp', ':preview', ':legacy'];
 // Only surface models from these providers — keeps the picker tight and dependable.
 const ALLOWED_PROVIDERS = new Set([
+  'amazon',
   'anthropic',
-  'openai',
+  'cohere',
+  'deepseek',
   'google',
   'meta-llama',
+  'microsoft',
   'mistralai',
-  'deepseek',
+  'nvidia',
+  'openai',
+  'perplexity',
   'qwen',
   'x-ai',
-  'perplexity',
-  'cohere',
-  'microsoft',
-  'nvidia',
-  'amazon',
 ]);
 
 // id prefix → Iconify icon. Unknown providers fall back to a letter avatar.
 const PROVIDER_ICONS: Record<string, string> = {
+  'amazon': 'i-simple-icons-amazonaws',
   'anthropic': 'i-simple-icons-anthropic',
-  'openai': 'i-simple-icons-openai',
+  'deepseek': 'i-simple-icons-deepseek',
   'google': 'i-simple-icons-google',
   'meta-llama': 'i-simple-icons-meta',
-  'mistralai': 'i-simple-icons-mistral',
-  'deepseek': 'i-simple-icons-deepseek',
+  'microsoft': 'i-simple-icons-microsoft',
+  'mistralai': 'i-simple-icons-mistralai',
+  'nvidia': 'i-simple-icons-nvidia',
+  'openai': 'i-simple-icons-openai',
+  'perplexity': 'i-simple-icons-perplexity',
   'qwen': 'i-simple-icons-alibabacloud',
   'x-ai': 'i-simple-icons-x',
-  'perplexity': 'i-simple-icons-perplexity',
-  'cohere': 'i-simple-icons-cohere',
-  'microsoft': 'i-simple-icons-microsoft',
-  'nvidia': 'i-simple-icons-nvidia',
-  'amazon': 'i-simple-icons-amazonaws',
 };
 
 const avatarFor = (id: string): ModelAvatar => {
