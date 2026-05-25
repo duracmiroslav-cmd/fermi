@@ -456,7 +456,7 @@ const claimFreshEvents = async (events: LineEvent[]): Promise<LineEvent[]> => {
       fresh.push(event);
       continue;
     }
-    const claimed = await tryClaimIdempotencyKey(admin, event.webhookEventId);
+    const claimed = await tryClaimIdempotencyKey(admin, 'line', event.webhookEventId);
     if (claimed) fresh.push(event);
     else console.info('duplicate webhook event, skipping', { webhookEventId: event.webhookEventId });
   }
