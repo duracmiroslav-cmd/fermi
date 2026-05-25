@@ -39,9 +39,8 @@ const onOpenRouterConnect = () => {
 };
 
 const onTavilyConnect = async () => {
-  const key = tavilyKey.value.trim();
-  if (!key) return;
-  const ok = await runTavilyConnect({ apiKey: key });
+  if (!tavilyKey.value) return;
+  const ok = await runTavilyConnect({ apiKey: tavilyKey.value });
   if (ok) tavilyKey.value = '';
 };
 </script>
@@ -107,6 +106,7 @@ const onTavilyConnect = async () => {
                     <UInput
                       :model-value="openrouter?.maskedKey ?? ''"
                       readonly
+                      icon="i-lucide-key-round"
                       :placeholder="openrouter?.connected ? 'Reconnect to view key' : 'Not connected'"
                       autocomplete="off"
                     />
@@ -192,6 +192,7 @@ const onTavilyConnect = async () => {
                     <UInput
                       :model-value="tavily.maskedKey ?? ''"
                       readonly
+                      icon="i-lucide-key-round"
                       placeholder="Reconnect to view key"
                       autocomplete="off"
                     />
@@ -220,7 +221,8 @@ const onTavilyConnect = async () => {
                     class="col-span-9"
                   >
                     <UInput
-                      v-model="tavilyKey"
+                      v-model.trim="tavilyKey"
+                      icon="i-lucide-key-round"
                       placeholder="tvly-..."
                       type="password"
                       autocomplete="off"

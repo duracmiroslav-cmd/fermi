@@ -44,7 +44,8 @@ const onSubmit = () => {
       help="Find this in your LINE channel&apos;s &quot;Basic settings&quot; tab."
     >
       <UInput
-        v-model="state.channelSecret"
+        v-model.trim="state.channelSecret"
+        icon="i-lucide-key-round"
         type="password"
         autocomplete="off"
       />
@@ -56,11 +57,11 @@ const onSubmit = () => {
       required
       help="Find this in your LINE channel&apos;s &quot;Messaging API&quot; tab."
     >
-      <UTextarea
-        v-model="state.channelAccessToken"
-        :rows="4"
+      <UInput
+        v-model.trim="state.channelAccessToken"
+        icon="i-lucide-key-round"
+        type="password"
         autocomplete="off"
-        :ui="{ base: 'break-all' }"
       />
     </UFormField>
   </UForm>

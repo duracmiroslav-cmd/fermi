@@ -49,6 +49,8 @@ export default defineAppConfig({
       slots: {
         root: 'w-full',
         base: 'font-mono read-only:cursor-default',
+        leadingIcon: 'size-4!',
+        trailingIcon: 'size-4!',
       },
     },
     textarea: {
