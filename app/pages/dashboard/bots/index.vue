@@ -68,7 +68,7 @@ const filteredBots = computed(() => {
             icon="i-lucide-plus"
             disabled
           >
-            New bot
+            Connect bot
           </UButton>
         </UTooltip>
         <UButton
@@ -76,7 +76,7 @@ const filteredBots = computed(() => {
           icon="i-lucide-plus"
           to="/dashboard/bots/new"
         >
-          New bot
+          Connect bot
         </UButton>
       </template>
 
@@ -125,7 +125,7 @@ const filteredBots = computed(() => {
               to="/dashboard/bots/new"
               icon="i-lucide-plus"
             >
-              Create your first bot
+              Connect your first bot
             </UButton>
           </div>
 
@@ -137,7 +137,7 @@ const filteredBots = computed(() => {
               v-for="bot in filteredBots"
               :key="bot.id"
               :to="`/dashboard/bots/${bot.id}`"
-              class="group flex items-center gap-4 p-4 rounded-md border border-muted hover:bg-muted transition-colors"
+              class="group flex items-center gap-4 p-4 rounded-md border border-muted hover:bg-elevated transition-colors"
             >
               <div class="relative shrink-0">
                 <UAvatar

@@ -44,7 +44,7 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
         <DashboardBreadcrumb
           :items="[
             { label: 'Bots', to: '/dashboard/bots' },
-            { label: 'New' },
+            { label: 'Connect' },
           ]"
         />
       </template>
@@ -58,7 +58,7 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
           form="line-bot-connect-form"
           :loading="connecting"
         >
-          Create
+          Connect
         </UButton>
       </template>
 

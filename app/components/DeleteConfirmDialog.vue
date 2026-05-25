@@ -54,7 +54,6 @@ const onConfirm = () => {
             <UInput
               v-model="confirmInput"
               autocomplete="off"
-              :ui="{ base: 'font-mono' }"
             />
           </UFormField>
         </div>

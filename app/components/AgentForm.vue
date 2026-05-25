@@ -72,7 +72,6 @@ const onSubmit = () => {
         v-model="state.systemPrompt"
         :rows="12"
         placeholder="You are a helpful assistant..."
-        :ui="{ base: 'font-mono' }"
       />
     </UFormField>
 
@@ -84,7 +83,6 @@ const onSubmit = () => {
       <USelect
         v-model="state.defaultModel"
         :items="models"
-        :ui="{ base: 'font-mono' }"
       />
     </UFormField>
   </UForm>

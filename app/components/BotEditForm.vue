@@ -9,6 +9,9 @@ interface BotEditFormValue {
 interface AgentOption {
   id: string;
   name: string;
+  avatarUrl: string | null;
+  defaultModel: string | null;
+  isDefault: boolean;
 }
 
 const props = defineProps<{
@@ -32,13 +35,27 @@ const displayAgentId = computed<string | undefined>({
 });
 
 const agentItems = computed(() =>
-  (agents.value ?? []).map(a => ({ label: a.name, value: a.id })),
+  (agents.value ?? []).map(a => ({
+    label: a.name,
+    value: a.id,
+    description: a.defaultModel ?? '—',
+    avatar: {
+      src: a.avatarUrl ?? undefined,
+      text: a.name.charAt(0).toUpperCase(),
+      color: 'primary' as const,
+    },
+    isDefault: a.isDefault,
+  })),
 );
 
 const state = reactive<BotEditFormValue>({
   agentId: props.initialValue.agentId,
   disabledAt: props.initialValue.disabledAt,
 });
+
+const selectedAgent = computed(() =>
+  (agents.value ?? []).find(a => a.id === state.agentId) ?? null,
+);
 
 // Bridges the boolean switch UX with the `disabled_at` timestamp DB
 // shape. Off → store the moment the user disabled it; on → clear.
@@ -64,36 +81,72 @@ const onSubmit = () => {
       label="Agent"
       name="agentId"
     >
-      <div class="flex items-center gap-2">
-        <USelectMenu
-          v-model="displayAgentId"
-          :items="agentItems"
-          value-key="value"
-          placeholder="Select an agent"
-          :loading="agentsPending"
-          class="flex-1"
-          :ui="{ base: 'font-mono' }"
-        />
-        <UTooltip text="View agent">
-          <UButton
-            v-if="state.agentId"
-            :to="`/dashboard/agents/${state.agentId}`"
-            icon="i-lucide-external-link"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            aria-label="View agent"
+      <USelectMenu
+        v-model="displayAgentId"
+        :items="agentItems"
+        value-key="value"
+        placeholder="Select an agent"
+        :loading="agentsPending"
+        size="lg"
+      >
+        <template #leading>
+          <UAvatar
+            v-if="selectedAgent"
+            :src="selectedAgent.avatarUrl ?? undefined"
+            :text="selectedAgent.name.charAt(0).toUpperCase()"
+            size="2xs"
+            color="primary"
           />
-        </UTooltip>
-      </div>
+        </template>
+        <template #item-label="{ item }">
+          <span class="inline-flex items-center gap-1.5 truncate">
+            {{ item.label }}
+            <UBadge
+              v-if="item.isDefault"
+              color="neutral"
+              variant="subtle"
+              size="xs"
+            >
+              default
+            </UBadge>
+          </span>
+        </template>
+        <template #item-trailing="{ item }">
+          <UTooltip text="View agent">
+            <UButton
+              :to="`/dashboard/agents/${item.value}`"
+              target="_blank"
+              rel="noopener"
+              icon="i-lucide-external-link"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              aria-label="View agent"
+              class="hover:bg-accented! group-data-[state=checked]:hover:bg-primary/20!"
+              @click.stop
+              @pointerdown.stop
+            />
+          </UTooltip>
+          <div
+            v-if="state.agentId !== item.value"
+            class="size-5 shrink-0"
+            aria-hidden="true"
+          />
+        </template>
+      </USelectMenu>
+
       <template #help>
         <div class="flex items-center justify-between gap-4">
           <span>The persona that drives this bot's replies.</span>
           <NuxtLink
             to="/dashboard/agents/new"
-            class="shrink-0 text-toned hover:text-highlighted hover:underline"
+            class="shrink-0 text-primary hover:underline inline-flex items-center gap-1"
           >
-            new agent →
+            <UIcon
+              name="i-lucide-plus"
+              class="size-3.5"
+            />
+            New agent
           </NuxtLink>
         </div>
       </template>

@@ -47,7 +47,6 @@ const onSubmit = () => {
         v-model="state.channelSecret"
         type="password"
         autocomplete="off"
-        :ui="{ base: 'font-mono' }"
       />
     </UFormField>
 
@@ -61,7 +60,7 @@ const onSubmit = () => {
         v-model="state.channelAccessToken"
         :rows="4"
         autocomplete="off"
-        :ui="{ base: 'font-mono break-all' }"
+        :ui="{ base: 'break-all' }"
       />
     </UFormField>
   </UForm>

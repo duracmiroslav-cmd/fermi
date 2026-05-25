@@ -29,26 +29,38 @@ export default defineAppConfig({
         base: 'cursor-pointer',
       },
     },
+    formField: {
+      slots: {
+        error: 'mt-1 text-xs',
+        help: 'mt-1 text-xs',
+      },
+    },
     input: {
       slots: {
         root: 'w-full',
+        base: 'font-mono',
       },
     },
     textarea: {
       slots: {
         root: 'w-full',
+        base: 'font-mono',
       },
     },
     select: {
       slots: {
-        base: 'w-full cursor-pointer',
-        item: 'cursor-pointer',
+        base: 'w-full cursor-pointer font-mono data-[state=open]:ring-2 data-[state=open]:ring-inset data-[state=open]:ring-primary focus-visible:ring! focus-visible:ring-default!',
+        item: 'cursor-pointer items-center data-highlighted:before:bg-elevated! data-[state=checked]:text-primary! data-[state=checked]:before:bg-primary/10!',
+        group: 'space-y-1',
+        viewport: 'divide-y-0',
       },
     },
     selectMenu: {
       slots: {
-        base: 'w-full cursor-pointer',
-        item: 'cursor-pointer',
+        base: 'w-full cursor-pointer font-mono data-[state=open]:ring-2 data-[state=open]:ring-inset data-[state=open]:ring-primary focus-visible:ring! focus-visible:ring-default!',
+        item: 'cursor-pointer items-center data-highlighted:before:bg-elevated! data-[state=checked]:text-primary! data-[state=checked]:before:bg-primary/10!',
+        group: 'space-y-1',
+        viewport: 'divide-y-0',
       },
     },
     switch: {

@@ -130,7 +130,6 @@ const submit = async () => {
                   autocomplete="email"
                   :disabled="submitting"
                   class="flex-1"
-                  :ui="{ base: 'font-mono' }"
                 />
                 <UButton
                   type="submit"

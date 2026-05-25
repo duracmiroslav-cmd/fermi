@@ -45,6 +45,18 @@ Background elevation (low to high):
 
 Border: `border-default` for visible separation, `border-muted` for subtle dividers.
 
+### Interactive surface states
+
+Three-tier state pattern for nav items, dropdown options, list cards, and any selectable/actionable surface:
+
+| State | Text | Background |
+|---|---|---|
+| Idle | `text-toned` | (none) |
+| Hover | `text-highlighted` | `bg-elevated` |
+| Selected / Active | `text-primary` | `bg-primary/10` |
+
+Single-line items (nav, dropdown option) apply the full pattern. Multi-line cards with internal text hierarchy (name + subtitle) apply only the **background** portion of the pattern — keep the text hierarchy as-is.
+
 ### Brand color (primary = apricot)
 
 - `color="primary"` — CTAs and positive brand actions (Continue, Upgrade, Submit)
