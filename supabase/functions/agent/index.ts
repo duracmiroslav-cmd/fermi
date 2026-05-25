@@ -536,9 +536,9 @@ Deno.serve(async () => {
   for (const { msg_id, payload } of messages) {
     try {
       await processMessage(payload);
-      const { error: archiveError } = await admin.rpc('archive_webhook_event', { msg_id });
-      if (archiveError) {
-        console.error('archive failed', { msg_id, archiveError });
+      const { error: archiveErr } = await admin.rpc('archive_webhook_event', { msg_id });
+      if (archiveErr) {
+        console.error('archive failed', { msg_id, archiveErr });
       }
     } catch (err) {
       console.error('process failed; leaving for retry', { msg_id, err });
