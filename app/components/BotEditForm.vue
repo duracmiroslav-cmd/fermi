@@ -27,6 +27,13 @@ const { data: agents, pending: agentsPending } = useLazyFetch<AgentOption[]>('/a
   headers: useRequestHeaders(['cookie']),
 });
 
+const state = reactive<BotEditFormValue>({
+  agentId: props.initialValue.agentId,
+  disabledAt: props.initialValue.disabledAt,
+});
+
+const isAgentPickerOpening = ref(false);
+
 // Hide the selected value while items are loading, otherwise the trigger
 // flashes the raw UUID before the matching label is resolved.
 const displayAgentId = computed<string | undefined>({
@@ -48,16 +55,9 @@ const agentItems = computed(() =>
   })),
 );
 
-const state = reactive<BotEditFormValue>({
-  agentId: props.initialValue.agentId,
-  disabledAt: props.initialValue.disabledAt,
-});
-
 const selectedAgent = computed(() =>
   (agents.value ?? []).find(a => a.id === state.agentId) ?? null,
 );
-
-const isAgentPickerOpening = ref(false);
 
 // Bridges the boolean switch UX with the `disabled_at` timestamp DB
 // shape. Off → store the moment the user disabled it; on → clear.

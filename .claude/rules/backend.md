@@ -4,11 +4,9 @@ paths:
   - "shared/**/*.ts"
   - "supabase/functions/**/*.ts"
   - "supabase/migrations/**/*.sql"
-  - "app/**/*.vue"
-  - "app/**/*.ts"
 ---
 
-# Naming Rules
+# Backend Rules
 
 ## Enum / state values: past-verb form
 

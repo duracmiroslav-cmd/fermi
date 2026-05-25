@@ -3,7 +3,7 @@ paths:
   - "app/**/*.vue"
 ---
 
-# Styling Rules
+# Frontend Rules
 
 Fermi uses a dark-mode-only design system. Apricot is primary; Zinc is neutral.
 
@@ -86,3 +86,20 @@ Single-mode project. Never write `dark:` prefix. Color mode is forced to dark in
 ### Component extraction
 
 If the same layout class string appears in ≥3 pages, extract to a `BaseXxx` component in `app/components/`.
+
+## `<script setup>` ordering
+
+Vue Composition API blocks should follow this order. Don't interleave categories.
+
+1. Imports
+2. Type interfaces
+3. `defineProps` / `defineEmits`
+4. Data fetching (`useFetch`, `useLazyFetch`)
+5. Pure helpers (functions with no reactive dependencies)
+6. State (`ref`, `reactive`)
+7. Computed (derived from state)
+8. Watchers
+9. Event handlers (`onSubmit`, `onClick`, etc.)
+10. Lifecycle hooks (`onMounted`, etc.)
+
+Refs and reactives belong together as a group BEFORE any computed, even if a particular ref is only used by a later computed — ordering wins over locality.

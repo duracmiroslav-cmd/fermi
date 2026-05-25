@@ -34,6 +34,20 @@ const { data: models, pending: modelsPending } = useLazyFetch<ProviderModel[]>('
 const formatContext = (n: number) =>
   n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M context` : `${Math.round(n / 1000)}k context`;
 
+const state = reactive<AgentFormValue>({
+  name: props.initialValue?.name ?? '',
+  systemPrompt: props.initialValue?.systemPrompt ?? '',
+  defaultModel: props.initialValue?.defaultModel ?? '',
+});
+
+const isModelPickerOpening = ref(false);
+
+// Same UUID-flash-avoidance trick as the agent picker: hide value while loading.
+const displayModelId = computed<string | undefined>({
+  get: () => (modelsPending.value ? undefined : state.defaultModel || undefined),
+  set: (v) => { if (v) state.defaultModel = v; },
+});
+
 const modelItems = computed(() =>
   (models.value ?? []).map(m => ({
     label: m.name,
@@ -44,23 +58,9 @@ const modelItems = computed(() =>
   })),
 );
 
-const state = reactive<AgentFormValue>({
-  name: props.initialValue?.name ?? '',
-  systemPrompt: props.initialValue?.systemPrompt ?? '',
-  defaultModel: props.initialValue?.defaultModel ?? '',
-});
-
-// Same UUID-flash-avoidance trick as the agent picker: hide value while loading.
-const displayModelId = computed<string | undefined>({
-  get: () => (modelsPending.value ? undefined : state.defaultModel || undefined),
-  set: (v) => { if (v) state.defaultModel = v; },
-});
-
 const selectedModel = computed(() =>
   (models.value ?? []).find(m => m.id === state.defaultModel) ?? null,
 );
-
-const isModelPickerOpening = ref(false);
 
 const promptCharCount = computed(() => state.systemPrompt.length);
 
