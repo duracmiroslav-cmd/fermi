@@ -45,7 +45,7 @@ const STATUS_LABEL: Record<BotStatus, string> = {
 
 const search = ref('');
 const filteredBots = computed(() => {
-  const q = search.value.trim().toLowerCase();
+  const q = search.value.toLowerCase();
   if (!q) return bots.value ?? [];
   return (bots.value ?? []).filter(b => (b.displayName ?? '').toLowerCase().includes(q));
 });
@@ -86,7 +86,7 @@ const filteredBots = computed(() => {
         <div class="flex flex-col gap-4">
           <UInput
             v-if="bots?.length"
-            v-model="search"
+            v-model.trim="search"
             icon="i-lucide-search"
             placeholder="Search bots..."
           >

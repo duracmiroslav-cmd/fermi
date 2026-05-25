@@ -18,7 +18,7 @@ const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
 
 const search = ref('');
 const filteredAgents = computed(() => {
-  const q = search.value.trim().toLowerCase();
+  const q = search.value.toLowerCase();
   if (!q) return agents.value ?? [];
   return (agents.value ?? []).filter(a => a.name.toLowerCase().includes(q));
 });
@@ -59,7 +59,7 @@ const filteredAgents = computed(() => {
         <div class="flex flex-col gap-4">
           <UInput
             v-if="agents?.length"
-            v-model="search"
+            v-model.trim="search"
             icon="i-lucide-search"
             placeholder="Search agents..."
           >

@@ -82,7 +82,7 @@ const onSubmit = () => {
       help="A label for you to recognize this agent. Users on LINE never see it."
     >
       <UInput
-        v-model="state.name"
+        v-model.trim="state.name"
         placeholder="my agent"
       />
     </UFormField>
@@ -98,7 +98,7 @@ const onSubmit = () => {
         </span>
       </template>
       <UTextarea
-        v-model="state.systemPrompt"
+        v-model.trim="state.systemPrompt"
         :rows="12"
         placeholder="You are a helpful assistant..."
       />

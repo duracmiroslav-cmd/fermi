@@ -52,7 +52,7 @@ const onConfirm = () => {
               </span>
             </template>
             <UInput
-              v-model="confirmInput"
+              v-model.trim="confirmInput"
               autocomplete="off"
             />
           </UFormField>

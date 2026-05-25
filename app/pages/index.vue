@@ -123,7 +123,7 @@ const submit = async () => {
             <template v-else>
               <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <UInput
-                  v-model="email"
+                  v-model.trim="email"
                   type="email"
                   placeholder="you@somewhere.com"
                   size="lg"
