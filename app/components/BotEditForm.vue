@@ -57,6 +57,8 @@ const selectedAgent = computed(() =>
   (agents.value ?? []).find(a => a.id === state.agentId) ?? null,
 );
 
+const isAgentPickerOpening = ref(false);
+
 // Bridges the boolean switch UX with the `disabled_at` timestamp DB
 // shape. Off → store the moment the user disabled it; on → clear.
 const enabled = computed({
@@ -86,15 +88,22 @@ const onSubmit = () => {
         :items="agentItems"
         value-key="value"
         placeholder="Select an agent"
-        :loading="agentsPending"
+        :loading="agentsPending || isAgentPickerOpening"
         size="lg"
+        @pointerdown="isAgentPickerOpening = true"
+        @update:open="isAgentPickerOpening = false"
       >
         <template #leading>
+          <UIcon
+            v-if="isAgentPickerOpening"
+            name="i-lucide-loader-circle"
+            class="size-5 animate-spin text-toned"
+          />
           <UAvatar
-            v-if="selectedAgent"
+            v-else-if="selectedAgent"
             :src="selectedAgent.avatarUrl ?? undefined"
             :text="selectedAgent.name.charAt(0).toUpperCase()"
-            size="2xs"
+            size="xs"
             color="primary"
           />
         </template>

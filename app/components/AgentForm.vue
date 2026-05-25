@@ -7,6 +7,17 @@ interface AgentFormValue {
   defaultModel: string;
 }
 
+interface ProviderModel {
+  id: string;
+  name: string;
+  contextLength: number;
+  isFree: boolean;
+  promptCost: number;
+  completionCost: number;
+  modality: string;
+  avatar: { icon?: string; text?: string };
+}
+
 const props = defineProps<{
   formId: string;
   initialValue?: Partial<AgentFormValue>;
@@ -16,20 +27,40 @@ const emit = defineEmits<{
   submit: [value: AgentFormValue];
 }>();
 
-const models = [
-  { label: 'Llama 3.3 70B (Meta, free)', value: 'meta-llama/llama-3.3-70b-instruct:free' },
-  { label: 'Qwen3 Next 80B (Alibaba, free)', value: 'qwen/qwen3-next-80b-a3b-instruct:free' },
-  { label: 'DeepSeek V4 Flash (DeepSeek, free)', value: 'deepseek/deepseek-v4-flash:free' },
-  { label: 'GPT-OSS 120B (OpenAI, free)', value: 'openai/gpt-oss-120b:free' },
-  { label: 'Gemma 4 31B (Google, free)', value: 'google/gemma-4-31b-it:free' },
-  { label: 'Claude Sonnet 4.6 (Anthropic)', value: 'anthropic/claude-sonnet-4-6' },
-];
+const { data: models, pending: modelsPending } = useLazyFetch<ProviderModel[]>('/api/providers/openrouter/models', {
+  headers: useRequestHeaders(['cookie']),
+});
+
+const formatContext = (n: number) =>
+  n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M context` : `${Math.round(n / 1000)}k context`;
+
+const modelItems = computed(() =>
+  (models.value ?? []).map(m => ({
+    label: m.name,
+    value: m.id,
+    description: formatContext(m.contextLength),
+    isFree: m.isFree,
+    avatar: { ...m.avatar, color: 'primary' as const },
+  })),
+);
 
 const state = reactive<AgentFormValue>({
   name: props.initialValue?.name ?? '',
   systemPrompt: props.initialValue?.systemPrompt ?? '',
-  defaultModel: props.initialValue?.defaultModel ?? models[0]!.value,
+  defaultModel: props.initialValue?.defaultModel ?? '',
 });
+
+// Same UUID-flash-avoidance trick as the agent picker: hide value while loading.
+const displayModelId = computed<string | undefined>({
+  get: () => (modelsPending.value ? undefined : state.defaultModel || undefined),
+  set: (v) => { if (v) state.defaultModel = v; },
+});
+
+const selectedModel = computed(() =>
+  (models.value ?? []).find(m => m.id === state.defaultModel) ?? null,
+);
+
+const isModelPickerOpening = ref(false);
 
 const promptCharCount = computed(() => state.systemPrompt.length);
 
@@ -80,10 +111,70 @@ const onSubmit = () => {
       name="defaultModel"
       help="The AI model that generates this agent's replies."
     >
-      <USelect
-        v-model="state.defaultModel"
-        :items="models"
-      />
+      <USelectMenu
+        v-model="displayModelId"
+        :items="modelItems"
+        value-key="value"
+        placeholder="Select a model"
+        :loading="modelsPending || isModelPickerOpening"
+        size="lg"
+        @pointerdown="isModelPickerOpening = true"
+        @update:open="isModelPickerOpening = false"
+      >
+        <template #leading>
+          <UIcon
+            v-if="isModelPickerOpening"
+            name="i-lucide-loader-circle"
+            class="size-5 animate-spin text-toned"
+          />
+          <UAvatar
+            v-else-if="selectedModel"
+            v-bind="selectedModel.avatar"
+            size="xs"
+            color="primary"
+          />
+        </template>
+        <template #empty="{ searchTerm }">
+          <span v-if="modelsPending">Loading models…</span>
+          <span v-else-if="searchTerm">No models match "{{ searchTerm }}"</span>
+          <span v-else>No models available</span>
+        </template>
+        <template #item-label="{ item }">
+          <span class="inline-flex items-center gap-1.5 truncate">
+            {{ item.label }}
+            <UBadge
+              v-if="item.isFree"
+              color="neutral"
+              variant="subtle"
+              size="xs"
+            >
+              free
+            </UBadge>
+          </span>
+        </template>
+        <template #item-trailing="{ item }">
+          <UTooltip text="View on OpenRouter">
+            <UButton
+              :to="`https://openrouter.ai/${item.value}`"
+              target="_blank"
+              rel="noopener"
+              icon="i-lucide-external-link"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              aria-label="View on OpenRouter"
+              class="hover:bg-accented! group-data-[state=checked]:hover:bg-primary/20!"
+              @click.stop
+              @pointerdown.stop
+            />
+          </UTooltip>
+          <div
+            v-if="state.defaultModel !== item.value"
+            class="size-5 shrink-0"
+            aria-hidden="true"
+          />
+        </template>
+      </USelectMenu>
     </UFormField>
   </UForm>
 </template>
