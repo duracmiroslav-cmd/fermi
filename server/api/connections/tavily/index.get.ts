@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const admin = useSupabaseAdmin();
   const { data: cred, error: credErr } = await admin
     .from('encrypted_credentials')
-    .select('created_at')
+    .select('created_at, metadata')
     .eq('user_id', user.id)
     .eq('key_type', 'tavily')
     .is('bot_id', null)
@@ -14,5 +14,11 @@ export default defineEventHandler(async (event) => {
   if (credErr) throw credErr;
 
   if (!cred) return { connected: false as const };
-  return { connected: true as const, connectedAt: cred.created_at };
+
+  const meta = (cred.metadata ?? {}) as { masked_key?: string };
+  return {
+    connected: true as const,
+    maskedKey: meta.masked_key ?? null,
+    connectedAt: cred.created_at,
+  };
 });
