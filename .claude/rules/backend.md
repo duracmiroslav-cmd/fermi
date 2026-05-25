@@ -10,7 +10,7 @@ paths:
 
 ## Enum / state values: past-verb form
 
-Strings stored in CHECK-constrained `text` columns (DB-side enums) and their TS union counterparts follow `<subject>_<past_verb>` form. Reads as "X happened to Y" — what the row records.
+DB enum strings (CHECK-constrained `text` columns) and their TS unions use `<subject>_<past_verb>` form. Reads as "X happened to Y".
 
 ### Examples in this codebase
 
@@ -34,7 +34,7 @@ Strings stored in CHECK-constrained `text` columns (DB-side enums) and their TS 
 
 ## Supabase / async result destructure
 
-Two queries in the same scope need disambiguated aliases. One query usually doesn't (`{ data, error }` is fine).
+Single call in scope: leave as `{ data, error }`. Two or more: alias both.
 
 ### Two rules
 
@@ -67,7 +67,3 @@ const { data: defaultAgent, error: defaultAgentErr } = ... // no precedent
 // ❌ don't spell out Error
 const { error: archiveError } = ... // 15:1 minority
 ```
-
-### When to alias at all
-
-Skip aliases when only one supabase call lives in the function or block. Once a second call shows up in the same scope, alias **both** for clarity.

@@ -7,24 +7,9 @@ paths:
 
 Fermi uses a dark-mode-only design system. Apricot is primary; Zinc is neutral.
 
-## Decision tree for any UI task
-
-1. Token swap, copy tweak, or single-class fix → write directly. Follow Token Rules below.
-2. New page, new non-trivial component, redesign, or open-ended visual request → invoke `frontend-design:frontend-design` skill first, then write.
-3. Unclear → ask the user which path.
-
 ## When to invoke `frontend-design:frontend-design`
 
-Invoke before writing for:
-- New page or layout
-- New non-trivial component
-- Redesigning an existing page
-- Open-ended visual requests ("make this nicer", "redo this section")
-
-Do NOT invoke for:
-- Pure token replacement (e.g., `text-gray-500` → `text-muted`)
-- Single-class fixes
-- Copy, prop, or logic changes
+Invoke before writing for new pages, new non-trivial components, redesigns, or open-ended visual requests ("make this nicer"). For pure token swaps, single-class fixes, or copy/prop/logic changes, write directly. Ask the user when unclear.
 
 ## Token Rules
 
@@ -111,4 +96,9 @@ Vue Composition API blocks should follow this order. Don't interleave categories
 9. Event handlers (`onSubmit`, `onClick`, etc.)
 10. Lifecycle hooks (`onMounted`, etc.)
 
-Refs and reactives belong together as a group BEFORE any computed, even if a particular ref is only used by a later computed — ordering wins over locality.
+Group all refs/reactives before any computed — ordering wins over locality.
+
+## Booleans and event handlers
+
+- `is<Subject?><State>` for booleans. Add the subject only to disambiguate when multiple states coexist in scope (`isModelPickerOpening`, not `isOpening`).
+- `on<Verb>` for event handlers. Prepend a subject only to disambiguate against another handler in the same scope (`onLineSubmit` alongside `onSubmit`).
