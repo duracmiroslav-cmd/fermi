@@ -65,6 +65,8 @@ export default defineAppConfig({
         item: 'cursor-pointer items-center data-highlighted:before:bg-elevated! data-[state=checked]:text-primary! data-[state=checked]:before:bg-primary/10!',
         group: 'space-y-1',
         viewport: 'divide-y-0',
+        leadingIcon: 'size-4!',
+        trailingIcon: 'size-4!',
       },
     },
     selectMenu: {
@@ -73,6 +75,8 @@ export default defineAppConfig({
         item: 'cursor-pointer items-center data-highlighted:before:bg-elevated! data-[state=checked]:text-primary! data-[state=checked]:before:bg-primary/10!',
         group: 'space-y-1',
         viewport: 'divide-y-0',
+        leadingIcon: 'size-4!',
+        trailingIcon: 'size-4!',
       },
     },
     switch: {
