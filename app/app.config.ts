@@ -1,9 +1,17 @@
 export default defineAppConfig({
+  toaster: {
+    duration: 8000,
+  },
   ui: {
     colors: {
       primary: 'apricot',
       neutral: 'stone',
       success: 'pistachio',
+    },
+    toast: {
+      slots: {
+        progress: 'hidden',
+      },
     },
     button: {
       slots: {
