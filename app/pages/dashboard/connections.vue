@@ -14,82 +14,35 @@ interface TavilyStatus {
   connectedAt?: string;
 }
 
-const route = useRoute();
-const router = useRouter();
-const notify = useNotify();
-
-const { data: openrouter, refresh, pending } = useApiFetch<OpenRouterStatus>('/api/oauth/openrouter');
-const disconnecting = ref(false);
+const {
+  data: openrouter,
+  pending: openrouterPending,
+  isDisconnecting: openrouterDisconnecting,
+  disconnect: disconnectOpenRouter,
+} = useConnection<OpenRouterStatus>('/api/oauth/openrouter', 'OpenRouter');
 
 const {
   data: tavily,
-  refresh: refreshTavily,
   pending: tavilyPending,
-} = useApiFetch<TavilyStatus>('/api/connections/tavily');
+  isConnecting: tavilyConnecting,
+  isDisconnecting: tavilyDisconnecting,
+  runConnect: runTavilyConnect,
+  disconnect: disconnectTavily,
+} = useConnection<TavilyStatus>('/api/connections/tavily', 'Tavily');
+
+useOAuthCallback('openrouter', 'OpenRouter');
+
 const tavilyKey = ref('');
-const tavilyConnecting = ref(false);
-const tavilyDisconnecting = ref(false);
 
-onMounted(() => {
-  const result = route.query.openrouter;
-  if (result === 'connected') {
-    notify.success('OpenRouter connected');
-  } else if (result === 'error') {
-    const reason = typeof route.query.reason === 'string' ? route.query.reason : 'unknown';
-    notify.error('OpenRouter connection failed', reason);
-  }
-  if (result) {
-    router.replace({ query: {} });
-  }
-});
-
-const connectOpenRouter = () => {
+const onOpenRouterConnect = () => {
   window.location.href = '/api/oauth/openrouter/start';
 };
 
-const disconnect = async () => {
-  disconnecting.value = true;
-  try {
-    await $fetch('/api/oauth/openrouter', { method: 'DELETE' });
-    await refresh();
-    notify.success('OpenRouter disconnected');
-  } catch (e) {
-    notify.error('Disconnect failed', e);
-  } finally {
-    disconnecting.value = false;
-  }
-};
-
-const connectTavily = async () => {
+const onTavilyConnect = async () => {
   const key = tavilyKey.value.trim();
   if (!key) return;
-  tavilyConnecting.value = true;
-  try {
-    await $fetch('/api/connections/tavily', {
-      method: 'POST',
-      body: { apiKey: key },
-    });
-    tavilyKey.value = '';
-    await refreshTavily();
-    notify.success('Tavily connected');
-  } catch (e) {
-    notify.error('Tavily connection failed', e);
-  } finally {
-    tavilyConnecting.value = false;
-  }
-};
-
-const disconnectTavily = async () => {
-  tavilyDisconnecting.value = true;
-  try {
-    await $fetch('/api/connections/tavily', { method: 'DELETE' });
-    await refreshTavily();
-    notify.success('Tavily disconnected');
-  } catch (e) {
-    notify.error('Disconnect failed', e);
-  } finally {
-    tavilyDisconnecting.value = false;
-  }
+  const ok = await runTavilyConnect({ apiKey: key });
+  if (ok) tavilyKey.value = '';
 };
 </script>
 
@@ -101,30 +54,48 @@ const disconnectTavily = async () => {
       </template>
 
       <DashboardContainer>
-        <h1 class="text-2xl font-semibold">
-          Connections
-        </h1>
+        <header class="flex flex-col gap-2">
+          <h1 class="text-2xl font-semibold">
+            Connections
+          </h1>
+          <p class="text-sm text-toned">
+            Connect the LLM and tools that power your agent. fermi orchestrates, you bring the keys.
+          </p>
+        </header>
 
         <section class="flex flex-col gap-3">
-          <h2 class="text-sm font-medium text-toned">
-            LLM providers
-          </h2>
+          <div class="flex flex-col gap-0.5">
+            <h2 class="text-base font-semibold">
+              Models
+            </h2>
+            <p class="text-sm text-toned">
+              Where every message goes for a response.
+            </p>
+          </div>
 
           <div
-            v-if="pending"
+            v-if="openrouterPending"
             class="h-28 rounded-md border border-muted bg-elevated/50 animate-pulse"
           />
 
           <UCard v-else>
             <template #header>
-              <h3 class="text-base font-medium">
-                OpenRouter
-              </h3>
+              <div class="flex items-baseline justify-between gap-3">
+                <h3 class="text-base font-medium">
+                  OpenRouter
+                </h3>
+                <span
+                  v-if="openrouter?.connected && openrouter.connectedAt"
+                  class="text-xs text-toned"
+                >
+                  Connected <TimeAgo :date="openrouter.connectedAt" />
+                </span>
+              </div>
             </template>
 
             <div class="flex flex-col gap-4">
               <p class="text-sm text-toned">
-                OpenRouter routes chat completions to Claude, GPT, Gemini, and free models.
+                Every message routes through OpenRouter. Pick from Claude, GPT, Gemini, or 200+ other models. Pay OpenRouter as you go, no minimum, fermi takes no cut.
               </p>
 
               <div class="flex flex-col gap-2">
@@ -138,7 +109,6 @@ const disconnectTavily = async () => {
                       readonly
                       :placeholder="openrouter?.connected ? 'Reconnect to view key' : 'Not connected'"
                       autocomplete="off"
-                      :ui="{ base: 'font-mono' }"
                     />
                   </UFormField>
 
@@ -148,15 +118,16 @@ const disconnectTavily = async () => {
                       block
                       color="error"
                       variant="outline"
-                      :loading="disconnecting"
-                      @click="disconnect"
+                      :loading="openrouterDisconnecting"
+                      @click="disconnectOpenRouter"
                     >
                       Disconnect
                     </UButton>
                     <UButton
                       v-else
                       block
-                      @click="connectOpenRouter"
+                      trailing-icon="i-lucide-arrow-up-right"
+                      @click="onOpenRouterConnect"
                     >
                       Connect
                     </UButton>
@@ -167,7 +138,7 @@ const disconnectTavily = async () => {
                   v-if="!openrouter?.connected"
                   class="text-xs text-toned"
                 >
-                  Click Connect to sign in with OpenRouter. The key appears here once you authorize fermi.
+                  New to OpenRouter? Free signup, takes a minute.
                 </p>
               </div>
             </div>
@@ -175,9 +146,14 @@ const disconnectTavily = async () => {
         </section>
 
         <section class="flex flex-col gap-3">
-          <h2 class="text-sm font-medium text-toned">
-            Web search
-          </h2>
+          <div class="flex flex-col gap-0.5">
+            <h2 class="text-base font-semibold">
+              Tools
+            </h2>
+            <p class="text-sm text-toned">
+              Capabilities the agent reaches for beyond chat.
+            </p>
+          </div>
 
           <div
             v-if="tavilyPending"
@@ -186,14 +162,22 @@ const disconnectTavily = async () => {
 
           <UCard v-else>
             <template #header>
-              <h3 class="text-base font-medium">
-                Tavily
-              </h3>
+              <div class="flex items-baseline justify-between gap-3">
+                <h3 class="text-base font-medium">
+                  Tavily
+                </h3>
+                <span
+                  v-if="tavily?.connected && tavily.connectedAt"
+                  class="text-xs text-toned"
+                >
+                  Connected <TimeAgo :date="tavily.connectedAt" />
+                </span>
+              </div>
             </template>
 
             <div class="flex flex-col gap-4">
               <p class="text-sm text-toned">
-                Tavily powers the <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">web_search</span> tool. Free tier covers 1,000 queries/month.
+                Your agent queries Tavily when it needs the live web: citing sources, checking fresh facts, anything beyond the model's training data. Free for 1,000 searches a month, no card.
               </p>
 
               <div class="flex flex-col gap-2">
@@ -210,7 +194,6 @@ const disconnectTavily = async () => {
                       readonly
                       placeholder="Reconnect to view key"
                       autocomplete="off"
-                      :ui="{ base: 'font-mono' }"
                     />
                   </UFormField>
 
@@ -230,7 +213,7 @@ const disconnectTavily = async () => {
                 <form
                   v-else
                   class="grid grid-cols-12 gap-4 items-end"
-                  @submit.prevent="connectTavily"
+                  @submit.prevent="onTavilyConnect"
                 >
                   <UFormField
                     label="API key"
@@ -248,6 +231,7 @@ const disconnectTavily = async () => {
                     <UButton
                       type="submit"
                       block
+                      trailing-icon="i-lucide-arrow-right"
                       :loading="tavilyConnecting"
                       :disabled="!tavilyKey.trim()"
                     >
@@ -260,12 +244,13 @@ const disconnectTavily = async () => {
                   v-if="!tavily?.connected"
                   class="text-xs text-toned"
                 >
-                  Grab a key at <a
+                  Grab a key at
+                  <a
                     href="https://app.tavily.com"
                     target="_blank"
                     rel="noopener"
                     class="underline"
-                  >app.tavily.com</a>. Sign up takes about 30 seconds.
+                  >app.tavily.com</a>. 30 seconds, free, no credit card. Paste it back here when you're done.
                 </p>
               </div>
             </div>
