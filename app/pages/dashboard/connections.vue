@@ -137,38 +137,49 @@ const disconnectTavily = async () => {
               </h3>
             </template>
 
-            <div class="grid grid-cols-12 gap-4 items-center">
-              <p class="col-span-9 text-sm text-toned min-w-0 truncate">
-                <template v-if="openrouter?.connected">
-                  Connected
-                  <span
-                    v-if="openrouter.maskedKey"
-                    class="font-mono"
-                  > · {{ openrouter.maskedKey }}</span>
-                </template>
-                <template v-else>
-                  Connects your bot to AI models like Claude, GPT, and Gemini.
-                </template>
-              </p>
+            <div class="flex flex-col gap-3">
+              <div class="grid grid-cols-12 gap-4 items-center">
+                <p class="col-span-9 text-sm text-toned min-w-0">
+                  <template v-if="openrouter?.connected">
+                    Connected — bots can use Claude, GPT, Gemini, and free models.
+                  </template>
+                  <template v-else>
+                    Routes chat completions to Claude, GPT, Gemini, and free models.
+                  </template>
+                </p>
 
-              <div class="col-span-3">
-                <UButton
-                  v-if="openrouter?.connected"
-                  block
-                  color="error"
-                  variant="outline"
-                  :loading="disconnecting"
-                  @click="disconnect"
-                >
-                  Disconnect
-                </UButton>
-                <UButton
-                  v-else
-                  block
-                  @click="connectOpenRouter"
-                >
-                  Connect
-                </UButton>
+                <div class="col-span-3">
+                  <UButton
+                    v-if="openrouter?.connected"
+                    block
+                    color="error"
+                    variant="outline"
+                    :loading="disconnecting"
+                    @click="disconnect"
+                  >
+                    Disconnect
+                  </UButton>
+                  <UButton
+                    v-else
+                    block
+                    @click="connectOpenRouter"
+                  >
+                    Connect
+                  </UButton>
+                </div>
+              </div>
+
+              <div
+                v-if="openrouter?.connected && openrouter.maskedKey"
+                class="grid grid-cols-12 gap-4"
+              >
+                <UInput
+                  :model-value="openrouter.maskedKey"
+                  readonly
+                  autocomplete="off"
+                  class="col-span-12"
+                  :ui="{ base: 'font-mono' }"
+                />
               </div>
             </div>
           </UCard>
