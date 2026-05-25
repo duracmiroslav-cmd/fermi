@@ -7,12 +7,12 @@ interface BotDetail {
   externalId: string;
   displayName: string | null;
   avatarUrl: string | null;
-  agentId: string | null;
+  agentId: string;
   disabledAt: string | null;
   createdAt: string;
   updatedAt: string;
   webhookUrl: string;
-  agent: { id: string; name: string } | null;
+  agent: { id: string; name: string };
 }
 
 const route = useRoute();
@@ -40,7 +40,7 @@ const copyWebhook = async () => {
   }, 1500);
 };
 
-const onSubmit = async (value: { agentId: string | null; disabledAt: string | null }) => {
+const onSubmit = async (value: { agentId: string; disabledAt: string | null }) => {
   saving.value = true;
   try {
     await $fetch(`/api/bots/${route.params.id}`, {

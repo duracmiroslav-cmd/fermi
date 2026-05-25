@@ -2,7 +2,7 @@
 import { updateBotInputSchema } from '~~/shared/schemas/bots';
 
 interface BotEditFormValue {
-  agentId: string | null;
+  agentId: string;
   disabledAt: string | null;
 }
 
@@ -26,16 +26,14 @@ const { data: agents, pending: agentsPending } = useLazyFetch<AgentOption[]>('/a
 
 // Hide the selected value while items are loading, otherwise the trigger
 // flashes the raw UUID before the matching label is resolved.
-const displayAgentId = computed({
-  get: () => (agentsPending.value ? null : state.agentId),
-  set: (v) => { state.agentId = v; },
+const displayAgentId = computed<string | undefined>({
+  get: () => (agentsPending.value ? undefined : state.agentId),
+  set: (v) => { if (v) state.agentId = v; },
 });
 
 const agentItems = computed(() =>
   (agents.value ?? []).map(a => ({ label: a.name, value: a.id })),
 );
-
-const hasNoAgents = computed(() => !agentsPending.value && agentItems.value.length === 0);
 
 const state = reactive<BotEditFormValue>({
   agentId: props.initialValue.agentId,
@@ -50,10 +48,7 @@ const enabled = computed({
 });
 
 const onSubmit = () => {
-  emit('submit', {
-    agentId: state.agentId ?? null,
-    disabledAt: state.disabledAt,
-  });
+  emit('submit', { agentId: state.agentId, disabledAt: state.disabledAt });
 };
 </script>
 
@@ -73,31 +68,18 @@ const onSubmit = () => {
         v-model="displayAgentId"
         :items="agentItems"
         value-key="value"
-        clear
-        :placeholder="hasNoAgents ? 'No agents yet' : 'Select an agent'"
+        placeholder="Select an agent"
         :loading="agentsPending"
-        :disabled="hasNoAgents"
         :ui="{ base: 'font-mono' }"
       />
       <template #help>
-        <template v-if="hasNoAgents">
-          No agents yet.
-          <NuxtLink
-            to="/dashboard/agents/new"
-            class="text-highlighted hover:underline"
-          >
-            Create your first →
-          </NuxtLink>
-        </template>
-        <template v-else>
-          Pick the agent that replies. Leave empty to keep the bot quiet. ·
-          <NuxtLink
-            to="/dashboard/agents/new"
-            class="text-toned hover:text-highlighted hover:underline"
-          >
-            new agent →
-          </NuxtLink>
-        </template>
+        The persona that drives this bot's replies. ·
+        <NuxtLink
+          to="/dashboard/agents/new"
+          class="text-toned hover:text-highlighted hover:underline"
+        >
+          new agent →
+        </NuxtLink>
       </template>
     </UFormField>
 

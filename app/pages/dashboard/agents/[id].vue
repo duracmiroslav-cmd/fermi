@@ -7,6 +7,8 @@ interface AgentDetail {
   systemPrompt: string | null;
   defaultModel: string | null;
   avatarUrl: string | null;
+  isDefault: boolean;
+  bots: Array<{ id: string; displayName: string | null; platform: string }>;
   createdAt: string;
   updatedAt: string;
 }
@@ -142,8 +144,16 @@ const onDelete = async () => {
             :fallback="(agent.name ?? '?').charAt(0).toUpperCase()"
             @change="onAvatarChange"
           />
-          <h1 class="text-2xl font-semibold truncate">
+          <h1 class="text-2xl font-semibold truncate flex items-center gap-2">
             {{ agent.name || '(unnamed)' }}
+            <UBadge
+              v-if="agent.isDefault"
+              color="neutral"
+              variant="subtle"
+              size="sm"
+            >
+              Default
+            </UBadge>
           </h1>
         </div>
 
@@ -192,10 +202,31 @@ const onDelete = async () => {
                 Delete this agent
               </p>
               <p class="text-sm text-muted mt-1">
-                Permanent. Bots using this agent will stop replying.
+                <template v-if="agent.isDefault">
+                  The default agent can't be deleted. Edit its name or persona instead.
+                </template>
+                <template v-else-if="agent.bots.length">
+                  Rebind {{ agent.bots.length }} bot{{ agent.bots.length === 1 ? '' : 's' }} to another agent first.
+                </template>
+                <template v-else>
+                  Permanent. This agent isn't bound to any bot.
+                </template>
               </p>
             </div>
+            <UTooltip
+              v-if="agent.isDefault || agent.bots.length"
+              :text="agent.isDefault ? 'Default agent is undeletable' : 'Agent still bound to a bot'"
+            >
+              <UButton
+                color="error"
+                variant="outline"
+                disabled
+              >
+                Delete agent
+              </UButton>
+            </UTooltip>
             <UButton
+              v-else
               color="error"
               variant="outline"
               @click="deleteDialogOpen = true"

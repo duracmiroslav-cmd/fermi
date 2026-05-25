@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const admin = useSupabaseAdmin();
   const { data, error } = await admin
     .from('agents')
-    .select('id, name, system_prompt, default_model, avatar_url, created_at, updated_at')
+    .select('id, name, system_prompt, default_model, avatar_url, is_default, created_at, updated_at')
     .eq('id', id)
     .eq('owner_id', user.id)
     .is('deleted_at', null)
@@ -18,12 +18,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Agent not found' });
   }
 
-  const { data: bot, error: botErr } = await admin
+  const { data: bots, error: botErr } = await admin
     .from('bots')
     .select('id, display_name, platform')
     .eq('agent_id', id)
     .is('deleted_at', null)
-    .maybeSingle();
+    .order('created_at', { ascending: false });
   if (botErr) throw botErr;
 
   return {
@@ -32,10 +32,13 @@ export default defineEventHandler(async (event) => {
     systemPrompt: data.system_prompt,
     defaultModel: data.default_model,
     avatarUrl: data.avatar_url,
+    isDefault: data.is_default,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
-    bot: bot
-      ? { id: bot.id, displayName: bot.display_name, platform: bot.platform }
-      : null,
+    bots: (bots ?? []).map(b => ({
+      id: b.id,
+      displayName: b.display_name,
+      platform: b.platform,
+    })),
   };
 });

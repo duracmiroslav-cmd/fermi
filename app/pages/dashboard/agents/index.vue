@@ -7,6 +7,7 @@ interface AgentRow {
   systemPrompt: string | null;
   defaultModel: string | null;
   avatarUrl: string | null;
+  isDefault: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -116,9 +117,19 @@ const filteredAgents = computed(() => {
                 color="primary"
               />
               <div class="flex-1 min-w-0">
-                <p class="font-medium truncate">
-                  {{ agent.name }}
-                </p>
+                <div class="flex items-center gap-2">
+                  <p class="font-medium truncate">
+                    {{ agent.name }}
+                  </p>
+                  <UBadge
+                    v-if="agent.isDefault"
+                    color="neutral"
+                    variant="subtle"
+                    size="xs"
+                  >
+                    Default
+                  </UBadge>
+                </div>
                 <p class="text-sm text-muted truncate mt-0.5">
                   {{ agent.defaultModel || '—' }}
                 </p>

@@ -50,11 +50,31 @@ export const connectLineBot = async (
 ): Promise<ConnectedBot> => {
   const botInfo = await verifyLineBot(input.channelAccessToken);
 
+  // Every user is guaranteed a Default agent by handle_new_user; we
+  // attach the new bot to it on create so `bots.agent_id NOT NULL`
+  // holds without forcing the user to pick an agent in the connect
+  // form. Owners can rebind to a custom agent later from edit.
+  const { data: defaultAgent, error: defaultErr } = await admin
+    .from('agents')
+    .select('id')
+    .eq('owner_id', userId)
+    .eq('is_default', true)
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (defaultErr) throw defaultErr;
+  if (!defaultAgent) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'No default agent for user — signup trigger may have failed',
+    });
+  }
+
   const { data: rows, error: insertErr } = await admin.rpc('insert_bot_if_under_limit', {
     p_owner_id: userId,
     p_platform: 'line',
     p_external_id: botInfo.userId,
     p_display_name: botInfo.displayName,
+    p_agent_id: defaultAgent.id,
     p_limit: limit,
   });
   if (insertErr) {

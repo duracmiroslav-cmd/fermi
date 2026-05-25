@@ -14,7 +14,10 @@ export const connectBotInputSchema = z.discriminatedUnion('platform', [
 ]);
 
 export const updateBotInputSchema = z.object({
-  agentId: z.string().uuid().nullable().optional(),
+  // Required: every bot must point at an agent. Default agents (seeded
+  // by the signup trigger, undeletable) guarantee there's always at
+  // least one valid choice. Pause is handled solely by `disabledAt`.
+  agentId: z.string().uuid().optional(),
   // `null` re-enables the bot; an ISO-8601 timestamp marks it disabled.
   // The form sends `new Date().toISOString()` on disable.
   disabledAt: z.string().datetime().nullable().optional(),
