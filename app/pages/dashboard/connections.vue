@@ -42,7 +42,7 @@ const disconnect = async () => {
   } catch (e) {
     toast.add({
       title: 'Disconnect failed',
-      description: e instanceof Error ? e.message : 'Unknown error',
+      description: extractErrorMessage(e),
       color: 'error',
     });
   } finally {

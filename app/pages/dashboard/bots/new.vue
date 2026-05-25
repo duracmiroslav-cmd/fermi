@@ -28,7 +28,7 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
   } catch (e) {
     toast.add({
       title: 'Connect failed',
-      description: e instanceof Error ? e.message : 'Unknown error',
+      description: extractErrorMessage(e),
       color: 'error',
     });
   } finally {

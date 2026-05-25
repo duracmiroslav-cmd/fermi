@@ -41,7 +41,7 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultMode
   } catch (e) {
     toast.add({
       title: 'Update failed',
-      description: e instanceof Error ? e.message : 'Unknown error',
+      description: extractErrorMessage(e),
       color: 'error',
     });
   } finally {
@@ -60,7 +60,7 @@ const onAvatarChange = async (url: string | null) => {
   } catch (e) {
     toast.add({
       title: 'Avatar update failed',
-      description: e instanceof Error ? e.message : 'Unknown error',
+      description: extractErrorMessage(e),
       color: 'error',
     });
   }
@@ -75,7 +75,7 @@ const onDelete = async () => {
   } catch (e) {
     toast.add({
       title: 'Delete failed',
-      description: e instanceof Error ? e.message : 'Unknown error',
+      description: extractErrorMessage(e),
       color: 'error',
     });
     deleting.value = false;

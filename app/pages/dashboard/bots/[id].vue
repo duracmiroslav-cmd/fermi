@@ -52,7 +52,7 @@ const onSubmit = async (value: { agentId: string; disabledAt: string | null }) =
   } catch (e) {
     toast.add({
       title: 'Update failed',
-      description: e instanceof Error ? e.message : 'Unknown error',
+      description: extractErrorMessage(e),
       color: 'error',
     });
   } finally {
@@ -69,7 +69,7 @@ const onDelete = async () => {
   } catch (e) {
     toast.add({
       title: 'Delete failed',
-      description: e instanceof Error ? e.message : 'Unknown error',
+      description: extractErrorMessage(e),
       color: 'error',
     });
     deleting.value = false;

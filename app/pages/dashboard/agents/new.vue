@@ -20,7 +20,7 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultMode
   } catch (e) {
     toast.add({
       title: 'Create failed',
-      description: e instanceof Error ? e.message : 'Unknown error',
+      description: extractErrorMessage(e),
       color: 'error',
     });
   } finally {

@@ -63,7 +63,7 @@ const onFileChange = async (event: Event) => {
   } catch (e) {
     toast.add({
       title: 'Upload failed',
-      description: e instanceof Error ? e.message : 'Unknown error',
+      description: extractErrorMessage(e),
       color: 'error',
     });
   } finally {
