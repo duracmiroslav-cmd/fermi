@@ -5,9 +5,7 @@ withDefaults(defineProps<{
   rows: 3,
 });
 
-// Deterministic widths so server + client render the same skeleton
-// (random would cause a hydration mismatch). Cycles through these
-// three sizes for the title bar; subtitle is always narrower.
+// Deterministic widths so server + client render the same skeleton.
 const TITLE_WIDTHS = ['w-40', 'w-32', 'w-48'];
 const SUBTITLE_WIDTHS = ['w-24', 'w-28', 'w-20'];
 </script>
@@ -21,20 +19,26 @@ const SUBTITLE_WIDTHS = ['w-24', 'w-28', 'w-20'];
     <div
       v-for="i in rows"
       :key="i"
-      class="flex items-center gap-4 p-4 rounded-md border border-default animate-pulse"
+      class="flex items-center gap-4 p-4 rounded-md border border-muted bg-elevated/50 animate-pulse"
     >
-      <div class="size-8 rounded-full bg-muted shrink-0" />
-      <div class="flex-1 min-w-0 space-y-2">
-        <div
-          class="h-3 rounded bg-muted"
-          :class="TITLE_WIDTHS[(i - 1) % TITLE_WIDTHS.length]"
-        />
-        <div
-          class="h-2 rounded bg-muted/70"
-          :class="SUBTITLE_WIDTHS[(i - 1) % SUBTITLE_WIDTHS.length]"
-        />
+      <div class="size-9 rounded-full bg-muted shrink-0" />
+      <div class="flex-1 min-w-0">
+        <div class="h-6 flex items-center">
+          <div
+            class="h-3.5 rounded bg-muted"
+            :class="TITLE_WIDTHS[(i - 1) % TITLE_WIDTHS.length]"
+          />
+        </div>
+        <div class="h-5 flex items-center mt-0.5">
+          <div
+            class="h-3 rounded bg-muted/70"
+            :class="SUBTITLE_WIDTHS[(i - 1) % SUBTITLE_WIDTHS.length]"
+          />
+        </div>
       </div>
-      <div class="h-2 w-12 rounded bg-muted/70 shrink-0" />
+      <div class="h-5 flex items-center shrink-0">
+        <div class="h-3 w-20 rounded bg-muted/70" />
+      </div>
     </div>
   </div>
 </template>
