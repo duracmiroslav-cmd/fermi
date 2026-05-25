@@ -1,10 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { signMessageImageUrl } from '../../../shared/messageImages.ts';
 import type { ChatMessage } from './openrouter.ts';
 
-// Message content shapes we persist. Today text-only; image and tool
-// turns get their own variants when multimodal lands.
-type TextContent = { type: 'text'; text: string };
-export type MessageContent = TextContent;
+// Message content shapes we persist. Vision attachments store only a
+// pointer (`storagePath`) into the `message-images` bucket — actual
+// bytes never live in the row, so loadRecentMessages on text-heavy
+// threads stays cheap even when images sit in history.
+type TextContent  = { type: 'text';  text: string };
+type ImageContent = { type: 'image'; mime: string; sizeBytes: number; storagePath: string };
+export type MessageContent = TextContent | ImageContent;
 
 export type MessageRole = 'user' | 'assistant' | 'tool';
 
@@ -63,8 +67,10 @@ export const appendMessage = async (
 };
 
 // Newest-first DB order is reversed to chronological for the LLM
-// transcript. Non-text content is skipped — v0 is text-only, future
-// modalities will need a richer mapping.
+// transcript. Image entries are signed in parallel so a vision-heavy
+// history doesn't serialize signing latency. Sign failures (e.g. the
+// Storage object was deleted) degrade to a placeholder text so the
+// surrounding turn structure stays intact for the model.
 export const loadRecentMessages = async (
   admin: SupabaseClient,
   threadId: string,
@@ -78,9 +84,24 @@ export const loadRecentMessages = async (
     .limit(limit);
   if (error) throw error;
 
-  return [...data].reverse().flatMap((row) => {
+  const chronological = [...data].reverse();
+  const built = await Promise.all(chronological.map(async (row): Promise<ChatMessage | null> => {
     const c = row.content as MessageContent | null;
-    if (!c || c.type !== 'text') return [];
-    return [{ role: row.role as ChatMessage['role'], content: c.text }];
-  });
+    if (!c) return null;
+    const role = row.role as ChatMessage['role'];
+    if (c.type === 'text') {
+      return { role, content: c.text };
+    }
+    if (c.type === 'image') {
+      try {
+        const url = await signMessageImageUrl(admin, c.storagePath);
+        return { role, content: [{ type: 'image_url', image_url: { url } }] };
+      } catch {
+        return { role, content: '[image no longer available]' };
+      }
+    }
+    return null;
+  }));
+
+  return built.filter((m): m is ChatMessage => m !== null);
 };
