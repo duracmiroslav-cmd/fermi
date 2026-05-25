@@ -1,10 +1,8 @@
--- Creates the `delete_agent` function that soft-deletes an agent.
--- Blocks two cases the binding model now disallows:
---   1. Target is the user's Default agent (always undeletable —
---      `is_default` is the one-per-owner invariant set at signup).
---   2. Target still has live bots bound (caller must rebind first;
---      `bots.agent_id` is NOT NULL with ON DELETE RESTRICT, so a
---      stranded binding is not a representable state).
+-- Soft-deletes an agent. Blocks two cases:
+--   1. Target is the user's Default — `agents.is_default` is a
+--      one-per-owner invariant.
+--   2. Target has live bots bound — `bots.agent_id` is NOT NULL
+--      with ON DELETE RESTRICT (caller rebinds first).
 --
 -- Raises:
 --   agent_not_found              (P0002) — missing / wrong owner / already trashed

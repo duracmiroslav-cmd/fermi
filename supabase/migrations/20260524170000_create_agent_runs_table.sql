@@ -2,21 +2,15 @@
 -- agent loop on a thread. Mirrors OpenAI's Assistants API "run"
 -- concept: each user message produces a run, which holds a status
 -- and the accumulated cost across all the LLM calls inside it.
--- Per-step detail (the actual llm_request / llm_response / push_*
--- timeline) lives in `agent_run_steps`.
+-- Per-step timeline lives in `agent_run_steps`.
 --
 -- `bot_id` / `agent_id` / `owner_id` are denormalized snapshots so
--- dashboards can filter without joining through `threads` and `bots`
--- on every read. `agent_id` in particular is a frozen snapshot — if
--- a bot's agent later changes, historical runs stay attributed to
+-- dashboards can filter without joining through `threads` and
+-- `bots` on every read. `agent_id` is a frozen snapshot — if a
+-- bot's agent later changes, historical runs stay attributed to
 -- the agent that actually handled them. A BEFORE INSERT trigger
--- fills the three from the run's thread, so `startRun(threadId)`
+-- fills the three from the run's thread so `startRun(threadId)`
 -- doesn't have to pass them explicitly.
---
--- `error_code` buckets failures (`rate_limited` / `timed_out` /
--- `upstream_failed` / `unknown`) so dashboards can `GROUP BY
--- error_code` without scanning step payloads. Worker sets it via
--- `finishRun` when transitioning to `failed`; null for `succeeded`.
 
 create table public.agent_runs (
   id              uuid primary key default gen_random_uuid(),

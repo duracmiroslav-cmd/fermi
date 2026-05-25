@@ -3,11 +3,6 @@
 -- `on delete restrict` — every bot has exactly one agent at all
 -- times, and an in-use agent can't be deleted (rebind first).
 -- One agent : N bots (a single persona can run on multiple LINE OAs).
---
--- `avatar_url` mirrors the LINE OA's profile picture (from
--- `/v2/bot/info` `pictureUrl`); nullable because a freshly-connected
--- OA may have none, and LINE doesn't push avatar-changed webhooks
--- so the dashboard offers an explicit refresh action.
 
 create table public.bots (
   id            uuid primary key default gen_random_uuid(),
