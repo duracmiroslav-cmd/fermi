@@ -1,9 +1,12 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { detectImageMime, type ImageMime } from '../../../shared/image.ts';
 import { findAgentById } from '../../../shared/agents.ts';
 import { findBotById } from '../../../shared/bots.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
 import { getKek } from '../../../shared/kek.ts';
+import { uploadMessageImage } from '../../../shared/messageImages.ts';
 import { tryClaimIdempotencyKey } from './dedup.ts';
+import { LineContentError, fetchLineMessageContent } from './line-content.ts';
 import { OpenRouterError, chatCompletion, type ChatMessage } from './openrouter.ts';
 import { errorCodeFromStatus, finishRun, logStep, startRun } from './runs.ts';
 import {
@@ -22,6 +25,11 @@ const admin = createClient(supabaseUrl, supabaseServiceRoleKey, {
 });
 
 const DEFAULT_MODEL = 'anthropic/claude-opus-4.7';
+// Vision-capable model used for any run whose history contains an
+// image, regardless of agent.defaultModel. Per-agent text/vision
+// split is a follow-up; for now hardcoded so users can't pick a
+// text-only model and silently break image conversations.
+const VISION_MODEL  = 'anthropic/claude-sonnet-4.5';
 const HISTORY_WINDOW = 20;
 // Hard cap on LLM iterations within a single agent run. One iteration
 // = one OpenRouter call. A typical multi-step query (read calendar →
@@ -41,9 +49,16 @@ interface LineEvent {
   timestamp?: number;
   replyToken?: string;
   source?: LineSource;
-  message?: { type: string; text?: string };
+  message?: { type: string; id?: string; text?: string };
   webhookEventId?: string;
 }
+
+// What the user just sent for this turn. Discriminated at the event
+// boundary in processLineMessage; runAgentLoop only sees the
+// validated form.
+type UserInput
+  = | { type: 'text';  text: string }
+    | { type: 'image'; lineMessageId: string; mime: ImageMime; bytes: Uint8Array };
 
 interface LinePayload {
   platform: 'line';
@@ -208,6 +223,27 @@ const isTextMessageFromUser = (event: LineEvent): event is LineEvent & {
   && typeof event.source.userId === 'string'
 );
 
+const isImageMessageFromUser = (event: LineEvent): event is LineEvent & {
+  replyToken: string;
+  source: LineSource & { userId: string };
+  message: { type: 'image'; id: string };
+} => (
+  event.type === 'message'
+  && event.message?.type === 'image'
+  && typeof event.message.id === 'string'
+  && typeof event.replyToken === 'string'
+  && event.source?.type === 'user'
+  && typeof event.source.userId === 'string'
+);
+
+// Reply-bearing user message of any modality we accept. Used by the
+// "no agent / no openrouter key" early-return paths so an image
+// arriving in those states still gets the configuration notice.
+const isReplyableUserMessage = (event: LineEvent): event is LineEvent & {
+  replyToken: string;
+  source: LineSource & { userId: string };
+} => isTextMessageFromUser(event) || isImageMessageFromUser(event);
+
 const runAgentLoop = async (params: {
   bot: { id: string; ownerId: string };
   agent: { id: string; name: string; systemPrompt: string | null; defaultModel: string | null };
@@ -216,16 +252,32 @@ const runAgentLoop = async (params: {
   kek: CryptoKey;
   externalUserId: string;
   replyToken: string;
-  userText: string;
+  userInput: UserInput;
   // Webhook timestamp from LINE (ms since epoch). Anchors the
   // reply-token budget — we time elapsed from when LINE delivered
   // the event, not when our worker dequeued it.
   eventTimestamp: number;
 }): Promise<void> => {
-  const { bot, agent, openrouterKey, lineAccessToken, kek, externalUserId, replyToken, userText, eventTimestamp } = params;
+  const { bot, agent, openrouterKey, lineAccessToken, kek, externalUserId, replyToken, userInput, eventTimestamp } = params;
 
   const threadId = await resolveOrCreateLatestThread(admin, bot.id, externalUserId);
-  await appendMessage(admin, threadId, 'user', { type: 'text', text: userText });
+  if (userInput.type === 'text') {
+    await appendMessage(admin, threadId, 'user', { type: 'text', text: userInput.text });
+  } else {
+    const { storagePath } = await uploadMessageImage(admin, {
+      ownerId: bot.ownerId,
+      threadId,
+      lineMessageId: userInput.lineMessageId,
+      mime: userInput.mime,
+      bytes: userInput.bytes,
+    });
+    await appendMessage(admin, threadId, 'user', {
+      type: 'image',
+      mime: userInput.mime,
+      sizeBytes: userInput.bytes.byteLength,
+      storagePath,
+    });
+  }
 
   const runId = await startRun(admin, {
     threadId,
@@ -240,7 +292,15 @@ const runAgentLoop = async (params: {
     const history = await loadRecentMessages(admin, threadId, HISTORY_WINDOW);
     const systemPrompt = agent.systemPrompt
       ?? `You are ${agent.name}, a helpful assistant on LINE. Reply in the user's language.`;
-    const model = agent.defaultModel ?? DEFAULT_MODEL;
+    // Any image in the history window forces a vision-capable model.
+    // Without this, an agent configured with a text-only model would
+    // silently 4xx the moment an image enters its conversation.
+    const hasImageInHistory = history.some((m) =>
+      Array.isArray(m.content) && m.content.some((p) => p.type === 'image_url'),
+    );
+    const model = hasImageInHistory
+      ? VISION_MODEL
+      : (agent.defaultModel ?? DEFAULT_MODEL);
 
     const messages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
@@ -491,7 +551,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
   // deleted). Reply with an actionable message instead of silence.
   if (!bot.agentId) {
     for (const event of events) {
-      if (isTextMessageFromUser(event)) {
+      if (isReplyableUserMessage(event)) {
         await safeReply(lineAccessToken, event.replyToken, NO_AGENT_NOTICE);
       }
     }
@@ -503,7 +563,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     // Defensive: bot points to an agent that findAgentById can't load
     // (race or manual SQL). Same UX as no-agent.
     for (const event of events) {
-      if (isTextMessageFromUser(event)) {
+      if (isReplyableUserMessage(event)) {
         await safeReply(lineAccessToken, event.replyToken, NO_AGENT_NOTICE);
       }
     }
@@ -513,7 +573,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
   const openrouterKey = await tryLoadOpenRouterKey(admin, kek, bot.ownerId);
   if (!openrouterKey) {
     for (const event of events) {
-      if (isTextMessageFromUser(event)) {
+      if (isReplyableUserMessage(event)) {
         await safeReply(lineAccessToken, event.replyToken, NO_OPENROUTER_NOTICE);
       }
     }
@@ -521,21 +581,57 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
   }
 
   for (const event of events) {
-    if (!isTextMessageFromUser(event)) continue;
-    await runAgentLoop({
-      bot,
-      agent,
-      openrouterKey,
-      lineAccessToken,
-      kek,
-      externalUserId: event.source.userId,
-      replyToken: event.replyToken,
-      userText: event.message.text,
-      // LINE always sets `timestamp` on webhook events. The fallback
-      // covers malformed payloads only; assuming "just arrived" keeps
-      // us on Reply, and a 400 still falls back to Push internally.
-      eventTimestamp: typeof event.timestamp === 'number' ? event.timestamp : Date.now(),
-    });
+    // LINE always sets `timestamp` on webhook events. The fallback
+    // covers malformed payloads only; assuming "just arrived" keeps
+    // us on Reply, and a 400 still falls back to Push internally.
+    const eventTimestamp = typeof event.timestamp === 'number' ? event.timestamp : Date.now();
+
+    if (isTextMessageFromUser(event)) {
+      await runAgentLoop({
+        bot,
+        agent,
+        openrouterKey,
+        lineAccessToken,
+        kek,
+        externalUserId: event.source.userId,
+        replyToken: event.replyToken,
+        userInput: { type: 'text', text: event.message.text },
+        eventTimestamp,
+      });
+      continue;
+    }
+
+    if (isImageMessageFromUser(event)) {
+      let imageBytes: Uint8Array;
+      let mime: ImageMime;
+      try {
+        const content = await fetchLineMessageContent(lineAccessToken, event.message.id);
+        const detected = detectImageMime(content.bytes);
+        if (!detected) {
+          await safeReply(lineAccessToken, event.replyToken, '⚠️ 目前只支援 JPG / PNG / GIF / WebP。');
+          continue;
+        }
+        mime = detected;
+        imageBytes = content.bytes;
+      } catch (err) {
+        if (err instanceof LineContentError && err.status === 413) {
+          await safeReply(lineAccessToken, event.replyToken, '⚠️ 圖片太大，上限 10MB。');
+          continue;
+        }
+        throw err;
+      }
+      await runAgentLoop({
+        bot,
+        agent,
+        openrouterKey,
+        lineAccessToken,
+        kek,
+        externalUserId: event.source.userId,
+        replyToken: event.replyToken,
+        userInput: { type: 'image', lineMessageId: event.message.id, mime, bytes: imageBytes },
+        eventTimestamp,
+      });
+    }
   }
 };
 
