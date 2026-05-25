@@ -3,11 +3,36 @@ paths:
   - "server/**/*.ts"
   - "shared/**/*.ts"
   - "supabase/functions/**/*.ts"
+  - "supabase/migrations/**/*.sql"
   - "app/**/*.vue"
   - "app/**/*.ts"
 ---
 
 # Naming Rules
+
+## Enum / state values: past-verb form
+
+Strings stored in CHECK-constrained `text` columns (DB-side enums) and their TS union counterparts follow `<subject>_<past_verb>` form. Reads as "X happened to Y" — what the row records.
+
+### Examples in this codebase
+
+| Column | Values |
+|---|---|
+| `agent_run_steps.type` | `llm_requested` / `llm_responded` / `tool_called` / `tool_responded` / `push_succeeded` / `push_failed` / `error_occurred` |
+| `agent_runs.status` | `succeeded` / `failed` (plus `running` — in-progress state, not an event) |
+| `agent_runs.error_code` | `rate_limited` / `timed_out` / `upstream_failed` / `unknown` (catch-all) |
+
+### Why
+
+- Reads consistently across the system: dashboards group by "what happened"
+- Matches Stripe (`charge.succeeded`) / GitHub webhook (`pull_request.opened`) conventions
+- In-progress states (`running`) and catch-alls (`unknown`) are allowed exceptions — they describe a state-of-being, not a past event
+
+### When adding a new value
+
+1. **DB**: extend `check (... in (...))` in a NEW migration (don't edit historical migrations)
+2. **TS**: extend the union in `supabase/functions/agent/runs.ts` (`StepType` / `RunStatus`)
+3. **Mapping helpers**: if a SQL `case` mapping (e.g. backfill in `_add_agent_runs_error_code.sql`) and a TS helper (e.g. `errorCodeFromStatus`) both produce these values, **they must stay in sync** — each cites the other in a comment
 
 ## Supabase / async result destructure
 
