@@ -64,14 +64,28 @@ const onSubmit = () => {
       label="Agent"
       name="agentId"
     >
-      <USelectMenu
-        v-model="displayAgentId"
-        :items="agentItems"
-        value-key="value"
-        placeholder="Select an agent"
-        :loading="agentsPending"
-        :ui="{ base: 'font-mono' }"
-      />
+      <div class="flex items-center gap-2">
+        <USelectMenu
+          v-model="displayAgentId"
+          :items="agentItems"
+          value-key="value"
+          placeholder="Select an agent"
+          :loading="agentsPending"
+          class="flex-1"
+          :ui="{ base: 'font-mono' }"
+        />
+        <UTooltip text="Open agent">
+          <UButton
+            v-if="state.agentId"
+            :to="`/dashboard/agents/${state.agentId}`"
+            icon="i-lucide-external-link"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="Open agent"
+          />
+        </UTooltip>
+      </div>
       <template #help>
         The persona that drives this bot's replies. ·
         <NuxtLink
