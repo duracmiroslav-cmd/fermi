@@ -74,7 +74,7 @@ const onSubmit = () => {
           class="flex-1"
           :ui="{ base: 'font-mono' }"
         />
-        <UTooltip text="Open agent">
+        <UTooltip text="View agent">
           <UButton
             v-if="state.agentId"
             :to="`/dashboard/agents/${state.agentId}`"
@@ -82,7 +82,7 @@ const onSubmit = () => {
             color="neutral"
             variant="ghost"
             size="sm"
-            aria-label="Open agent"
+            aria-label="View agent"
           />
         </UTooltip>
       </div>
