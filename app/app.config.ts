@@ -24,9 +24,19 @@ export default defineAppConfig({
         },
       },
     },
+    breadcrumb: {
+      slots: {
+        link: 'hover:text-highlighted!',
+      },
+    },
     button: {
       slots: {
         base: 'cursor-pointer',
+      },
+    },
+    card: {
+      slots: {
+        root: 'bg-elevated/50!',
       },
     },
     formField: {

@@ -116,7 +116,7 @@ const onSubmit = () => {
               variant="subtle"
               size="xs"
             >
-              default
+              Default
             </UBadge>
           </span>
         </template>

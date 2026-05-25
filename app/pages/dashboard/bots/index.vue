@@ -137,7 +137,7 @@ const filteredBots = computed(() => {
               v-for="bot in filteredBots"
               :key="bot.id"
               :to="`/dashboard/bots/${bot.id}`"
-              class="group flex items-center gap-4 p-4 rounded-md border border-muted hover:bg-elevated transition-colors"
+              class="group flex items-center gap-4 p-4 rounded-md border border-muted bg-elevated/50 hover:bg-elevated transition-colors"
             >
               <div class="relative shrink-0">
                 <UAvatar

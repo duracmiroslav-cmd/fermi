@@ -126,18 +126,18 @@ const disconnectTavily = async () => {
 
           <div
             v-if="pending"
-            class="h-16 rounded-md border border-muted bg-elevated/40 animate-pulse"
+            class="h-28 rounded-md border border-muted bg-elevated/50 animate-pulse"
           />
 
-          <div
-            v-else
-            class="flex items-center justify-between gap-4 p-4 rounded-md border border-muted bg-elevated/40"
-          >
-            <div class="min-w-0">
-              <p class="text-sm font-medium">
+          <UCard v-else>
+            <template #header>
+              <h3 class="text-base font-medium">
                 OpenRouter
-              </p>
-              <p class="text-sm text-toned mt-1 truncate">
+              </h3>
+            </template>
+
+            <div class="grid grid-cols-12 gap-4 items-center">
+              <p class="col-span-9 text-sm text-toned min-w-0 truncate">
                 <template v-if="openrouter?.connected">
                   Connected as {{ openrouter.openrouterUserId ?? 'user' }}
                 </template>
@@ -145,24 +145,28 @@ const disconnectTavily = async () => {
                   Connects your bot to AI models like Claude, GPT, and Gemini.
                 </template>
               </p>
-            </div>
 
-            <UButton
-              v-if="openrouter?.connected"
-              color="error"
-              variant="outline"
-              :loading="disconnecting"
-              @click="disconnect"
-            >
-              Disconnect
-            </UButton>
-            <UButton
-              v-else
-              @click="connectOpenRouter"
-            >
-              Connect
-            </UButton>
-          </div>
+              <div class="col-span-3">
+                <UButton
+                  v-if="openrouter?.connected"
+                  block
+                  color="error"
+                  variant="outline"
+                  :loading="disconnecting"
+                  @click="disconnect"
+                >
+                  Disconnect
+                </UButton>
+                <UButton
+                  v-else
+                  block
+                  @click="connectOpenRouter"
+                >
+                  Connect
+                </UButton>
+              </div>
+            </div>
+          </UCard>
         </section>
 
         <section class="flex flex-col gap-3">
@@ -172,69 +176,74 @@ const disconnectTavily = async () => {
 
           <div
             v-if="tavilyPending"
-            class="h-16 rounded-md border border-muted bg-elevated/40 animate-pulse"
+            class="h-28 rounded-md border border-muted bg-elevated/50 animate-pulse"
           />
 
-          <div
-            v-else
-            class="flex flex-col gap-3 p-4 rounded-md border border-muted bg-elevated/40"
-          >
-            <div class="flex items-center justify-between gap-4">
-              <div class="min-w-0">
-                <p class="text-sm font-medium">
-                  Tavily
-                </p>
-                <p class="text-sm text-toned mt-1">
+          <UCard v-else>
+            <template #header>
+              <h3 class="text-base font-medium">
+                Tavily
+              </h3>
+            </template>
+
+            <div class="flex flex-col gap-3">
+              <div class="grid grid-cols-12 gap-4 items-center">
+                <p class="col-span-9 text-sm text-toned min-w-0">
                   <template v-if="tavily?.connected">
-                    Connected — bots can use the web_search tool.
+                    Connected — bots can use the <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">web_search</span> tool.
                   </template>
                   <template v-else>
-                    Powers the web_search tool. Free tier covers 1,000 queries/month.
+                    Powers the <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">web_search</span> tool. Free tier covers 1,000 queries/month.
                   </template>
                 </p>
+
+                <div class="col-span-3">
+                  <UButton
+                    v-if="tavily?.connected"
+                    block
+                    color="error"
+                    variant="outline"
+                    :loading="tavilyDisconnecting"
+                    @click="disconnectTavily"
+                  >
+                    Disconnect
+                  </UButton>
+                </div>
               </div>
 
-              <UButton
-                v-if="tavily?.connected"
-                color="error"
-                variant="outline"
-                :loading="tavilyDisconnecting"
-                @click="disconnectTavily"
+              <div
+                v-if="!tavily?.connected"
+                class="flex flex-col gap-2"
               >
-                Disconnect
-              </UButton>
-            </div>
-
-            <div
-              v-if="!tavily?.connected"
-              class="flex flex-col gap-2"
-            >
-              <div class="flex gap-2">
-                <UInput
-                  v-model="tavilyKey"
-                  placeholder="tvly-..."
-                  type="password"
-                  class="flex-1"
-                  @keydown.enter="connectTavily"
-                />
-                <UButton
-                  :loading="tavilyConnecting"
-                  :disabled="!tavilyKey.trim()"
-                  @click="connectTavily"
-                >
-                  Connect
-                </UButton>
+                <div class="grid grid-cols-12 gap-4">
+                  <UInput
+                    v-model="tavilyKey"
+                    placeholder="tvly-..."
+                    type="password"
+                    class="col-span-9"
+                    @keydown.enter="connectTavily"
+                  />
+                  <UButton
+                    block
+                    class="col-span-3"
+                    :loading="tavilyConnecting"
+                    :disabled="!tavilyKey.trim()"
+                    @click="connectTavily"
+                  >
+                    Connect
+                  </UButton>
+                </div>
+                <p class="text-xs text-toned">
+                  Grab a key at <a
+                    href="https://app.tavily.com"
+                    target="_blank"
+                    rel="noopener"
+                    class="underline"
+                  >app.tavily.com</a> — sign up takes ~30 seconds.
+                </p>
               </div>
-              <p class="text-xs text-toned">
-                Grab a key at <a
-                  href="https://app.tavily.com"
-                  target="_blank"
-                  rel="noopener"
-                  class="underline"
-                >app.tavily.com</a> — sign up takes ~30 seconds.
-              </p>
             </div>
-          </div>
+          </UCard>
         </section>
       </div>
     </NuxtLayout>

@@ -168,7 +168,7 @@ const onDelete = async () => {
         />
 
         <UFormField label="Details">
-          <div class="p-4 rounded-md border border-muted bg-elevated/40">
+          <div class="p-4 rounded-md border border-muted bg-elevated/50">
             <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
               <dt class="text-toned text-right">
                 ID
