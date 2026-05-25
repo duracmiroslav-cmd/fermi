@@ -144,7 +144,7 @@ const disconnectTavily = async () => {
                     Bots can use Claude, GPT, Gemini, and free models.
                   </template>
                   <template v-else>
-                    Routes chat completions to Claude, GPT, Gemini, and free models.
+                    OpenRouter routes chat completions to Claude, GPT, Gemini, and free models.
                   </template>
                 </p>
 
@@ -209,7 +209,7 @@ const disconnectTavily = async () => {
                     Bots can use the <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">web_search</span> tool.
                   </template>
                   <template v-else>
-                    Powers the <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">web_search</span> tool. Free tier covers 1,000 queries/month.
+                    Tavily powers the <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">web_search</span> tool. Free tier covers 1,000 queries/month.
                   </template>
                 </p>
 
