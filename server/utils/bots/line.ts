@@ -65,8 +65,8 @@ export const connectLineBot = async (
     throw createError({
       statusCode: 409,
       statusMessage: existing.owner_id === userId
-        ? `This LINE OA is already connected to your account as "${existing.display_name ?? 'unnamed'}".`
-        : 'This LINE OA is already connected to another fermi account.',
+        ? `This LINE Channel is already connected to your account as "${existing.display_name ?? 'unnamed'}".`
+        : 'This LINE Channel is already connected to another fermi account.',
     });
   }
 
@@ -111,7 +111,7 @@ export const connectLineBot = async (
     if ((insertErr as { code?: string }).code === '23505') {
       throw createError({
         statusCode: 409,
-        statusMessage: 'This LINE OA is already connected.',
+        statusMessage: 'This LINE Channel is already connected.',
       });
     }
     throw insertErr;
