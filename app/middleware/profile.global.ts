@@ -7,5 +7,5 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const { data } = await useFetch<Profile>('/api/me/profile', {
     headers: useRequestHeaders(['cookie']),
   });
-  profile.value = data.value;
+  profile.value = data.value ?? null;
 });
