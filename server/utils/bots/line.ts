@@ -54,14 +54,14 @@ export const connectLineBot = async (
   // attach the new bot to it on create so `bots.agent_id NOT NULL`
   // holds without forcing the user to pick an agent in the connect
   // form. Owners can rebind to a custom agent later from edit.
-  const { data: defaultAgent, error: defaultErr } = await admin
+  const { data: defaultAgent, error: agentErr } = await admin
     .from('agents')
     .select('id')
     .eq('owner_id', userId)
     .eq('is_default', true)
     .is('deleted_at', null)
     .maybeSingle();
-  if (defaultErr) throw defaultErr;
+  if (agentErr) throw agentErr;
   if (!defaultAgent) {
     throw createError({
       statusCode: 500,
