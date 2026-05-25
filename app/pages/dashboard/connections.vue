@@ -141,7 +141,7 @@ const disconnectTavily = async () => {
               <div class="grid grid-cols-12 gap-4 items-center">
                 <p class="col-span-9 text-sm text-toned min-w-0">
                   <template v-if="openrouter?.connected">
-                    Connected — bots can use Claude, GPT, Gemini, and free models.
+                    Bots can use Claude, GPT, Gemini, and free models.
                   </template>
                   <template v-else>
                     Routes chat completions to Claude, GPT, Gemini, and free models.
@@ -206,7 +206,7 @@ const disconnectTavily = async () => {
               <div class="grid grid-cols-12 gap-4 items-center">
                 <p class="col-span-9 text-sm text-toned min-w-0">
                   <template v-if="tavily?.connected">
-                    Connected — bots can use the <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">web_search</span> tool.
+                    Bots can use the <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">web_search</span> tool.
                   </template>
                   <template v-else>
                     Powers the <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">web_search</span> tool. Free tier covers 1,000 queries/month.
@@ -256,7 +256,7 @@ const disconnectTavily = async () => {
                     target="_blank"
                     rel="noopener"
                     class="underline"
-                  >app.tavily.com</a> — sign up takes ~30 seconds.
+                  >app.tavily.com</a>. Sign up takes about 30 seconds.
                 </p>
               </form>
             </div>
