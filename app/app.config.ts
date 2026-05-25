@@ -1,7 +1,4 @@
 export default defineAppConfig({
-  toaster: {
-    duration: 8000,
-  },
   ui: {
     colors: {
       primary: 'apricot',
