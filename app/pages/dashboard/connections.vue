@@ -4,6 +4,7 @@ definePageMeta({ layout: false });
 interface OpenRouterStatus {
   connected: boolean;
   openrouterUserId?: string | null;
+  maskedKey?: string | null;
   connectedAt?: string;
 }
 
@@ -140,6 +141,10 @@ const disconnectTavily = async () => {
               <p class="col-span-9 text-sm text-toned min-w-0 truncate">
                 <template v-if="openrouter?.connected">
                   Connected as {{ openrouter.openrouterUserId ?? 'user' }}
+                  <span
+                    v-if="openrouter.maskedKey"
+                    class="font-mono text-toned"
+                  > · {{ openrouter.maskedKey }}</span>
                 </template>
                 <template v-else>
                   Connects your bot to AI models like Claude, GPT, and Gemini.

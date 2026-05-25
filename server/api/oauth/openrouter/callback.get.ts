@@ -45,13 +45,22 @@ export default defineEventHandler(async (event) => {
   const kek = await getKek(fermiKek);
   const admin = useSupabaseAdmin();
 
+  // Stripe-style masked preview lets `/dashboard/connections` show
+  // which OpenRouter key fermi is holding so the owner can match it
+  // against their OpenRouter dashboard and revoke any orphaned keys
+  // from previous connect/disconnect cycles.
+  const maskedKey = `${exchange.key.slice(0, 12)}...${exchange.key.slice(-3)}`;
+
   try {
     await storeCredential(admin, kek, {
       userId: user.id,
       botId: null,
       keyType: 'openrouter',
       plaintext: exchange.key,
-      metadata: exchange.userId ? { openrouter_user_id: exchange.userId } : undefined,
+      metadata: {
+        masked_key: maskedKey,
+        ...(exchange.userId ? { openrouter_user_id: exchange.userId } : {}),
+      },
     });
   } catch (err: unknown) {
     if ((err as { code?: string }).code === '23505') {
