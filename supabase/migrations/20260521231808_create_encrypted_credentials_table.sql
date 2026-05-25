@@ -18,7 +18,8 @@ create table public.encrypted_credentials (
                         'line_channel_secret',
                         'anthropic',
                         'openai',
-                        'gemini'
+                        'gemini',
+                        'tavily'
                       )),
   ciphertext          bytea not null,
   iv                  bytea not null check (octet_length(iv) = 12),

@@ -5,10 +5,17 @@
 --
 -- Granted to service_role only; anon and authenticated cannot
 -- consume the queue.
+--
+-- `visibility_timeout` defaults to 120s: a tool-calling agent loop
+-- (web_search → LLM → LLM) can take 40-60s end-to-end, and anything
+-- below that ceiling lets pgmq redeliver mid-flight so the user
+-- gets two different replies. 120s sits above P99 handler time
+-- while still being short enough that a truly dead worker doesn't
+-- strand the user for long.
 
 create function public.dequeue_webhook_events(
   batch_size integer default 10,
-  visibility_timeout integer default 30
+  visibility_timeout integer default 120
 )
 returns table (msg_id bigint, payload jsonb)
   language sql

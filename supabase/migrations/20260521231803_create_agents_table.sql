@@ -9,6 +9,7 @@ create table public.agents (
   system_prompt   text,
   default_model   text,
   avatar_url      text,
+  is_default      boolean not null default false,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
   deleted_at      timestamptz
@@ -20,6 +21,15 @@ create table public.agents (
 create index agents_active_owner_idx
   on public.agents(owner_id)
   where deleted_at is null;
+
+-- "Every user has exactly one Default agent" invariant. Partial
+-- unique over the live subset so soft-deleting a Default + creating
+-- a new one doesn't trip the constraint. The Default is seeded by
+-- `handle_new_user` at signup and protected from delete by
+-- `delete_agent`.
+create unique index agents_one_default_per_owner_idx
+  on public.agents(owner_id)
+  where is_default and deleted_at is null;
 
 create trigger agents_set_updated_at
   before update on public.agents

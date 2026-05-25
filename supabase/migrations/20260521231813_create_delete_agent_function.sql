@@ -1,10 +1,15 @@
--- Creates the `delete_agent` function that moves an agent to the
--- trash and clears the binding on any bot still pointing to it.
--- Releasing the binding lets the bot be attached to a different
--- agent immediately.
+-- Creates the `delete_agent` function that soft-deletes an agent.
+-- Blocks two cases the binding model now disallows:
+--   1. Target is the user's Default agent (always undeletable —
+--      `is_default` is the one-per-owner invariant set at signup).
+--   2. Target still has live bots bound (caller must rebind first;
+--      `bots.agent_id` is NOT NULL with ON DELETE RESTRICT, so a
+--      stranded binding is not a representable state).
 --
--- Raises agent_not_found (P0002) if the agent does not exist, is
--- already trashed, or belongs to a different owner.
+-- Raises:
+--   agent_not_found              (P0002) — missing / wrong owner / already trashed
+--   cannot_delete_default_agent  (P0001) — target is Default
+--   agent_in_use                 (P0001) — target has live bots bound
 
 create function public.delete_agent(
   p_agent_id uuid,
@@ -16,21 +21,37 @@ create function public.delete_agent(
 as $$
 declare
   v_id uuid;
+  v_is_default boolean;
+  v_bot_count int;
 begin
-  update public.agents
-    set deleted_at = now()
-  where id        = p_agent_id
-    and owner_id  = p_owner_id
-    and deleted_at is null
-  returning id into v_id;
+  select is_default into v_is_default
+  from public.agents
+  where id = p_agent_id
+    and owner_id = p_owner_id
+    and deleted_at is null;
 
-  if v_id is null then
+  if v_is_default is null then
     raise exception 'agent_not_found' using errcode = 'P0002';
   end if;
 
-  update public.bots
-    set agent_id = null
-  where agent_id = v_id;
+  if v_is_default then
+    raise exception 'cannot_delete_default_agent' using errcode = 'P0001';
+  end if;
+
+  select count(*) into v_bot_count
+  from public.bots
+  where agent_id = p_agent_id and deleted_at is null;
+
+  if v_bot_count > 0 then
+    raise exception 'agent_in_use' using errcode = 'P0001';
+  end if;
+
+  update public.agents
+    set deleted_at = now()
+  where id = p_agent_id
+    and owner_id = p_owner_id
+    and deleted_at is null
+  returning id into v_id;
 
   return v_id;
 end;

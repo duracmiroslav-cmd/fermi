@@ -1,18 +1,25 @@
 -- Creates the `bots` table, the deployment / transport layer.
--- Persona lives on `agents`; the `agent_id` FK uses `set null` so
--- an agent delete leaves the bot rebindable.
+-- Persona lives on `agents`; the `agent_id` FK is `not null` with
+-- `on delete restrict` — every bot has exactly one agent at all
+-- times, and an in-use agent can't be deleted (rebind first).
+-- One agent : N bots (a single persona can run on multiple LINE OAs).
+--
+-- `avatar_url` mirrors the LINE OA's profile picture (from
+-- `/v2/bot/info` `pictureUrl`); nullable because a freshly-connected
+-- OA may have none, and LINE doesn't push avatar-changed webhooks
+-- so the dashboard offers an explicit refresh action.
 
 create table public.bots (
   id            uuid primary key default gen_random_uuid(),
   owner_id      uuid not null references public.users(id) on delete cascade,
-  agent_id      uuid unique references public.agents(id) on delete set null,
+  agent_id      uuid not null references public.agents(id) on delete restrict,
   platform      text not null default 'line' check (platform in ('line')),
   external_id   text not null,
   display_name  text,
-  enabled       boolean not null default true,
-  allow_groups  boolean not null default false,
+  avatar_url    text,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
+  disabled_at   timestamptz,
   deleted_at    timestamptz
 );
 
@@ -53,6 +60,7 @@ create function public.insert_bot_if_under_limit(
   p_platform     text,
   p_external_id  text,
   p_display_name text,
+  p_agent_id     uuid,
   p_limit        int
 ) returns table (id uuid, display_name text)
   language plpgsql
@@ -73,11 +81,11 @@ begin
   end if;
 
   return query
-    insert into public.bots (owner_id, platform, external_id, display_name)
-    values (p_owner_id, p_platform, p_external_id, p_display_name)
+    insert into public.bots (owner_id, platform, external_id, display_name, agent_id)
+    values (p_owner_id, p_platform, p_external_id, p_display_name, p_agent_id)
     returning bots.id, bots.display_name;
 end;
 $$;
 
-revoke execute on function public.insert_bot_if_under_limit(uuid, text, text, text, int) from public;
-grant execute on function public.insert_bot_if_under_limit(uuid, text, text, text, int) to service_role;
+revoke execute on function public.insert_bot_if_under_limit(uuid, text, text, text, uuid, int) from public;
+grant  execute on function public.insert_bot_if_under_limit(uuid, text, text, text, uuid, int) to service_role;
