@@ -4,6 +4,10 @@
 -- LINE connection; after that the bot can still be restored but
 -- credentials need to be re-pasted from the LINE Developer Console.
 --
+-- The `agent_id` binding stays intact: with the 1 agent : N bots
+-- model, soft-deleted bots referencing an agent don't block
+-- anything (`delete_agent`'s in-use check filters `deleted_at`).
+--
 -- Raises bot_not_found (P0002) if the bot does not exist, is already
 -- trashed, or belongs to a different owner.
 
@@ -18,12 +22,8 @@ as $$
 declare
   v_id uuid;
 begin
-  -- Clearing agent_id releases the 1:1 binding so the agent can be
-  -- attached to another bot without waiting on credential purge.
-  -- Restore (when added) needs to rebind explicitly.
   update public.bots
-    set deleted_at = now(),
-        agent_id   = null
+    set deleted_at = now()
   where id        = p_bot_id
     and owner_id  = p_owner_id
     and deleted_at is null
