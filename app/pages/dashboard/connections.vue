@@ -140,10 +140,10 @@ const disconnectTavily = async () => {
             <div class="grid grid-cols-12 gap-4 items-center">
               <p class="col-span-9 text-sm text-toned min-w-0 truncate">
                 <template v-if="openrouter?.connected">
-                  Connected as {{ openrouter.openrouterUserId ?? 'user' }}
+                  Connected
                   <span
                     v-if="openrouter.maskedKey"
-                    class="font-mono text-toned"
+                    class="font-mono"
                   > · {{ openrouter.maskedKey }}</span>
                 </template>
                 <template v-else>
