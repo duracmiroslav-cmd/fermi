@@ -11,6 +11,18 @@ export default defineAppConfig({
     toast: {
       slots: {
         progress: 'hidden',
+        root: 'border-l-2',
+      },
+      variants: {
+        color: {
+          primary: { root: 'border-l-primary' },
+          secondary: { root: 'border-l-secondary' },
+          success: { root: 'border-l-success' },
+          info: { root: 'border-l-info' },
+          warning: { root: 'border-l-warning' },
+          error: { root: 'border-l-error' },
+          neutral: { root: 'border-l-default' },
+        },
       },
     },
     button: {
