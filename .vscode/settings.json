@@ -5,7 +5,8 @@
     "openrouter",
     "pgmq",
     "pkce",
-    "supabase"
+    "supabase",
+    "tavily"
   ],
   "deno.enablePaths": [
     "supabase"
