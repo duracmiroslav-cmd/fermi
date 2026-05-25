@@ -3,7 +3,7 @@ definePageMeta({ layout: false });
 
 type Platform = 'line';
 
-const toast = useToast();
+const notify = useNotify();
 const connecting = ref(false);
 
 const platformOptions: Array<{ label: string; value: Platform }> = [
@@ -23,14 +23,10 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
         channelAccessToken: value.channelAccessToken,
       },
     });
-    toast.add({ title: 'Bot connected', color: 'success' });
+    notify.success('Bot connected');
     await navigateTo(`/dashboard/bots/${created.id}`);
   } catch (e) {
-    toast.add({
-      title: 'Connect failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Connect failed', e);
   } finally {
     connecting.value = false;
   }

@@ -14,7 +14,7 @@ interface AgentDetail {
 }
 
 const route = useRoute();
-const toast = useToast();
+const notify = useNotify();
 
 const { data: agent, error, pending } = useApiFetch<AgentDetail>(
   () => `/api/agents/${route.params.id}`,
@@ -35,14 +35,10 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultMode
         defaultModel: value.defaultModel || null,
       },
     });
-    toast.add({ title: 'Agent updated', color: 'success' });
+    notify.success('Agent updated');
     await navigateTo('/dashboard/agents');
   } catch (e) {
-    toast.add({
-      title: 'Update failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Update failed', e);
   } finally {
     saving.value = false;
   }
@@ -55,13 +51,9 @@ const onAvatarChange = async (url: string | null) => {
       body: { avatarUrl: url },
     });
     if (agent.value) agent.value.avatarUrl = url;
-    toast.add({ title: url ? 'Avatar updated' : 'Avatar removed', color: 'success' });
+    notify.success(url ? 'Avatar updated' : 'Avatar removed');
   } catch (e) {
-    toast.add({
-      title: 'Avatar update failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Avatar update failed', e);
   }
 };
 
@@ -69,14 +61,10 @@ const onDelete = async () => {
   deleting.value = true;
   try {
     await $fetch(`/api/agents/${route.params.id}`, { method: 'DELETE' });
-    toast.add({ title: 'Agent deleted', color: 'success' });
+    notify.success('Agent deleted');
     await navigateTo('/dashboard/agents');
   } catch (e) {
-    toast.add({
-      title: 'Delete failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Delete failed', e);
     deleting.value = false;
   }
 };

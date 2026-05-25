@@ -16,7 +16,7 @@ interface BotDetail {
 }
 
 const route = useRoute();
-const toast = useToast();
+const notify = useNotify();
 
 const { data: bot, error, refresh, pending } = useApiFetch<BotDetail>(
   () => `/api/bots/${route.params.id}`,
@@ -46,14 +46,10 @@ const onSubmit = async (value: { agentId: string; disabledAt: string | null }) =
       method: 'PATCH',
       body: value,
     });
-    toast.add({ title: 'Bot updated', color: 'success' });
+    notify.success('Bot updated');
     await navigateTo('/dashboard/bots');
   } catch (e) {
-    toast.add({
-      title: 'Update failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Update failed', e);
   } finally {
     saving.value = false;
   }
@@ -63,14 +59,10 @@ const onDelete = async () => {
   deleting.value = true;
   try {
     await $fetch(`/api/bots/${route.params.id}`, { method: 'DELETE' });
-    toast.add({ title: 'Bot deleted', color: 'success' });
+    notify.success('Bot deleted');
     await navigateTo('/dashboard/bots');
   } catch (e) {
-    toast.add({
-      title: 'Delete failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Delete failed', e);
     deleting.value = false;
   }
 };

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: false });
 
-const toast = useToast();
+const notify = useNotify();
 const saving = ref(false);
 
 const onSubmit = async (value: { name: string; systemPrompt: string; defaultModel: string }) => {
@@ -15,14 +15,10 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultMode
         defaultModel: value.defaultModel || null,
       },
     });
-    toast.add({ title: 'Agent created', color: 'success' });
+    notify.success('Agent created');
     await navigateTo(`/dashboard/agents/${created.id}`);
   } catch (e) {
-    toast.add({
-      title: 'Create failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Create failed', e);
   } finally {
     saving.value = false;
   }

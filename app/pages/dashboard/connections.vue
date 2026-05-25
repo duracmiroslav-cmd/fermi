@@ -9,7 +9,7 @@ interface OpenRouterStatus {
 
 const route = useRoute();
 const router = useRouter();
-const toast = useToast();
+const notify = useNotify();
 
 const { data: openrouter, refresh, pending } = useApiFetch<OpenRouterStatus>('/api/oauth/openrouter');
 const disconnecting = ref(false);
@@ -17,10 +17,10 @@ const disconnecting = ref(false);
 onMounted(() => {
   const result = route.query.openrouter;
   if (result === 'connected') {
-    toast.add({ title: 'OpenRouter connected', color: 'success' });
+    notify.success('OpenRouter connected');
   } else if (result === 'error') {
     const reason = typeof route.query.reason === 'string' ? route.query.reason : 'unknown';
-    toast.add({ title: 'OpenRouter connection failed', description: reason, color: 'error' });
+    notify.error('OpenRouter connection failed', reason);
   }
   if (result) {
     router.replace({ query: {} });
@@ -36,13 +36,9 @@ const disconnect = async () => {
   try {
     await $fetch('/api/oauth/openrouter', { method: 'DELETE' });
     await refresh();
-    toast.add({ title: 'OpenRouter disconnected', color: 'success' });
+    notify.success('OpenRouter disconnected');
   } catch (e) {
-    toast.add({
-      title: 'Disconnect failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Disconnect failed', e);
   } finally {
     disconnecting.value = false;
   }

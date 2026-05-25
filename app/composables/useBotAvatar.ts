@@ -8,7 +8,7 @@
 // successful API response so a failed sync doesn't trigger an
 // unnecessary fetch.
 export const useBotAvatar = (onSynced: () => Promise<unknown> | unknown) => {
-  const toast = useToast();
+  const notify = useNotify();
   const syncingId = ref<string | null>(null);
 
   const sync = async (botId: string): Promise<void> => {
@@ -21,20 +21,15 @@ export const useBotAvatar = (onSynced: () => Promise<unknown> | unknown) => {
       );
       await onSynced();
       if (res.avatarUrl) {
-        toast.add({ title: 'Avatar synced from LINE', color: 'success' });
+        notify.success('Avatar synced from LINE');
       } else {
-        toast.add({
-          title: 'LINE Official Account has no profile picture yet',
-          description: 'Upload one in LINE Official Account Manager, then sync again.',
-          color: 'warning',
-        });
+        notify.warning(
+          'LINE Official Account has no profile picture yet',
+          'Upload one in LINE Official Account Manager, then sync again.',
+        );
       }
     } catch (e) {
-      toast.add({
-        title: 'Sync failed',
-        description: extractErrorMessage(e),
-        color: 'error',
-      });
+      notify.error('Sync failed', e);
     } finally {
       syncingId.value = null;
     }

@@ -15,7 +15,7 @@ const BUCKET = 'agent-avatars';
 
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
-const toast = useToast();
+const notify = useNotify();
 const uploading = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
@@ -37,12 +37,12 @@ const onFileChange = async (event: Event) => {
   if (!file) return;
 
   if (!ALLOWED_MIME.includes(file.type)) {
-    toast.add({ title: 'Unsupported format', description: 'PNG, JPEG, WebP, or GIF only.', color: 'error' });
+    notify.error('Unsupported format', 'PNG, JPEG, WebP, or GIF only.');
     input.value = '';
     return;
   }
   if (file.size > MAX_BYTES) {
-    toast.add({ title: 'File too large', description: 'Max 2MB.', color: 'error' });
+    notify.error('File too large', 'Max 2MB.');
     input.value = '';
     return;
   }
@@ -61,11 +61,7 @@ const onFileChange = async (event: Event) => {
     const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
     emit('change', publicUrl);
   } catch (e) {
-    toast.add({
-      title: 'Upload failed',
-      description: extractErrorMessage(e),
-      color: 'error',
-    });
+    notify.error('Upload failed', e);
   } finally {
     uploading.value = false;
     input.value = '';
