@@ -76,12 +76,14 @@ export const finishRun = async (
 };
 
 // Maps an HTTP status (from OpenRouter / LINE failures) to the bucket
-// written to `agent_runs.error_code`. Mirrors the SQL backfill in
-// 20260525060000_add_agent_runs_error_code.sql — keep the two in sync.
+// written to `agent_runs.error_code`. Past-verb form matches the
+// `agent_run_steps.type` convention (`error_occurred`, `push_failed`).
+// Mirrors the SQL backfill in 20260525060000_add_agent_runs_error_code.sql
+// — keep the two in sync.
 export const errorCodeFromStatus = (status: number | undefined): string => {
   if (status === 429) return 'rate_limited';
-  if (status === 408 || status === 504) return 'timeout';
-  if (status !== undefined && status >= 500 && status < 600) return 'upstream_error';
+  if (status === 408 || status === 504) return 'timed_out';
+  if (status !== undefined && status >= 500 && status < 600) return 'upstream_failed';
   return 'unknown';
 };
 

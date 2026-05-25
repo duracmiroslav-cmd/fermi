@@ -11,15 +11,16 @@ alter table public.agent_runs
   add column error_code text;
 
 -- 429 → rate_limited
--- 408 / 504 → timeout
--- 5xx → upstream_error
+-- 408 / 504 → timed_out
+-- 5xx → upstream_failed
 -- anything else → unknown
+-- Past-verb form matches the `agent_run_steps.type` convention.
 -- Regex guards the 5xx test so a non-numeric status never throws on cast.
 update public.agent_runs r
    set error_code = case
      when s.payload->>'status' = '429'           then 'rate_limited'
-     when s.payload->>'status' in ('408', '504') then 'timeout'
-     when s.payload->>'status' ~ '^5[0-9]{2}$'   then 'upstream_error'
+     when s.payload->>'status' in ('408', '504') then 'timed_out'
+     when s.payload->>'status' ~ '^5[0-9]{2}$'   then 'upstream_failed'
      else 'unknown'
    end
   from public.agent_run_steps s
