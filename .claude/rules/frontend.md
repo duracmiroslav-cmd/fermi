@@ -28,7 +28,12 @@ Text intensity (high to low):
 Background elevation (low to high):
 `bg-default` (page) → `bg-muted` (hover/selected) → `bg-elevated` (cards) → `bg-accented` (modals/popovers)
 
-Border: `border-default` for visible separation, `border-muted` for subtle dividers.
+Outlines split by purpose:
+
+- **Card outline** (self-contained surface, paired with `bg-elevated/50` + `rounded-md`): `ring ring-inset ring-muted`. Matches Nuxt UI's component convention (Empty, Alert, Popover, etc. all use `ring`). Ring is box-shadow inside the box (`ring-inset`), so it aligns horizontally with `<UInput>` and other form controls that sit in the same column, and hover/focus state changes don't shift layout.
+- **Structural divider** (separating layout regions, e.g. sidebar/header/footer edges): `border-{side} border-default`. Borders carry semantic "this side is the edge"; ring would draw a full box.
+
+Avoid `border border-muted` for cards — it works but is out of sync with the Nuxt UI components rendered next to it.
 
 ### Interactive surface states
 
@@ -117,10 +122,10 @@ Use the real component's classes for outer shape and padding, so horizontal posi
 
 | Real element | Skeleton equivalent |
 |---|---|
-| `<UCard>` outer | `rounded-md border border-muted bg-elevated/50 divide-y divide-default` |
+| `<UCard>` outer | `rounded-md ring ring-inset ring-muted bg-elevated/50 divide-y divide-default` |
 | `<UCard>` header padding | `p-4 sm:px-6` |
 | `<UCard>` body padding | `p-4 sm:p-6` |
-| List card row | `p-4 rounded-md border border-muted bg-elevated/50` |
+| List card row | `p-4 rounded-md ring ring-inset ring-muted bg-elevated/50` |
 | `<UAvatar size="lg">` | `size-9 rounded-full bg-muted` |
 | `<UInput>` md | `h-9 rounded-md bg-muted/40` |
 | `<UButton>` md | `h-9 w-X rounded-md bg-muted/60` |

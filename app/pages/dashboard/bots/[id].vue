@@ -151,7 +151,7 @@ const onDelete = async () => {
           label="Webhook URL"
           help="Paste this under &quot;Webhook settings&quot; in your LINE channel&apos;s &quot;Messaging API&quot; tab, then turn on &quot;Use webhook&quot;."
         >
-          <div class="flex items-center gap-2 p-3 rounded-md border border-muted bg-elevated/50">
+          <div class="flex items-center gap-2 p-3 rounded-md ring ring-inset ring-muted bg-elevated/50">
             <code class="flex-1 font-mono text-sm text-highlighted truncate select-all">
               {{ bot.webhookUrl }}
             </code>
@@ -176,7 +176,7 @@ const onDelete = async () => {
         />
 
         <UFormField label="Details">
-          <div class="p-4 rounded-md border border-muted bg-elevated/50">
+          <div class="p-4 rounded-md ring ring-inset ring-muted bg-elevated/50">
             <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
               <dt class="text-toned text-right">
                 External ID

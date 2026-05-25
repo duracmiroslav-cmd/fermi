@@ -46,7 +46,7 @@ export default defineAppConfig({
       variants: {
         variant: {
           subtle: {
-            root: 'ring-muted',
+            root: 'ring-inset ring-muted',
           },
         },
       },

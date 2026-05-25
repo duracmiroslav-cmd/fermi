@@ -1,6 +1,6 @@
 <template>
   <div
-    class="rounded-md border border-muted bg-elevated/50 animate-pulse divide-y divide-default"
+    class="rounded-md ring ring-inset ring-muted bg-elevated/50 animate-pulse divide-y divide-default"
     aria-busy="true"
     aria-live="polite"
   >

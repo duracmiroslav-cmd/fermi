@@ -98,7 +98,7 @@ const filteredAgents = computed(() => {
               v-for="agent in filteredAgents"
               :key="agent.id"
               :to="`/dashboard/agents/${agent.id}`"
-              class="group flex items-center gap-4 p-4 rounded-md border border-muted bg-elevated/50 hover:bg-elevated transition-colors"
+              class="group flex items-center gap-4 p-4 rounded-md ring ring-inset ring-muted bg-elevated/50 hover:bg-elevated transition-colors"
             >
               <UAvatar
                 :src="agent.avatarUrl ?? undefined"
