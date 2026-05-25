@@ -100,10 +100,7 @@ const onDelete = async () => {
         :fields="3"
       />
 
-      <div
-        v-else-if="error"
-        class="p-6 sm:p-8 max-w-3xl"
-      >
+      <DashboardContainer v-else-if="error">
         <div class="border border-dashed border-default rounded-md py-16 px-6 text-center">
           <p class="text-sm text-muted mb-2">
             Agent not found
@@ -118,7 +115,7 @@ const onDelete = async () => {
             Back to agents
           </UButton>
         </div>
-      </div>
+      </DashboardContainer>
 
       <DashboardContainer v-if="agent">
         <div class="flex items-center gap-4">

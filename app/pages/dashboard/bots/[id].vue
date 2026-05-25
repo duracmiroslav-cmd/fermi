@@ -99,10 +99,7 @@ const onDelete = async () => {
         :fields="2"
       />
 
-      <div
-        v-else-if="error"
-        class="p-6 sm:p-8 max-w-3xl"
-      >
+      <DashboardContainer v-else-if="error">
         <div class="border border-dashed border-default rounded-md py-16 px-6 text-center">
           <p class="text-sm text-muted mb-2">
             Bot not found
@@ -117,7 +114,7 @@ const onDelete = async () => {
             Back to bots
           </UButton>
         </div>
-      </div>
+      </DashboardContainer>
 
       <DashboardContainer v-if="bot">
         <div class="flex items-center gap-4">

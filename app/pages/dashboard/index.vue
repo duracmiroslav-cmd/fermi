@@ -9,11 +9,11 @@ definePageMeta({ layout: false });
         <DashboardBreadcrumb :items="[]" />
       </template>
 
-      <div class="p-6 sm:p-8">
+      <DashboardContainer>
         <p class="text-sm text-muted">
           Pick a section from the sidebar to get started.
         </p>
-      </div>
+      </DashboardContainer>
     </NuxtLayout>
   </div>
 </template>

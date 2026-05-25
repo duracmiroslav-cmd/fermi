@@ -53,7 +53,7 @@ const filteredBots = computed(() => {
         </UButton>
       </template>
 
-      <div class="p-6 sm:p-8 flex flex-col gap-8 max-w-3xl">
+      <DashboardContainer>
         <h1 class="text-2xl font-semibold">
           Bots <span class="text-dimmed font-normal">({{ used }})</span>
         </h1>
@@ -169,7 +169,7 @@ const filteredBots = computed(() => {
             No bots match "{{ search }}".
           </p>
         </div>
-      </div>
+      </DashboardContainer>
     </NuxtLayout>
   </div>
 </template>
