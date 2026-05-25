@@ -211,24 +211,25 @@ const disconnectTavily = async () => {
                 </div>
               </div>
 
-              <div
+              <form
                 v-if="!tavily?.connected"
                 class="flex flex-col gap-2"
+                @submit.prevent="connectTavily"
               >
                 <div class="grid grid-cols-12 gap-4">
                   <UInput
                     v-model="tavilyKey"
                     placeholder="tvly-..."
                     type="password"
+                    autocomplete="off"
                     class="col-span-9"
-                    @keydown.enter="connectTavily"
                   />
                   <UButton
+                    type="submit"
                     block
                     class="col-span-3"
                     :loading="tavilyConnecting"
                     :disabled="!tavilyKey.trim()"
-                    @click="connectTavily"
                   >
                     Connect
                   </UButton>
@@ -241,7 +242,7 @@ const disconnectTavily = async () => {
                     class="underline"
                   >app.tavily.com</a> — sign up takes ~30 seconds.
                 </p>
-              </div>
+              </form>
             </div>
           </UCard>
         </section>
