@@ -86,6 +86,8 @@ Single-mode project. Never write `dark:` prefix. Color mode is forced to dark in
 
 If the same layout class string appears in ≥3 pages, extract to a `BaseXxx` component in `app/components/`.
 
+- **`<BaseCard>`** — `p-4 rounded-md ring ring-inset ring-muted bg-elevated/50`. Pass `:to` to render as `<NuxtLink>`, omit for `<div>`. Extra classes flow through.
+
 ## Skeletons
 
 Skeletons mirror the real component's **structure**, not just its silhouette. The goal is zero layout shift when content loads — same outer shape, same inner positions.

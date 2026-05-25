@@ -176,7 +176,7 @@ const onDelete = async () => {
         />
 
         <UFormField label="Details">
-          <div class="p-4 rounded-md ring ring-inset ring-muted bg-elevated/50">
+          <BaseCard>
             <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
               <dt class="text-toned text-right">
                 External ID
@@ -197,7 +197,7 @@ const onDelete = async () => {
                 <TimeAgo :date="bot.updatedAt" />
               </dd>
             </dl>
-          </div>
+          </BaseCard>
         </UFormField>
 
         <section>

@@ -94,11 +94,11 @@ const filteredAgents = computed(() => {
             v-else-if="filteredAgents.length"
             class="space-y-2"
           >
-            <NuxtLink
+            <BaseCard
               v-for="agent in filteredAgents"
               :key="agent.id"
               :to="`/dashboard/agents/${agent.id}`"
-              class="group flex items-center gap-4 p-4 rounded-md ring ring-inset ring-muted bg-elevated/50 hover:bg-elevated transition-colors"
+              class="group flex items-center gap-4 hover:bg-elevated transition-colors"
             >
               <UAvatar
                 :src="agent.avatarUrl ?? undefined"
@@ -127,7 +127,7 @@ const filteredAgents = computed(() => {
               <span class="text-sm text-toned shrink-0">
                 <TimeAgo :date="agent.updatedAt" />
               </span>
-            </NuxtLink>
+            </BaseCard>
           </div>
 
           <p

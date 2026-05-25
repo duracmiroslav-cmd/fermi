@@ -121,11 +121,11 @@ const filteredBots = computed(() => {
             v-else-if="filteredBots.length"
             class="space-y-2"
           >
-            <NuxtLink
+            <BaseCard
               v-for="bot in filteredBots"
               :key="bot.id"
               :to="`/dashboard/bots/${bot.id}`"
-              class="group flex items-center gap-4 p-4 rounded-md ring ring-inset ring-muted bg-elevated/50 hover:bg-elevated transition-colors"
+              class="group flex items-center gap-4 hover:bg-elevated transition-colors"
             >
               <div class="relative shrink-0">
                 <UAvatar
@@ -177,7 +177,7 @@ const filteredBots = computed(() => {
               <span class="text-sm text-toned shrink-0">
                 <TimeAgo :date="bot.createdAt" />
               </span>
-            </NuxtLink>
+            </BaseCard>
           </div>
 
           <p
