@@ -39,6 +39,18 @@ export default defineAppConfig({
         root: 'bg-elevated/50!',
       },
     },
+    empty: {
+      slots: {
+        root: 'rounded-md',
+      },
+      variants: {
+        variant: {
+          subtle: {
+            root: 'ring-muted',
+          },
+        },
+      },
+    },
     formField: {
       slots: {
         error: 'mt-1 text-xs',

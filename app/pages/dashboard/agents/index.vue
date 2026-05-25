@@ -81,24 +81,14 @@ const filteredAgents = computed(() => {
             :rows="3"
           />
 
-          <div
+          <UEmpty
             v-else-if="!agents?.length"
-            class="border border-dashed border-default rounded-md py-16 px-6 text-center"
-          >
-            <p class="font-semibold mb-2">
-              No agents yet
-            </p>
-            <p class="text-sm text-toned mb-6 max-w-md mx-auto">
-              An agent is a persona with a name, a system prompt, and a default model. Attach one to a bot to bring it to life.
-            </p>
-            <UButton
-              v-if="!atLimit"
-              to="/dashboard/agents/new"
-              icon="i-lucide-plus"
-            >
-              Create your first agent
-            </UButton>
-          </div>
+            variant="subtle"
+            icon="i-lucide-sparkles"
+            title="No agents yet"
+            description="An agent is a persona with a name, a system prompt, and a default model. Attach one to a bot to bring it to life."
+            :actions="atLimit ? [] : [{ label: 'Create your first agent', icon: 'i-lucide-plus', to: '/dashboard/agents/new' }]"
+          />
 
           <div
             v-else-if="filteredAgents.length"

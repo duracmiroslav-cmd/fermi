@@ -101,20 +101,13 @@ const onDelete = async () => {
       />
 
       <DashboardContainer v-else-if="error">
-        <div class="border border-dashed border-default rounded-md py-16 px-6 text-center">
-          <p class="font-semibold mb-2">
-            Agent not found
-          </p>
-          <p class="text-sm text-toned mb-6 max-w-md mx-auto">
-            This agent may have been deleted, or the link is wrong.
-          </p>
-          <UButton
-            to="/dashboard/agents"
-            icon="i-lucide-arrow-left"
-          >
-            Back to agents
-          </UButton>
-        </div>
+        <UEmpty
+          variant="subtle"
+          icon="i-lucide-search-x"
+          title="Agent not found"
+          description="This agent may have been deleted, or the link is wrong."
+          :actions="[{ label: 'Back to agents', icon: 'i-lucide-arrow-left', to: '/dashboard/agents' }]"
+        />
       </DashboardContainer>
 
       <DashboardContainer v-if="agent">

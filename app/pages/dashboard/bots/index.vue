@@ -108,24 +108,14 @@ const filteredBots = computed(() => {
             :rows="3"
           />
 
-          <div
+          <UEmpty
             v-else-if="!bots?.length"
-            class="border border-dashed border-default rounded-md py-16 px-6 text-center"
-          >
-            <p class="font-semibold mb-2">
-              No bots yet
-            </p>
-            <p class="text-sm text-toned mb-6 max-w-md mx-auto">
-              A bot is a messaging channel registered in fermi. Add one, then attach an agent to bring it to life.
-            </p>
-            <UButton
-              v-if="!atLimit"
-              to="/dashboard/bots/new"
-              icon="i-lucide-plus"
-            >
-              Connect your first bot
-            </UButton>
-          </div>
+            variant="subtle"
+            icon="i-lucide-bot"
+            title="No bots yet"
+            description="A bot is a messaging channel registered in fermi. Add one, then attach an agent to bring it to life."
+            :actions="atLimit ? [] : [{ label: 'Connect your first bot', icon: 'i-lucide-plus', to: '/dashboard/bots/new' }]"
+          />
 
           <div
             v-else-if="filteredBots.length"

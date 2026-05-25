@@ -100,20 +100,13 @@ const onDelete = async () => {
       />
 
       <DashboardContainer v-else-if="error">
-        <div class="border border-dashed border-default rounded-md py-16 px-6 text-center">
-          <p class="font-semibold mb-2">
-            Bot not found
-          </p>
-          <p class="text-sm text-toned mb-6 max-w-md mx-auto">
-            This bot may have been deleted, or the link is wrong.
-          </p>
-          <UButton
-            to="/dashboard/bots"
-            icon="i-lucide-arrow-left"
-          >
-            Back to bots
-          </UButton>
-        </div>
+        <UEmpty
+          variant="subtle"
+          icon="i-lucide-search-x"
+          title="Bot not found"
+          description="This bot may have been deleted, or the link is wrong."
+          :actions="[{ label: 'Back to bots', icon: 'i-lucide-arrow-left', to: '/dashboard/bots' }]"
+        />
       </DashboardContainer>
 
       <DashboardContainer v-if="bot">
