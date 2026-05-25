@@ -18,9 +18,8 @@ interface BotDetail {
 const route = useRoute();
 const toast = useToast();
 
-const { data: bot, error, refresh, pending } = useLazyFetch<BotDetail>(
+const { data: bot, error, refresh, pending } = useApiFetch<BotDetail>(
   () => `/api/bots/${route.params.id}`,
-  { headers: useRequestHeaders(['cookie']) },
 );
 
 const saving = ref(false);

@@ -16,9 +16,8 @@ interface AgentDetail {
 const route = useRoute();
 const toast = useToast();
 
-const { data: agent, error, pending } = useLazyFetch<AgentDetail>(
+const { data: agent, error, pending } = useApiFetch<AgentDetail>(
   () => `/api/agents/${route.params.id}`,
-  { headers: useRequestHeaders(['cookie']) },
 );
 
 const saving = ref(false);

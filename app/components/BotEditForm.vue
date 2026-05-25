@@ -20,9 +20,7 @@ const emit = defineEmits<{
   submit: [value: BotEditFormValue];
 }>();
 
-const { data: agents, pending: agentsPending } = useLazyFetch<AgentOption[]>('/api/agents', {
-  headers: useRequestHeaders(['cookie']),
-});
+const { data: agents, pending: agentsPending } = useApiFetch<AgentOption[]>('/api/agents');
 
 // Hide the selected value while items are loading, otherwise the trigger
 // flashes the raw UUID before the matching label is resolved.

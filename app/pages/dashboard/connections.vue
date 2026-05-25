@@ -11,9 +11,7 @@ const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 
-const { data: openrouter, refresh, pending } = useLazyFetch<OpenRouterStatus>('/api/oauth/openrouter', {
-  headers: useRequestHeaders(['cookie']),
-});
+const { data: openrouter, refresh, pending } = useApiFetch<OpenRouterStatus>('/api/oauth/openrouter');
 const disconnecting = ref(false);
 
 onMounted(() => {
