@@ -6,11 +6,11 @@ type Platform = 'line';
 const toast = useToast();
 const connecting = ref(false);
 
-const platform = ref<Platform | null>(null);
-
-const platformOptions = [
+const platformOptions: Array<{ label: string; value: Platform }> = [
   { label: 'LINE', value: 'line' },
 ];
+
+const platform = ref<Platform>(platformOptions[0]!.value);
 
 const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: string }) => {
   connecting.value = true;
