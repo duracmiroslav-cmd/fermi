@@ -99,6 +99,13 @@ interface RawCompletionResponse {
   usage: ChatCompletionUsage;
 }
 
+// LINE caps each text message at 5000 chars (~3-4K tokens); 4096
+// gives the model headroom for verbose answers without forcing
+// OpenRouter to pre-reserve credit for the model's full output ceiling
+// (Claude Sonnet 4.5 advertises 64K, which 402s users with small
+// balances even though no real reply ever needs that much).
+const MAX_REPLY_TOKENS = 4096;
+
 export const chatCompletion = async (params: {
   apiKey: string;
   model: string;
@@ -108,6 +115,7 @@ export const chatCompletion = async (params: {
   const body: Record<string, unknown> = {
     model: params.model,
     messages: params.messages,
+    max_tokens: MAX_REPLY_TOKENS,
   };
   if (params.tools && params.tools.length > 0) {
     body.tools = params.tools;
