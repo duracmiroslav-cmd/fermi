@@ -3,16 +3,16 @@
 -- `bots.agent_id` (NOT NULL, ON DELETE RESTRICT — see `bots`).
 
 create table public.agents (
-  id              uuid primary key default gen_random_uuid(),
-  owner_id        uuid not null references public.users(id) on delete cascade,
-  name            text not null,
-  system_prompt   text,
-  default_model   text,
-  avatar_url      text,
-  is_default      boolean not null default false,
-  created_at      timestamptz not null default now(),
-  updated_at      timestamptz not null default now(),
-  deleted_at      timestamptz
+  id                    uuid primary key default gen_random_uuid(),
+  owner_id              uuid not null references public.users(id) on delete cascade,
+  name                  text not null,
+  system_prompt         text,
+  default_text_model    text,
+  avatar_url            text,
+  is_default            boolean not null default false,
+  created_at            timestamptz not null default now(),
+  updated_at            timestamptz not null default now(),
+  deleted_at            timestamptz
 );
 
 -- Owner lookups always filter deleted_at, so a partial index over
@@ -51,12 +51,12 @@ revoke insert, update, delete on public.agents from authenticated;
 -- concurrent creates from the same user can't both observe an
 -- under-limit count and bypass the tier quota.
 create function public.insert_agent_if_under_limit(
-  p_owner_id       uuid,
-  p_name           text,
-  p_system_prompt  text,
-  p_default_model  text,
-  p_avatar_url     text,
-  p_limit          int
+  p_owner_id            uuid,
+  p_name                text,
+  p_system_prompt       text,
+  p_default_text_model  text,
+  p_avatar_url          text,
+  p_limit               int
 ) returns table (id uuid)
   language plpgsql
   security definer
@@ -76,8 +76,8 @@ begin
   end if;
 
   return query
-    insert into public.agents (owner_id, name, system_prompt, default_model, avatar_url)
-    values (p_owner_id, p_name, p_system_prompt, p_default_model, p_avatar_url)
+    insert into public.agents (owner_id, name, system_prompt, default_text_model, avatar_url)
+    values (p_owner_id, p_name, p_system_prompt, p_default_text_model, p_avatar_url)
     returning agents.id;
 end;
 $$;

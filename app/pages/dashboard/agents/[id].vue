@@ -5,7 +5,7 @@ interface AgentDetail {
   id: string;
   name: string;
   systemPrompt: string | null;
-  defaultModel: string | null;
+  defaultTextModel: string | null;
   avatarUrl: string | null;
   isDefault: boolean;
   bots: Array<{ id: string; displayName: string | null; platform: string }>;
@@ -24,7 +24,7 @@ const saving = ref(false);
 const deleting = ref(false);
 const deleteDialogOpen = ref(false);
 
-const onSubmit = async (value: { name: string; systemPrompt: string; defaultModel: string }) => {
+const onSubmit = async (value: { name: string; systemPrompt: string; defaultTextModel: string }) => {
   saving.value = true;
   try {
     await $fetch(`/api/agents/${route.params.id}`, {
@@ -32,7 +32,7 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultMode
       body: {
         name: value.name,
         systemPrompt: value.systemPrompt || null,
-        defaultModel: value.defaultModel || null,
+        defaultTextModel: value.defaultTextModel || null,
       },
     });
     notify.success('Agent updated');
@@ -143,7 +143,7 @@ const onDelete = async () => {
           :initial-value="{
             name: agent.name,
             systemPrompt: agent.systemPrompt ?? '',
-            defaultModel: agent.defaultModel ?? undefined,
+            defaultTextModel: agent.defaultTextModel ?? undefined,
           }"
           @submit="onSubmit"
         />

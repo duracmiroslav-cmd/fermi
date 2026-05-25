@@ -24,12 +24,12 @@ const admin = createClient(supabaseUrl, supabaseServiceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const DEFAULT_MODEL = 'anthropic/claude-opus-4.7';
-// Vision-capable model used for any run whose history contains an
-// image, regardless of agent.defaultModel. Per-agent text/vision
-// split is a follow-up; for now hardcoded so users can't pick a
+const DEFAULT_TEXT_MODEL = 'anthropic/claude-opus-4.7';
+// Vision-capable fallback used for any run whose history contains
+// an image, regardless of agent.defaultTextModel. Per-agent vision
+// override is a follow-up; for now hardcoded so users can't pick a
 // text-only model and silently break image conversations.
-const VISION_MODEL  = 'anthropic/claude-sonnet-4.5';
+const DEFAULT_VISION_MODEL = 'anthropic/claude-sonnet-4.5';
 const HISTORY_WINDOW = 20;
 // Hard cap on LLM iterations within a single agent run. One iteration
 // = one OpenRouter call. A typical multi-step query (read calendar →
@@ -246,7 +246,7 @@ const isReplyableUserMessage = (event: LineEvent): event is LineEvent & {
 
 const runAgentLoop = async (params: {
   bot: { id: string; ownerId: string };
-  agent: { id: string; name: string; systemPrompt: string | null; defaultModel: string | null };
+  agent: { id: string; name: string; systemPrompt: string | null; defaultTextModel: string | null };
   openrouterKey: string;
   lineAccessToken: string;
   kek: CryptoKey;
@@ -299,8 +299,8 @@ const runAgentLoop = async (params: {
       Array.isArray(m.content) && m.content.some((p) => p.type === 'image_url'),
     );
     const model = hasImageInHistory
-      ? VISION_MODEL
-      : (agent.defaultModel ?? DEFAULT_MODEL);
+      ? DEFAULT_VISION_MODEL
+      : (agent.defaultTextModel ?? DEFAULT_TEXT_MODEL);
 
     const messages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },

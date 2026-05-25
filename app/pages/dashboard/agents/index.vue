@@ -5,7 +5,7 @@ interface AgentRow {
   id: string;
   name: string;
   systemPrompt: string | null;
-  defaultModel: string | null;
+  defaultTextModel: string | null;
   avatarUrl: string | null;
   isDefault: boolean;
   createdAt: string;
@@ -131,7 +131,7 @@ const filteredAgents = computed(() => {
                   </UBadge>
                 </div>
                 <p class="text-sm text-toned truncate mt-0.5">
-                  {{ agent.defaultModel || '—' }}
+                  {{ agent.defaultTextModel || '—' }}
                 </p>
               </div>
               <span class="text-sm text-toned shrink-0">

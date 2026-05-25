@@ -10,7 +10,7 @@ interface AgentOption {
   id: string;
   name: string;
   avatarUrl: string | null;
-  defaultModel: string | null;
+  defaultTextModel: string | null;
   isDefault: boolean;
 }
 
@@ -43,7 +43,7 @@ const agentItems = computed(() =>
   (agents.value ?? []).map(a => ({
     label: a.name,
     value: a.id,
-    description: a.defaultModel ?? '—',
+    description: a.defaultTextModel ?? '—',
     avatar: {
       src: a.avatarUrl ?? undefined,
       text: a.name.charAt(0).toUpperCase(),

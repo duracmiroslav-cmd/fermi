@@ -4,7 +4,7 @@ definePageMeta({ layout: false });
 const notify = useNotify();
 const saving = ref(false);
 
-const onSubmit = async (value: { name: string; systemPrompt: string; defaultModel: string }) => {
+const onSubmit = async (value: { name: string; systemPrompt: string; defaultTextModel: string }) => {
   saving.value = true;
   try {
     const created = await $fetch<{ id: string }>('/api/agents', {
@@ -12,7 +12,7 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultMode
       body: {
         name: value.name,
         systemPrompt: value.systemPrompt || null,
-        defaultModel: value.defaultModel || null,
+        defaultTextModel: value.defaultTextModel || null,
       },
     });
     notify.success('Agent created');

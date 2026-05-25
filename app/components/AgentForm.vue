@@ -4,7 +4,7 @@ import { createAgentInputSchema } from '~~/shared/schemas/agents';
 interface AgentFormValue {
   name: string;
   systemPrompt: string;
-  defaultModel: string;
+  defaultTextModel: string;
 }
 
 interface ProviderModel {
@@ -35,15 +35,15 @@ const formatContext = (n: number) =>
 const state = reactive<AgentFormValue>({
   name: props.initialValue?.name ?? '',
   systemPrompt: props.initialValue?.systemPrompt ?? '',
-  defaultModel: props.initialValue?.defaultModel ?? '',
+  defaultTextModel: props.initialValue?.defaultTextModel ?? '',
 });
 
 const isModelPickerOpening = ref(false);
 
 // Same UUID-flash-avoidance trick as the agent picker: hide value while loading.
 const displayModelId = computed<string | undefined>({
-  get: () => (modelsPending.value ? undefined : state.defaultModel || undefined),
-  set: (v) => { if (v) state.defaultModel = v; },
+  get: () => (modelsPending.value ? undefined : state.defaultTextModel || undefined),
+  set: (v) => { if (v) state.defaultTextModel = v; },
 });
 
 const modelItems = computed(() =>
@@ -57,7 +57,7 @@ const modelItems = computed(() =>
 );
 
 const selectedModel = computed(() =>
-  (models.value ?? []).find(m => m.id === state.defaultModel) ?? null,
+  (models.value ?? []).find(m => m.id === state.defaultTextModel) ?? null,
 );
 
 const promptCharCount = computed(() => state.systemPrompt.length);
@@ -106,7 +106,7 @@ const onSubmit = () => {
 
     <UFormField
       label="Default model"
-      name="defaultModel"
+      name="defaultTextModel"
       help="The AI model that generates this agent's replies."
     >
       <USelectMenu
@@ -167,7 +167,7 @@ const onSubmit = () => {
             />
           </UTooltip>
           <div
-            v-if="state.defaultModel !== item.value"
+            v-if="state.defaultTextModel !== item.value"
             class="size-5 shrink-0"
             aria-hidden="true"
           />

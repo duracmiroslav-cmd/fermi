@@ -170,7 +170,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
-          default_model: string | null
+          default_text_model: string | null
           deleted_at: string | null
           id: string
           is_default: boolean
@@ -182,7 +182,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
-          default_model?: string | null
+          default_text_model?: string | null
           deleted_at?: string | null
           id?: string
           is_default?: boolean
@@ -194,7 +194,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
-          default_model?: string | null
+          default_text_model?: string | null
           deleted_at?: string | null
           id?: string
           is_default?: boolean
@@ -506,7 +506,7 @@ export type Database = {
       insert_agent_if_under_limit: {
         Args: {
           p_avatar_url: string
-          p_default_model: string
+          p_default_text_model: string
           p_limit: number
           p_name: string
           p_owner_id: string

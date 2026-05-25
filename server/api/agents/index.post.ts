@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
     p_owner_id: user.id,
     p_name: input.name,
     p_system_prompt: input.systemPrompt ?? null,
-    p_default_model: input.defaultModel ?? null,
+    p_default_text_model: input.defaultTextModel ?? null,
     p_avatar_url: input.avatarUrl ?? null,
     p_limit: limit,
   });
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
     id: agent.id,
     name: input.name,
     systemPrompt: input.systemPrompt ?? null,
-    defaultModel: input.defaultModel ?? null,
+    defaultTextModel: input.defaultTextModel ?? null,
     avatarUrl: input.avatarUrl ?? null,
   };
 });

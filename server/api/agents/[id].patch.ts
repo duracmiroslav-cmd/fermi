@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const patch: Record<string, unknown> = {};
   if ('name' in input) patch.name = input.name;
   if ('systemPrompt' in input) patch.system_prompt = input.systemPrompt;
-  if ('defaultModel' in input) patch.default_model = input.defaultModel;
+  if ('defaultTextModel' in input) patch.default_text_model = input.defaultTextModel;
   if ('avatarUrl' in input) patch.avatar_url = input.avatarUrl;
 
   if (Object.keys(patch).length === 0) {
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
     .eq('id', id)
     .eq('owner_id', user.id)
     .is('deleted_at', null)
-    .select('id, name, system_prompt, default_model, avatar_url, updated_at')
+    .select('id, name, system_prompt, default_text_model, avatar_url, updated_at')
     .maybeSingle();
   if (error) throw error;
   if (!data) {
@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
     id: data.id,
     name: data.name,
     systemPrompt: data.system_prompt,
-    defaultModel: data.default_model,
+    defaultTextModel: data.default_text_model,
     avatarUrl: data.avatar_url,
     updatedAt: data.updated_at,
   };
