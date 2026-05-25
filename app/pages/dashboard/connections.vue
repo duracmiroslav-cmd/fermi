@@ -52,7 +52,7 @@ const disconnect = async () => {
         <DashboardBreadcrumb :items="[{ label: 'Connections' }]" />
       </template>
 
-      <div class="p-6 sm:p-8 pb-12 max-w-3xl flex flex-col gap-8">
+      <DashboardContainer>
         <h1 class="text-2xl font-semibold">
           Connections
         </h1>
@@ -102,7 +102,7 @@ const disconnect = async () => {
             </UButton>
           </div>
         </section>
-      </div>
+      </DashboardContainer>
     </NuxtLayout>
   </div>
 </template>
