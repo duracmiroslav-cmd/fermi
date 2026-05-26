@@ -68,15 +68,15 @@ const filteredCards = computed(() => {
 
           <div
             v-if="openrouterPending && !openrouter"
-            class="flex items-center gap-4 p-4 rounded-md ring ring-inset ring-muted bg-elevated/50 animate-pulse"
+            class="flex items-center gap-4 p-4 rounded-md ring ring-inset ring-muted bg-elevated/50"
             aria-busy="true"
           >
-            <div class="size-9 rounded-md bg-muted shrink-0" />
+            <USkeleton class="size-9 rounded-md shrink-0" />
             <div class="flex-1 min-w-0 space-y-1.5">
-              <div class="h-3.5 w-32 rounded bg-muted" />
-              <div class="h-3 w-64 rounded bg-muted/70" />
+              <USkeleton class="h-3.5 w-32" />
+              <USkeleton class="h-3 w-64 bg-muted/70" />
             </div>
-            <div class="h-3 w-20 rounded bg-muted/70 shrink-0" />
+            <USkeleton class="h-3 w-20 bg-muted/70 shrink-0" />
           </div>
 
           <NuxtLink
@@ -158,14 +158,14 @@ const filteredCards = computed(() => {
             <div
               v-for="i in 6"
               :key="i"
-              class="flex items-center gap-4 p-4 rounded-md ring ring-inset ring-muted bg-elevated/50 animate-pulse"
+              class="flex items-center gap-4 p-4 rounded-md ring ring-inset ring-muted bg-elevated/50"
             >
-              <div class="size-5 rounded-full bg-muted shrink-0" />
+              <USkeleton class="size-5 rounded-full shrink-0" />
               <div class="flex-1 min-w-0 space-y-1.5">
-                <div class="h-3.5 w-40 rounded bg-muted" />
-                <div class="h-3 w-64 rounded bg-muted/70" />
+                <USkeleton class="h-3.5 w-40" />
+                <USkeleton class="h-3 w-64 bg-muted/70" />
               </div>
-              <div class="h-3 w-20 rounded bg-muted/70 shrink-0" />
+              <USkeleton class="h-3 w-20 bg-muted/70 shrink-0" />
             </div>
           </div>
 

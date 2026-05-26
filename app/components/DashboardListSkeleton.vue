@@ -19,25 +19,25 @@ const SUBTITLE_WIDTHS = ['w-24', 'w-28', 'w-20'];
     <div
       v-for="i in rows"
       :key="i"
-      class="p-4 rounded-md ring ring-inset ring-muted bg-elevated/50 flex items-center gap-4 animate-pulse"
+      class="p-4 rounded-md ring ring-inset ring-muted bg-elevated/50 flex items-center gap-4"
     >
-      <div class="size-9 rounded-full bg-muted shrink-0" />
+      <USkeleton class="size-9 rounded-full shrink-0" />
       <div class="flex-1 min-w-0">
         <div class="h-6 flex items-center">
-          <div
-            class="h-3.5 rounded bg-muted"
+          <USkeleton
+            class="h-3.5"
             :class="TITLE_WIDTHS[(i - 1) % TITLE_WIDTHS.length]"
           />
         </div>
         <div class="h-5 flex items-center mt-0.5">
-          <div
-            class="h-3 rounded bg-muted/70"
+          <USkeleton
+            class="h-3 bg-muted/70"
             :class="SUBTITLE_WIDTHS[(i - 1) % SUBTITLE_WIDTHS.length]"
           />
         </div>
       </div>
       <div class="h-5 flex items-center shrink-0">
-        <div class="h-3 w-20 rounded bg-muted/70" />
+        <USkeleton class="h-3 w-20 bg-muted/70" />
       </div>
     </div>
   </div>

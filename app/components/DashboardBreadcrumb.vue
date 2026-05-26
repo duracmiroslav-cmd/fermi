@@ -21,7 +21,7 @@ const fullItems = computed<BreadcrumbItem[]>(() => {
 <template>
   <UBreadcrumb :items="fullItems">
     <template #loading>
-      <span class="inline-block h-4 w-24 bg-elevated rounded animate-pulse" />
+      <USkeleton class="inline-block h-4 w-24 bg-elevated" />
     </template>
   </UBreadcrumb>
 </template>

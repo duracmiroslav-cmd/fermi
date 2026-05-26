@@ -100,6 +100,9 @@ export default defineAppConfig({
         trailingIcon: 'size-4!',
       },
     },
+    skeleton: {
+      base: 'animate-pulse rounded bg-muted',
+    },
     switch: {
       slots: {
         base: 'cursor-pointer',
