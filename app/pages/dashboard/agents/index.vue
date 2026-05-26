@@ -94,40 +94,44 @@ const filteredAgents = computed(() => {
             v-else-if="filteredAgents.length"
             class="space-y-2"
           >
-            <BaseCard
+            <NuxtLink
               v-for="agent in filteredAgents"
               :key="agent.id"
               :to="`/dashboard/agents/${agent.id}`"
-              class="group flex items-center gap-4 hover:bg-elevated transition-colors"
+              class="block"
             >
-              <UAvatar
-                :src="agent.avatarUrl ?? undefined"
-                :text="initial(agent.name)"
-                size="lg"
-                color="primary"
-              />
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                  <p class="font-medium truncate">
-                    {{ agent.name }}
-                  </p>
-                  <UBadge
-                    v-if="agent.isDefault"
-                    color="neutral"
-                    variant="subtle"
-                    size="xs"
-                  >
-                    Default
-                  </UBadge>
+              <UCard class="hover:bg-elevated! transition-colors">
+                <div class="flex items-center gap-4">
+                  <UAvatar
+                    :src="agent.avatarUrl ?? undefined"
+                    :text="initial(agent.name)"
+                    size="lg"
+                    color="primary"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <p class="font-medium truncate">
+                        {{ agent.name }}
+                      </p>
+                      <UBadge
+                        v-if="agent.isDefault"
+                        color="neutral"
+                        variant="subtle"
+                        size="xs"
+                      >
+                        Default
+                      </UBadge>
+                    </div>
+                    <p class="text-sm text-toned truncate mt-0.5">
+                      {{ agent.defaultTextModel || '—' }}
+                    </p>
+                  </div>
+                  <span class="text-sm text-toned shrink-0">
+                    <TimeAgo :date="agent.updatedAt" />
+                  </span>
                 </div>
-                <p class="text-sm text-toned truncate mt-0.5">
-                  {{ agent.defaultTextModel || '—' }}
-                </p>
-              </div>
-              <span class="text-sm text-toned shrink-0">
-                <TimeAgo :date="agent.updatedAt" />
-              </span>
-            </BaseCard>
+              </UCard>
+            </NuxtLink>
           </div>
 
           <p

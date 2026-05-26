@@ -121,63 +121,67 @@ const filteredBots = computed(() => {
             v-else-if="filteredBots.length"
             class="space-y-2"
           >
-            <BaseCard
+            <NuxtLink
               v-for="bot in filteredBots"
               :key="bot.id"
               :to="`/dashboard/bots/${bot.id}`"
-              class="group flex items-center gap-4 hover:bg-elevated transition-colors"
+              class="block"
             >
-              <div class="relative shrink-0">
-                <UAvatar
-                  v-if="bot.avatarUrl"
-                  :src="bot.avatarUrl"
-                  :text="initial(bot.displayName)"
-                  size="lg"
-                />
-                <UTooltip
-                  v-else
-                  text="Sync avatar from LINE"
-                >
-                  <button
-                    type="button"
-                    :disabled="syncingId === bot.id"
-                    class="relative size-9 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors group disabled:opacity-60 cursor-pointer"
-                    @click.stop.prevent="syncAvatar(bot.id)"
-                  >
-                    <UIcon
-                      v-if="syncingId === bot.id"
-                      name="i-lucide-loader-circle"
-                      class="absolute inset-0 m-auto size-4 text-primary animate-spin"
+              <UCard class="hover:bg-elevated! transition-colors">
+                <div class="flex items-center gap-4">
+                  <div class="relative shrink-0">
+                    <UAvatar
+                      v-if="bot.avatarUrl"
+                      :src="bot.avatarUrl"
+                      :text="initial(bot.displayName)"
+                      size="lg"
                     />
-                    <template v-else>
-                      <span class="absolute inset-0 flex items-center justify-center font-mono text-sm font-semibold text-primary transition-opacity group-hover:opacity-0">
-                        {{ initial(bot.displayName) }}
-                      </span>
-                      <UIcon
-                        name="i-lucide-refresh-cw"
-                        class="absolute inset-0 m-auto size-3.5 text-primary opacity-0 transition-opacity group-hover:opacity-100"
-                      />
-                    </template>
-                  </button>
-                </UTooltip>
-                <span
-                  class="absolute bottom-0 right-0 size-3 rounded-full ring-2 ring-default"
-                  :class="STATUS_DOT[statusOf(bot)]"
-                  :aria-label="STATUS_LABEL[statusOf(bot)]"
-                />
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="font-medium truncate">
-                  {{ bot.displayName || '(unnamed)' }}
-                </p>
-                <p class="text-sm text-toned truncate mt-0.5">
-                  {{ bot.platform }} · {{ STATUS_LABEL[statusOf(bot)] }}
-                </p>
-              </div>
-              <span class="text-sm text-toned shrink-0">
-                <TimeAgo :date="bot.createdAt" />
-              </span>
-            </BaseCard>
+                    <UTooltip
+                      v-else
+                      text="Sync avatar from LINE"
+                    >
+                      <button
+                        type="button"
+                        :disabled="syncingId === bot.id"
+                        class="relative size-9 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors group disabled:opacity-60 cursor-pointer"
+                        @click.stop.prevent="syncAvatar(bot.id)"
+                      >
+                        <UIcon
+                          v-if="syncingId === bot.id"
+                          name="i-lucide-loader-circle"
+                          class="absolute inset-0 m-auto size-4 text-primary animate-spin"
+                        />
+                        <template v-else>
+                          <span class="absolute inset-0 flex items-center justify-center font-mono text-sm font-semibold text-primary transition-opacity group-hover:opacity-0">
+                            {{ initial(bot.displayName) }}
+                          </span>
+                          <UIcon
+                            name="i-lucide-refresh-cw"
+                            class="absolute inset-0 m-auto size-3.5 text-primary opacity-0 transition-opacity group-hover:opacity-100"
+                          />
+                        </template>
+                      </button>
+                    </UTooltip>
+                    <span
+                      class="absolute bottom-0 right-0 size-3 rounded-full ring-2 ring-default"
+                      :class="STATUS_DOT[statusOf(bot)]"
+                      :aria-label="STATUS_LABEL[statusOf(bot)]"
+                    />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="font-medium truncate">
+                      {{ bot.displayName || '(unnamed)' }}
+                    </p>
+                    <p class="text-sm text-toned truncate mt-0.5">
+                      {{ bot.platform }} · {{ STATUS_LABEL[statusOf(bot)] }}
+                    </p>
+                  </div>
+                  <span class="text-sm text-toned shrink-0">
+                    <TimeAgo :date="bot.createdAt" />
+                  </span>
+                </div>
+              </UCard>
+            </NuxtLink>
           </div>
 
           <p
