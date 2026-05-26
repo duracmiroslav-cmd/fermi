@@ -1,4 +1,3 @@
-Initialising login role...
 export type Json =
   | string
   | number
@@ -217,6 +216,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           is_default: boolean
+          model_provider_id: string
           name: string
           owner_id: string
           system_prompt: string | null
@@ -229,6 +229,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_default?: boolean
+          model_provider_id: string
           name: string
           owner_id: string
           system_prompt?: string | null
@@ -241,12 +242,20 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_default?: boolean
+          model_provider_id?: string
           name?: string
           owner_id?: string
           system_prompt?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "agents_model_provider_id_fkey"
+            columns: ["model_provider_id"]
+            isOneToOne: false
+            referencedRelation: "model_providers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "agents_owner_id_fkey"
             columns: ["owner_id"]
@@ -265,10 +274,13 @@ export type Database = {
           disabled_at: string | null
           display_name: string | null
           external_id: string
+          first_replied_at: string | null
+          handle: string | null
           id: string
           owner_id: string
           platform: string
           updated_at: string
+          webhook_verified_at: string | null
         }
         Insert: {
           agent_id: string
@@ -278,10 +290,13 @@ export type Database = {
           disabled_at?: string | null
           display_name?: string | null
           external_id: string
+          first_replied_at?: string | null
+          handle?: string | null
           id?: string
           owner_id: string
           platform?: string
           updated_at?: string
+          webhook_verified_at?: string | null
         }
         Update: {
           agent_id?: string
@@ -291,10 +306,13 @@ export type Database = {
           disabled_at?: string | null
           display_name?: string | null
           external_id?: string
+          first_replied_at?: string | null
+          handle?: string | null
           id?: string
           owner_id?: string
           platform?: string
           updated_at?: string
+          webhook_verified_at?: string | null
         }
         Relationships: [
           {
@@ -488,6 +506,42 @@ export type Database = {
           },
         ]
       }
+      model_providers: {
+        Row: {
+          connect_type: string
+          created_at: string
+          credential_key_type: string
+          display_name: string
+          id: string
+          routing_type: string
+          slug: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          connect_type: string
+          created_at?: string
+          credential_key_type: string
+          display_name: string
+          id?: string
+          routing_type: string
+          slug: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          connect_type?: string
+          created_at?: string
+          credential_key_type?: string
+          display_name?: string
+          id?: string
+          routing_type?: string
+          slug?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       threads: {
         Row: {
           bot_id: string
@@ -614,6 +668,7 @@ export type Database = {
           p_avatar_url: string
           p_default_text_model: string
           p_limit: number
+          p_model_provider_id: string
           p_name: string
           p_owner_id: string
           p_system_prompt: string
@@ -779,6 +834,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-<claude-code-hint v="1" type="plugin" value="supabase@claude-plugins-official" />
-A new version of Supabase CLI is available: v2.101.0 (currently installed v2.98.2)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

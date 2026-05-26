@@ -19,6 +19,7 @@ export default defineEventHandler(async (event) => {
   if ('name' in input) patch.name = input.name;
   if ('systemPrompt' in input) patch.system_prompt = input.systemPrompt;
   if ('defaultTextModel' in input) patch.default_text_model = input.defaultTextModel;
+  if ('modelProviderId' in input) patch.model_provider_id = input.modelProviderId;
   if ('avatarUrl' in input) patch.avatar_url = input.avatarUrl;
 
   if (Object.keys(patch).length === 0) {
@@ -32,7 +33,7 @@ export default defineEventHandler(async (event) => {
     .eq('id', id)
     .eq('owner_id', user.id)
     .is('deleted_at', null)
-    .select('id, name, system_prompt, default_text_model, avatar_url, updated_at')
+    .select('id, name, system_prompt, default_text_model, model_provider_id, avatar_url, updated_at')
     .maybeSingle();
   if (error) throw error;
   if (!data) {
@@ -44,6 +45,7 @@ export default defineEventHandler(async (event) => {
     name: data.name,
     systemPrompt: data.system_prompt,
     defaultTextModel: data.default_text_model,
+    modelProviderId: data.model_provider_id,
     avatarUrl: data.avatar_url,
     updatedAt: data.updated_at,
   };

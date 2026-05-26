@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const admin = useSupabaseAdmin();
   const { data, error } = await admin
     .from('agents')
-    .select('id, name, system_prompt, default_text_model, avatar_url, is_default, created_at, updated_at')
+    .select('id, name, system_prompt, default_text_model, model_provider_id, avatar_url, is_default, created_at, updated_at')
     .eq('id', id)
     .eq('owner_id', user.id)
     .is('deleted_at', null)
@@ -31,6 +31,7 @@ export default defineEventHandler(async (event) => {
     name: data.name,
     systemPrompt: data.system_prompt,
     defaultTextModel: data.default_text_model,
+    modelProviderId: data.model_provider_id,
     avatarUrl: data.avatar_url,
     isDefault: data.is_default,
     createdAt: data.created_at,

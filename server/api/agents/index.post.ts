@@ -19,11 +19,27 @@ export default defineEventHandler(async (event) => {
   if (userErr) throw userErr;
   const limit = AGENT_LIMIT[userRow.tier as Tier];
 
+  // Resolve modelProviderId. Callers can omit it (pre-BYOK API shape)
+  // and we land on OpenRouter to match the previous default. The
+  // catalog lookup runs only on the unset path so the common case
+  // (caller already knows the provider id) stays a single round-trip.
+  let modelProviderId = input.modelProviderId;
+  if (!modelProviderId) {
+    const { data: provider, error: providerErr } = await admin
+      .from('model_providers')
+      .select('id')
+      .eq('slug', 'openrouter')
+      .single();
+    if (providerErr) throw providerErr;
+    modelProviderId = provider.id;
+  }
+
   const { data: rows, error: insertErr } = await admin.rpc('insert_agent_if_under_limit', {
     p_owner_id: user.id,
     p_name: input.name,
     p_system_prompt: input.systemPrompt ?? null,
     p_default_text_model: input.defaultTextModel ?? null,
+    p_model_provider_id: modelProviderId,
     p_avatar_url: input.avatarUrl ?? null,
     p_limit: limit,
   });
@@ -46,6 +62,7 @@ export default defineEventHandler(async (event) => {
     name: input.name,
     systemPrompt: input.systemPrompt ?? null,
     defaultTextModel: input.defaultTextModel ?? null,
+    modelProviderId,
     avatarUrl: input.avatarUrl ?? null,
   };
 });
