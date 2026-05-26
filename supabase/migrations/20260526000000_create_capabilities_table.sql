@@ -59,12 +59,21 @@ create policy "Users can view available capabilities." on public.capabilities
 -- this hold even if RLS were ever disabled on the table.
 revoke insert, update, delete on public.capabilities from authenticated;
 
--- Seed the 5 builtin MCP servers fermi ships with. `slug` is the
--- key the agent loader uses to find the in-process implementation
--- under `supabase/functions/agent/tools/{slug}.ts`. `description` is
--- what the LLM reads to decide whether to invoke the tool, so keep
--- it focused on "when to use" rather than "what it does".
+-- Seed the builtin MCP servers fermi ships with. `slug` is the key
+-- the agent loader uses to find the in-process implementation under
+-- `supabase/functions/agent/tools/{slug}.ts`. `description` is what
+-- the LLM reads to decide whether to invoke the tool, so keep it
+-- focused on "when to use" rather than "what it does".
+--
+-- Naming convention: nouns, not verbs (a capability is an integration,
+-- not an action). Use the provider name when there's one dominant
+-- provider with its own OAuth (github, notion, google-calendar — Apple
+-- Calendar would be a separate capability with its own OAuth flow).
+-- Use the domain name when providers are swappable (web-search can be
+-- backed by Tavily / Brave / Bing without changing the surface).
 insert into public.capabilities (type, slug, display_name, description) values
+  ('mcp', 'time', 'Time',
+   'Get the current wall-clock time in any IANA timezone (e.g. "Asia/Taipei", "UTC"). Use whenever the answer depends on the current moment — today''s date, current time, age of a recent event.'),
   ('mcp', 'web-search', 'Web search',
    'Search the web for current information beyond the model''s training cutoff. Returns ranked titles, snippets, and URLs.'),
   ('mcp', 'web-fetch', 'Web fetch',

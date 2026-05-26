@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getCurrentTime } from './get-current-time.ts';
+import { getCurrentTime } from './time.ts';
 import { webSearch } from './web-search.ts';
 
 // Per-call context passed to every tool so they can load the bot
