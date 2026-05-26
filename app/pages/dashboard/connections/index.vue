@@ -68,13 +68,17 @@ const filteredCards = computed(() => {
 
           <div
             v-if="openrouterPending && !openrouter"
-            class="flex items-center gap-4 p-4 rounded-md ring ring-inset ring-muted bg-elevated/50"
+            class="flex items-center gap-4 p-4 sm:p-6 rounded-md ring ring-inset ring-muted bg-elevated/50"
             aria-busy="true"
           >
             <USkeleton class="size-9 rounded-md shrink-0" />
-            <div class="flex-1 min-w-0 space-y-1.5">
-              <USkeleton class="h-3.5 w-32" />
-              <USkeleton class="h-3 w-64 bg-muted/70" />
+            <div class="flex-1 min-w-0">
+              <div class="h-6 flex items-center">
+                <USkeleton class="h-3.5 w-32" />
+              </div>
+              <div class="h-5 flex items-center">
+                <USkeleton class="h-3 w-64 bg-muted/70" />
+              </div>
             </div>
             <USkeleton class="h-3 w-20 bg-muted/70 shrink-0" />
           </div>
@@ -158,12 +162,16 @@ const filteredCards = computed(() => {
             <div
               v-for="i in 6"
               :key="i"
-              class="flex items-center gap-4 p-4 rounded-md ring ring-inset ring-muted bg-elevated/50"
+              class="flex items-center gap-4 p-4 sm:p-6 rounded-md ring ring-inset ring-muted bg-elevated/50"
             >
-              <USkeleton class="size-5 rounded-full shrink-0" />
-              <div class="flex-1 min-w-0 space-y-1.5">
-                <USkeleton class="h-3.5 w-40" />
-                <USkeleton class="h-3 w-64 bg-muted/70" />
+              <USkeleton class="size-9 rounded-md shrink-0" />
+              <div class="flex-1 min-w-0">
+                <div class="h-6 flex items-center">
+                  <USkeleton class="h-3.5 w-40" />
+                </div>
+                <div class="h-5 flex items-center">
+                  <USkeleton class="h-3 w-64 bg-muted/70" />
+                </div>
               </div>
               <USkeleton class="h-3 w-20 bg-muted/70 shrink-0" />
             </div>

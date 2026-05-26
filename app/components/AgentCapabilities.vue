@@ -23,6 +23,9 @@ const iconBySlug: Record<string, string> = {
 };
 const iconFor = (slug: string) => iconBySlug[slug] ?? 'i-lucide-puzzle';
 
+const CAP_WIDTHS = ['w-24', 'w-32', 'w-20', 'w-28'];
+const CAP_DESC_WIDTHS = ['w-48', 'w-40', 'w-52', 'w-44'];
+
 // Toggle is locked when the capability has no live credential to call
 // against — coming-soon entries, or providers-backed entries where the
 // user hasn't connected any provider. Already-attached rows stay
@@ -85,7 +88,28 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
       </UButton>
     </template>
 
-    <DashboardCardSkeleton v-if="pending && !rows" />
+    <div
+      v-if="pending && !rows"
+      class="rounded-md ring ring-inset ring-muted bg-elevated/50 divide-y divide-default"
+      aria-busy="true"
+    >
+      <div
+        v-for="i in 4"
+        :key="i"
+        class="flex items-center gap-4 p-4"
+      >
+        <USkeleton class="size-5 shrink-0" />
+        <div class="flex-1 min-w-0">
+          <div class="h-5 flex items-center">
+            <USkeleton class="h-3" :class="CAP_WIDTHS[(i - 1) % CAP_WIDTHS.length]" />
+          </div>
+          <div class="h-5 flex items-center">
+            <USkeleton class="h-3 bg-muted/70" :class="CAP_DESC_WIDTHS[(i - 1) % CAP_DESC_WIDTHS.length]" />
+          </div>
+        </div>
+        <USkeleton class="h-5 w-9 rounded-full shrink-0" />
+      </div>
+    </div>
 
     <div
       v-else

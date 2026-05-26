@@ -86,7 +86,11 @@ Single-mode project. Never write `dark:` prefix. Color mode is forced to dark in
 
 If the same layout class string appears in ≥3 pages, extract to a `BaseXxx` component in `app/components/`.
 
-- **`<BaseCard>`** — `p-4 rounded-md ring ring-inset ring-muted bg-elevated/50`. Pass `:to` to render as `<NuxtLink>`, omit for `<div>`. Extra classes flow through.
+### Cards
+
+Use `<UCard>` directly. The `fermi` variant is the global default, giving every card `bg-elevated/50 rounded-md ring ring-inset ring-muted divide-y divide-muted`.
+
+For navigable cards, wrap with `<NuxtLink class="block">`. For conditional navigation (linkable vs static in a list), resolve via `resolveComponent('NuxtLink')` in script and use `<component :is="isLinkable ? NuxtLink : 'div'">`.
 
 ## Skeletons
 
@@ -99,12 +103,12 @@ Text has two heights: **font size** (the ink) and **line-height** (the box the l
 ```vue
 <!-- Mimics <p class="text-base font-medium"> -->
 <div class="h-6 flex items-center">
-  <div class="h-3.5 w-40 rounded bg-muted" />
+  <USkeleton class="h-3.5 w-40" />
 </div>
 
 <!-- Mimics <p class="text-sm"> -->
 <div class="h-5 flex items-center">
-  <div class="h-3 w-24 rounded bg-muted/70" />
+  <USkeleton class="h-3 w-24 bg-muted/70" />
 </div>
 ```
 
@@ -124,13 +128,13 @@ Use the real component's classes for outer shape and padding, so horizontal posi
 
 | Real element | Skeleton equivalent |
 |---|---|
-| `<UCard>` outer | `rounded-md ring ring-inset ring-muted bg-elevated/50 divide-y divide-default` |
+| `<UCard>` outer | `rounded-md ring ring-inset ring-muted bg-elevated/50 divide-y divide-muted` |
 | `<UCard>` header padding | `p-4 sm:px-6` |
 | `<UCard>` body padding | `p-4 sm:p-6` |
-| List card row | `p-4 rounded-md ring ring-inset ring-muted bg-elevated/50` |
-| `<UAvatar size="lg">` | `size-9 rounded-full bg-muted` |
-| `<UInput>` md | `h-9 rounded-md bg-muted/40` |
-| `<UButton>` md | `h-9 w-X rounded-md bg-muted/60` |
+| List card row | `p-4 sm:p-6 rounded-md ring ring-inset ring-muted bg-elevated/50` |
+| `<UAvatar size="lg">` | `<USkeleton class="size-9 rounded-full" />` |
+| `<UInput>` md | `<USkeleton class="h-9 rounded-md bg-muted/40" />` |
+| `<UButton>` md | `<USkeleton class="h-9 w-X rounded-md bg-muted/60" />` |
 
 ### Deterministic widths for variety
 
@@ -143,7 +147,6 @@ When the loaded content can render at different sizes (connected vs disconnected
 ### Existing patterns
 
 - `app/components/DashboardListSkeleton.vue` — list row with avatar + 2-line text + trailing meta
-- `app/components/DashboardCardSkeleton.vue` — UCard with header + 2-line description + form row + helper
 
 ## `<script setup>` ordering
 

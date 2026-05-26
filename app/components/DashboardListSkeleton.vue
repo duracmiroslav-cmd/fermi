@@ -19,7 +19,7 @@ const SUBTITLE_WIDTHS = ['w-24', 'w-28', 'w-20'];
     <div
       v-for="i in rows"
       :key="i"
-      class="p-4 rounded-md ring ring-inset ring-muted bg-elevated/50 flex items-center gap-4"
+      class="p-4 sm:p-6 rounded-md ring ring-inset ring-muted bg-elevated/50 flex items-center gap-4"
     >
       <USkeleton class="size-9 rounded-full shrink-0" />
       <div class="flex-1 min-w-0">
