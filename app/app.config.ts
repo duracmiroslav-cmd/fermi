@@ -32,6 +32,8 @@ export default defineAppConfig({
     button: {
       slots: {
         base: 'cursor-pointer',
+        leadingIcon: 'size-4!',
+        trailingIcon: 'size-4!',
       },
     },
     card: {

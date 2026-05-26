@@ -47,12 +47,13 @@ export default defineEventHandler(async (event) => {
   const patch = {
     display_name: botInfo.displayName,
     avatar_url: botInfo.pictureUrl ?? null,
+    handle: botInfo.basicId ?? null,
   };
   const { data: updated, error: updateErr } = await admin
     .from('bots')
     .update(patch)
     .eq('id', bot.id)
-    .select('id, display_name, avatar_url')
+    .select('id, display_name, avatar_url, handle')
     .single();
   if (updateErr) throw updateErr;
 
@@ -60,5 +61,6 @@ export default defineEventHandler(async (event) => {
     id: updated.id,
     displayName: updated.display_name,
     avatarUrl: updated.avatar_url,
+    handle: updated.handle,
   };
 });

@@ -34,6 +34,42 @@ export const verifyLineBot = async (channelAccessToken: string): Promise<messagi
   }
 };
 
+// Pushes fermi's webhook URL to the LINE channel via Messaging API
+// (PUT /v2/bot/channel/webhook/endpoint). Replaces the manual paste
+// step in LINE Developer Console.
+export const setLineWebhookEndpoint = async (
+  channelAccessToken: string,
+  endpoint: string,
+): Promise<void> => {
+  const client = new messagingApi.MessagingApiClient({ channelAccessToken });
+  try {
+    await client.setWebhookEndpoint({ endpoint });
+  } catch (err) {
+    throw createError({
+      statusCode: 502,
+      statusMessage: (err as { message?: string }).message ?? 'Failed to push webhook URL to LINE',
+    });
+  }
+};
+
+// Asks LINE to POST a signed test event to fermi's webhook URL
+// (POST /v2/bot/channel/webhook/test). On success the webhook handler
+// observes a signed request and sets `webhook_verified_at` as a side
+// effect, which is how the bot info checklist learns about completion.
+export const testLineWebhookEndpoint = async (
+  channelAccessToken: string,
+): Promise<messagingApi.TestWebhookEndpointResponse> => {
+  const client = new messagingApi.MessagingApiClient({ channelAccessToken });
+  try {
+    return await client.testWebhookEndpoint();
+  } catch (err) {
+    throw createError({
+      statusCode: 502,
+      statusMessage: (err as { message?: string }).message ?? 'LINE webhook test failed',
+    });
+  }
+};
+
 export interface ConnectedBot {
   id: string;
   platform: 'line';
@@ -144,12 +180,17 @@ export const connectLineBot = async (
     throw err;
   }
 
-  // Best-effort avatar capture. LINE Official Accounts without a profile picture
+  // Capture handle (the @id for friend-add URL + QR) and avatar in
+  // one round-trip. LINE Official Accounts without a profile picture
   // leave pictureUrl undefined; a save failure here just means the
   // dashboard shows a "sync avatar" button until the owner clicks it.
-  if (botInfo.pictureUrl) {
-    await admin.from('bots').update({ avatar_url: botInfo.pictureUrl }).eq('id', bot.id);
-  }
+  await admin
+    .from('bots')
+    .update({
+      handle: botInfo.basicId ?? null,
+      avatar_url: botInfo.pictureUrl ?? null,
+    })
+    .eq('id', bot.id);
 
   const url = getRequestURL(event);
   return {

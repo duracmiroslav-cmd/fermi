@@ -18,26 +18,13 @@ interface BotDetail {
 const route = useRoute();
 const notify = useNotify();
 
-const { data: bot, error, refresh, pending } = useApiFetch<BotDetail>(
+const { data: bot, error, pending } = useApiFetch<BotDetail>(
   () => `/api/bots/${route.params.id}`,
 );
 
 const saving = ref(false);
 const deleting = ref(false);
 const deleteDialogOpen = ref(false);
-const webhookCopied = ref(false);
-
-const { syncingId, sync: syncFromLine } = useBotAvatar(refresh);
-const syncing = computed(() => syncingId.value !== null);
-
-const copyWebhook = async () => {
-  if (!bot.value) return;
-  await navigator.clipboard.writeText(bot.value.webhookUrl);
-  webhookCopied.value = true;
-  setTimeout(() => {
-    webhookCopied.value = false;
-  }, 1500);
-};
 
 const onSubmit = async (value: { agentId: string; disabledAt: string | null }) => {
   saving.value = true;
@@ -47,7 +34,7 @@ const onSubmit = async (value: { agentId: string; disabledAt: string | null }) =
       body: value,
     });
     notify.success('Bot updated');
-    await navigateTo('/dashboard/bots');
+    await navigateTo(`/dashboard/bots/${route.params.id}`);
   } catch (e) {
     notify.error('Update failed', e);
   } finally {
@@ -75,7 +62,8 @@ const onDelete = async () => {
         <DashboardBreadcrumb
           :items="[
             { label: 'Bots', to: '/dashboard/bots' },
-            { label: bot?.displayName ?? '' },
+            { label: bot?.displayName ?? '', to: `/dashboard/bots/${route.params.id}` },
+            { label: 'Edit' },
           ]"
           :loading="!bot"
         />
@@ -85,6 +73,13 @@ const onDelete = async () => {
         v-if="bot"
         #actions
       >
+        <UButton
+          :to="`/dashboard/bots/${bot.id}`"
+          color="neutral"
+          variant="ghost"
+        >
+          Cancel
+        </UButton>
         <UButton
           type="submit"
           form="bot-form"
@@ -110,62 +105,6 @@ const onDelete = async () => {
       </DashboardContainer>
 
       <DashboardContainer v-if="bot">
-        <div class="flex items-center gap-4">
-          <UAvatar
-            v-if="bot.avatarUrl"
-            :src="bot.avatarUrl"
-            size="3xl"
-          />
-          <UTooltip
-            v-else
-            text="Sync avatar from LINE"
-          >
-            <button
-              type="button"
-              :disabled="syncing"
-              class="relative size-12 shrink-0 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors group disabled:opacity-60 cursor-pointer"
-              @click.stop.prevent="syncFromLine(bot.id)"
-            >
-              <UIcon
-                v-if="syncing"
-                name="i-lucide-loader-circle"
-                class="absolute inset-0 m-auto size-5 text-primary animate-spin"
-              />
-              <template v-else>
-                <span class="absolute inset-0 flex items-center justify-center font-mono text-xl font-semibold text-primary transition-opacity group-hover:opacity-0">
-                  {{ (bot.displayName ?? '?').charAt(0).toUpperCase() }}
-                </span>
-                <UIcon
-                  name="i-lucide-refresh-cw"
-                  class="absolute inset-0 m-auto size-5 text-primary opacity-0 transition-opacity group-hover:opacity-100"
-                />
-              </template>
-            </button>
-          </UTooltip>
-          <h1 class="text-2xl font-semibold truncate">
-            {{ bot.displayName || '(unnamed)' }}
-          </h1>
-        </div>
-
-        <UFormField
-          label="Webhook URL"
-          help="Paste this under &quot;Webhook settings&quot; in your LINE channel&apos;s &quot;Messaging API&quot; tab, then turn on &quot;Use webhook&quot;."
-        >
-          <div class="flex items-center gap-2 p-3 rounded-md ring ring-inset ring-muted bg-elevated/50">
-            <code class="flex-1 font-mono text-sm text-highlighted truncate select-all">
-              {{ bot.webhookUrl }}
-            </code>
-            <UButton
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              :icon="webhookCopied ? 'i-lucide-check' : 'i-lucide-copy'"
-              :aria-label="webhookCopied ? 'Copied' : 'Copy webhook URL'"
-              @click="copyWebhook"
-            />
-          </div>
-        </UFormField>
-
         <BotEditForm
           form-id="bot-form"
           :initial-value="{
@@ -174,31 +113,6 @@ const onDelete = async () => {
           }"
           @submit="onSubmit"
         />
-
-        <UFormField label="Details">
-          <BaseCard>
-            <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-              <dt class="text-toned text-right">
-                External ID
-              </dt>
-              <dd class="text-highlighted break-all">
-                {{ bot.externalId }}
-              </dd>
-              <dt class="text-toned text-right">
-                Created
-              </dt>
-              <dd class="text-highlighted">
-                <TimeAgo :date="bot.createdAt" />
-              </dd>
-              <dt class="text-toned text-right">
-                Updated
-              </dt>
-              <dd class="text-highlighted">
-                <TimeAgo :date="bot.updatedAt" />
-              </dd>
-            </dl>
-          </BaseCard>
-        </UFormField>
 
         <section>
           <h2 class="text-sm font-medium text-error mb-3">

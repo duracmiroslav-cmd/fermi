@@ -89,6 +89,20 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: 'Invalid signature' });
   }
 
+  // First signed webhook for this bot proves end-to-end setup
+  // (URL reachable, secret matches, LINE-side webhook enabled).
+  // Filter on `webhook_verified_at is null` keeps the write idempotent
+  // so later events don't overwrite the original timestamp. Fire-and-
+  // forget — must not block the 1-second response window LINE owes.
+  void admin
+    .from('bots')
+    .update({ webhook_verified_at: new Date().toISOString() })
+    .eq('id', bot.id)
+    .is('webhook_verified_at', null)
+    .then(({ error: touchErr }) => {
+      if (touchErr) console.error('webhook_verified_at touch failed', touchErr);
+    });
+
   // Prime the LINE typing indicator before the agent loop even starts.
   // pg_cron drain can lag the worker by up to its tick interval (~8s);
   // firing here makes the "..." appear within tens of ms of the user

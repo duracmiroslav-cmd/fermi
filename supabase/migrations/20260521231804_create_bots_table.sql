@@ -5,17 +5,20 @@
 -- One agent : N bots (a single persona can run on multiple LINE OAs).
 
 create table public.bots (
-  id            uuid primary key default gen_random_uuid(),
-  owner_id      uuid not null references public.users(id) on delete cascade,
-  agent_id      uuid not null references public.agents(id) on delete restrict,
-  platform      text not null default 'line' check (platform in ('line')),
-  external_id   text not null,
-  display_name  text,
-  avatar_url    text,
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now(),
-  disabled_at   timestamptz,
-  deleted_at    timestamptz
+  id                  uuid primary key default gen_random_uuid(),
+  owner_id            uuid not null references public.users(id) on delete cascade,
+  agent_id            uuid not null references public.agents(id) on delete restrict,
+  platform            text not null default 'line' check (platform in ('line')),
+  external_id         text not null,
+  handle              text,
+  display_name        text,
+  avatar_url          text,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+  disabled_at         timestamptz,
+  webhook_verified_at timestamptz,
+  first_replied_at    timestamptz,
+  deleted_at          timestamptz
 );
 
 -- Soft-deleted rows release the (platform, external_id) key so a
