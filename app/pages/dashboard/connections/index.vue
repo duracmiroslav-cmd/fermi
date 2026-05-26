@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { CapabilityRow } from '~~/server/utils/capabilities';
+
 definePageMeta({ layout: false });
 
 interface OpenRouterStatus {
@@ -8,41 +10,31 @@ interface OpenRouterStatus {
   connectedAt?: string;
 }
 
-interface TavilyStatus {
-  connected: boolean;
-  maskedKey?: string | null;
-  connectedAt?: string;
-}
-
 const {
   data: openrouter,
   pending: openrouterPending,
-  isDisconnecting: openrouterDisconnecting,
-  disconnect: disconnectOpenRouter,
-} = useConnection<OpenRouterStatus>('/api/oauth/openrouter', 'OpenRouter');
+} = useApiFetch<OpenRouterStatus>('/api/oauth/openrouter');
 
 const {
-  data: tavily,
-  pending: tavilyPending,
-  isConnecting: tavilyConnecting,
-  isDisconnecting: tavilyDisconnecting,
-  runConnect: runTavilyConnect,
-  disconnect: disconnectTavily,
-} = useConnection<TavilyStatus>('/api/connections/tavily', 'Tavily');
+  data: capabilities,
+  pending: capabilitiesPending,
+} = useApiFetch<CapabilityRow[]>('/api/capabilities');
 
-useOAuthCallback('openrouter', 'OpenRouter');
+const searchQuery = ref('');
 
-const tavilyKey = ref('');
+const flatCards = computed(() => flattenCapabilities(capabilities.value ?? []));
 
-const onOpenRouterConnect = () => {
-  window.location.href = '/api/oauth/openrouter/start';
-};
+// Only actionable rows (connected/available) get linked to their detail
+// page; coming-soon and no-credential-needed rows render as static
+// surfaces so users don't navigate into a dead-end.
+const isLinkable = (card: FlatCard) =>
+  card.status === 'connected' || card.status === 'available';
 
-const onTavilyConnect = async () => {
-  if (!tavilyKey.value) return;
-  const ok = await runTavilyConnect({ apiKey: tavilyKey.value });
-  if (ok) tavilyKey.value = '';
-};
+const filteredCards = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return flatCards.value;
+  return flatCards.value.filter(c => c.searchHaystack.includes(q));
+});
 </script>
 
 <template>
@@ -58,172 +50,191 @@ const onTavilyConnect = async () => {
             Connections
           </h1>
           <p class="text-sm text-toned">
-            Connect the LLM and tools that power your agent. fermi orchestrates, you bring the keys.
+            Wire up the LLM and capabilities your agents can reach for. Credentials live here. Attach per-agent on each agent's page.
           </p>
         </header>
 
         <section class="flex flex-col gap-3">
           <div class="flex flex-col gap-0.5">
             <h2 class="text-base font-semibold">
-              Models
+              Model providers
             </h2>
             <p class="text-sm text-toned">
               Where every message goes for a response.
             </p>
           </div>
 
-          <DashboardCardSkeleton v-if="openrouterPending" />
-
-          <UCard v-else>
-            <template #header>
-              <div class="flex items-baseline justify-between gap-3">
-                <h3 class="text-base font-medium">
-                  OpenRouter
-                </h3>
-                <span
-                  v-if="openrouter?.connected && openrouter.connectedAt"
-                  class="text-xs text-toned"
-                >
-                  Connected <TimeAgo :date="openrouter.connectedAt" />
-                </span>
-              </div>
-            </template>
-
-            <div class="flex flex-col gap-4">
-              <p class="text-sm text-toned">
-                Every message routes through OpenRouter. Pick from Claude, GPT, Gemini, or 200+ other models. Pay OpenRouter as you go, no minimum, fermi takes no cut.
-              </p>
-
-              <UFormField label="API key">
-                <div class="flex items-end gap-4">
-                  <UInput
-                    :model-value="openrouter?.maskedKey ?? ''"
-                    readonly
-                    icon="i-lucide-key-round"
-                    :placeholder="openrouter?.connected ? 'Reconnect to view key' : 'Not connected'"
-                    autocomplete="off"
-                    class="flex-1 min-w-0"
-                  />
-                  <UButton
-                    v-if="openrouter?.connected"
-                    color="error"
-                    variant="outline"
-                    :loading="openrouterDisconnecting"
-                    @click="disconnectOpenRouter"
-                  >
-                    Disconnect
-                  </UButton>
-                  <UButton
-                    v-else
-                    trailing-icon="i-lucide-arrow-up-right"
-                    @click="onOpenRouterConnect"
-                  >
-                    Connect
-                  </UButton>
-                </div>
-                <template
-                  v-if="!openrouter?.connected"
-                  #help
-                >
-                  New to OpenRouter? Free signup, takes a minute.
-                </template>
-              </UFormField>
+          <div
+            v-if="openrouterPending && !openrouter"
+            class="flex items-center gap-4 p-4 rounded-md ring ring-inset ring-muted bg-elevated/50 animate-pulse"
+            aria-busy="true"
+          >
+            <div class="size-9 rounded-md bg-muted shrink-0" />
+            <div class="flex-1 min-w-0 space-y-1.5">
+              <div class="h-3.5 w-32 rounded bg-muted" />
+              <div class="h-3 w-64 rounded bg-muted/70" />
             </div>
-          </UCard>
+            <div class="h-3 w-20 rounded bg-muted/70 shrink-0" />
+          </div>
+
+          <BaseCard
+            v-else
+            to="/dashboard/connections/openrouter"
+            class="flex items-center gap-4 transition-colors hover:bg-elevated"
+          >
+            <div class="size-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+              <UIcon
+                name="i-simple-icons-openrouter"
+                class="size-5 text-primary"
+              />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium truncate">
+                OpenRouter
+              </p>
+              <p class="text-sm text-toned truncate">
+                Routes messages to Claude, GPT, Gemini, and 200+ other models.
+              </p>
+            </div>
+            <UBadge
+              v-if="openrouter?.connected"
+              color="neutral"
+              variant="subtle"
+              size="sm"
+            >
+              Connected
+            </UBadge>
+            <UBadge
+              v-else
+              color="neutral"
+              variant="subtle"
+              size="sm"
+            >
+              Available
+            </UBadge>
+          </BaseCard>
         </section>
 
         <section class="flex flex-col gap-3">
           <div class="flex flex-col gap-0.5">
             <h2 class="text-base font-semibold">
-              Tools
+              Capabilities
             </h2>
             <p class="text-sm text-toned">
-              Capabilities the agent reaches for beyond chat.
+              Tools your agents can reach for beyond chat. Attach per agent on each agent's page.
             </p>
           </div>
 
-          <DashboardCardSkeleton v-if="tavilyPending" />
-
-          <UCard v-else>
-            <template #header>
-              <div class="flex items-baseline justify-between gap-3">
-                <h3 class="text-base font-medium">
-                  Tavily
-                </h3>
-                <span
-                  v-if="tavily?.connected && tavily.connectedAt"
-                  class="text-xs text-toned"
-                >
-                  Connected <TimeAgo :date="tavily.connectedAt" />
-                </span>
-              </div>
+          <UInput
+            v-model.trim="searchQuery"
+            icon="i-lucide-search"
+            placeholder="Search capabilities..."
+            autocomplete="off"
+          >
+            <template #trailing>
+              <UButton
+                v-if="searchQuery"
+                color="neutral"
+                variant="link"
+                size="sm"
+                icon="i-lucide-x"
+                aria-label="Clear search"
+                @click="searchQuery = ''"
+              />
             </template>
+          </UInput>
 
-            <div class="flex flex-col gap-4">
-              <p class="text-sm text-toned">
-                Your agent queries Tavily when it needs the live web: citing sources, checking fresh facts, anything beyond the model's training data. Free for 1,000 searches a month, no card.
-              </p>
-
-              <UFormField
-                v-if="tavily?.connected"
-                label="API key"
-              >
-                <div class="flex items-end gap-4">
-                  <UInput
-                    :model-value="tavily.maskedKey ?? ''"
-                    readonly
-                    icon="i-lucide-key-round"
-                    placeholder="Reconnect to view key"
-                    autocomplete="off"
-                    class="flex-1 min-w-0"
-                  />
-                  <UButton
-                    color="error"
-                    variant="outline"
-                    :loading="tavilyDisconnecting"
-                    @click="disconnectTavily"
-                  >
-                    Disconnect
-                  </UButton>
-                </div>
-              </UFormField>
-
-              <form
-                v-else
-                @submit.prevent="onTavilyConnect"
-              >
-                <UFormField label="API key">
-                  <div class="flex items-end gap-4">
-                    <UInput
-                      v-model.trim="tavilyKey"
-                      icon="i-lucide-key-round"
-                      placeholder="tvly-..."
-                      type="password"
-                      autocomplete="off"
-                      class="flex-1 min-w-0"
-                    />
-                    <UButton
-                      type="submit"
-                      trailing-icon="i-lucide-arrow-right"
-                      :loading="tavilyConnecting"
-                      :disabled="!tavilyKey.trim()"
-                    >
-                      Connect
-                    </UButton>
-                  </div>
-                  <template #help>
-                    Grab a key at
-                    <a
-                      href="https://app.tavily.com"
-                      target="_blank"
-                      rel="noopener"
-                      class="underline"
-                    >app.tavily.com</a>. 30 seconds, free, no credit card. Paste it back here when you're done.
-                  </template>
-                </UFormField>
-              </form>
+          <div
+            v-if="capabilitiesPending && !capabilities"
+            class="space-y-2"
+            aria-busy="true"
+          >
+            <div
+              v-for="i in 6"
+              :key="i"
+              class="flex items-center gap-4 p-4 rounded-md ring ring-inset ring-muted bg-elevated/50 animate-pulse"
+            >
+              <div class="size-5 rounded-full bg-muted shrink-0" />
+              <div class="flex-1 min-w-0 space-y-1.5">
+                <div class="h-3.5 w-40 rounded bg-muted" />
+                <div class="h-3 w-64 rounded bg-muted/70" />
+              </div>
+              <div class="h-3 w-20 rounded bg-muted/70 shrink-0" />
             </div>
-          </UCard>
+          </div>
+
+          <div
+            v-else-if="filteredCards.length"
+            class="space-y-2"
+          >
+            <BaseCard
+              v-for="card in filteredCards"
+              :key="card.routeSlug"
+              :to="isLinkable(card) ? `/dashboard/connections/${card.routeSlug}` : undefined"
+              :class="[
+                'flex items-center gap-4 transition-colors',
+                isLinkable(card) ? 'hover:bg-elevated' : '',
+              ]"
+            >
+              <div class="size-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                <UIcon
+                  :name="card.icon"
+                  class="size-5 text-primary"
+                />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="font-medium truncate">
+                  {{ card.title }}
+                </p>
+                <p
+                  v-if="card.description"
+                  class="text-sm text-toned truncate"
+                  :title="card.description"
+                >
+                  {{ card.description }}
+                </p>
+              </div>
+              <UBadge
+                v-if="card.status === 'coming_soon'"
+                color="neutral"
+                variant="subtle"
+                size="sm"
+              >
+                Coming soon
+              </UBadge>
+              <UBadge
+                v-else-if="card.status === 'none'"
+                color="neutral"
+                variant="subtle"
+                size="sm"
+              >
+                Built-in
+              </UBadge>
+              <UBadge
+                v-else-if="card.status === 'connected'"
+                color="neutral"
+                variant="subtle"
+                size="sm"
+              >
+                Connected
+              </UBadge>
+              <UBadge
+                v-else-if="card.status === 'available'"
+                color="neutral"
+                variant="subtle"
+                size="sm"
+              >
+                Available
+              </UBadge>
+            </BaseCard>
+          </div>
+
+          <p
+            v-else
+            class="text-sm text-toned text-center py-8"
+          >
+            No capabilities match "{{ searchQuery }}".
+          </p>
         </section>
       </DashboardContainer>
     </NuxtLayout>

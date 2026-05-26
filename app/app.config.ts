@@ -36,7 +36,7 @@ export default defineAppConfig({
     },
     card: {
       slots: {
-        root: 'bg-elevated/50!',
+        root: 'bg-elevated/50! rounded-md! ring-inset! ring-muted!',
       },
     },
     empty: {
