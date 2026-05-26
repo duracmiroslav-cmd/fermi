@@ -141,6 +141,8 @@ const onDelete = async () => {
           @submit="onSubmit"
         />
 
+        <AgentCapabilities :agent-id="agent.id" />
+
         <UFormField label="Details">
           <BaseCard>
             <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
