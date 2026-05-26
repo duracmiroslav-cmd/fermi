@@ -1,3 +1,4 @@
+Initialising login role...
 export type Json =
   | string
   | number
@@ -39,6 +40,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_capabilities: {
+        Row: {
+          agent_id: string
+          capability_id: string
+          config: Json
+          created_at: string
+          disabled_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          capability_id: string
+          config?: Json
+          created_at?: string
+          disabled_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          capability_id?: string
+          config?: Json
+          created_at?: string
+          disabled_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_capabilities_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_capabilities_capability_id_fkey"
+            columns: ["capability_id"]
+            isOneToOne: false
+            referencedRelation: "capabilities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_run_steps: {
         Row: {
           cached_tokens: number | null
@@ -270,6 +313,53 @@ export type Database = {
           },
         ]
       }
+      capabilities: {
+        Row: {
+          config: Json
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          display_name: string
+          id: string
+          owner_id: string | null
+          slug: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          display_name: string
+          id?: string
+          owner_id?: string | null
+          slug: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          owner_id?: string | null
+          slug?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capabilities_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       encrypted_credentials: {
         Row: {
           alg: string
@@ -487,6 +577,14 @@ export type Database = {
     }
     Functions: {
       archive_webhook_event: { Args: { msg_id: number }; Returns: boolean }
+      attach_capability: {
+        Args: {
+          p_agent_id: string
+          p_capability_id: string
+          p_owner_id: string
+        }
+        Returns: undefined
+      }
       delete_agent: {
         Args: { p_agent_id: string; p_owner_id: string }
         Returns: string
@@ -501,6 +599,14 @@ export type Database = {
           msg_id: number
           payload: Json
         }[]
+      }
+      detach_capability: {
+        Args: {
+          p_agent_id: string
+          p_capability_id: string
+          p_owner_id: string
+        }
+        Returns: undefined
       }
       enqueue_webhook_event: { Args: { payload: Json }; Returns: number }
       insert_agent_if_under_limit: {
@@ -673,3 +779,6 @@ export const Constants = {
     Enums: {},
   },
 } as const
+<claude-code-hint v="1" type="plugin" value="supabase@claude-plugins-official" />
+A new version of Supabase CLI is available: v2.101.0 (currently installed v2.98.2)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
