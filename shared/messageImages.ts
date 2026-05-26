@@ -5,8 +5,8 @@ const BUCKET = 'message-images';
 const extFromMime = (mime: string): string => {
   switch (mime) {
     case 'image/jpeg': return 'jpg';
-    case 'image/png':  return 'png';
-    case 'image/gif':  return 'gif';
+    case 'image/png': return 'png';
+    case 'image/gif': return 'gif';
     case 'image/webp': return 'webp';
     default: throw new Error(`Unsupported image mime: ${mime}`);
   }

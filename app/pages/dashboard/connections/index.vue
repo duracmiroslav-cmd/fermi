@@ -71,7 +71,7 @@ const filteredCards = computed(() => {
             class="flex items-center gap-4 p-4 sm:p-6 rounded-md ring ring-inset ring-muted bg-elevated/50"
             aria-busy="true"
           >
-            <USkeleton class="size-9 rounded-md shrink-0" />
+            <USkeleton class="size-5 rounded shrink-0" />
             <div class="flex-1 min-w-0">
               <div class="h-6 flex items-center">
                 <USkeleton class="h-3.5 w-32" />
@@ -90,17 +90,15 @@ const filteredCards = computed(() => {
           >
             <UCard class="transition-colors hover:bg-elevated">
               <div class="flex items-center gap-4">
-                <div class="size-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                  <UIcon
-                    name="i-simple-icons-openrouter"
-                    class="size-5 text-primary"
-                  />
-                </div>
+                <UIcon
+                  name="i-simple-icons-openrouter"
+                  class="size-5 text-toned shrink-0"
+                />
                 <div class="flex-1 min-w-0">
-                  <p class="font-medium truncate">
+                  <p class="text-sm font-medium truncate">
                     OpenRouter
                   </p>
-                  <p class="text-sm text-toned truncate">
+                  <p class="text-xs text-toned">
                     Routes messages to Claude, GPT, Gemini, and 200+ other models.
                   </p>
                 </div>
@@ -156,21 +154,21 @@ const filteredCards = computed(() => {
 
           <div
             v-if="capabilitiesPending && !capabilities"
-            class="space-y-2"
+            class="rounded-md border border-muted bg-elevated/50 divide-y divide-default overflow-hidden"
             aria-busy="true"
           >
             <div
               v-for="i in 6"
               :key="i"
-              class="flex items-center gap-4 p-4 sm:p-6 rounded-md ring ring-inset ring-muted bg-elevated/50"
+              class="flex items-center gap-4 p-4"
             >
-              <USkeleton class="size-9 rounded-md shrink-0" />
+              <USkeleton class="size-5 rounded shrink-0" />
               <div class="flex-1 min-w-0">
-                <div class="h-6 flex items-center">
-                  <USkeleton class="h-3.5 w-40" />
-                </div>
                 <div class="h-5 flex items-center">
-                  <USkeleton class="h-3 w-64 bg-muted/70" />
+                  <USkeleton class="h-3 w-40" />
+                </div>
+                <div class="h-4 flex items-center">
+                  <USkeleton class="h-2.5 w-64 bg-muted/70" />
                 </div>
               </div>
               <USkeleton class="h-3 w-20 bg-muted/70 shrink-0" />
@@ -179,74 +177,63 @@ const filteredCards = computed(() => {
 
           <div
             v-else-if="filteredCards.length"
-            class="space-y-2"
+            class="rounded-md border border-muted bg-elevated/50 divide-y divide-default overflow-hidden"
           >
             <component
               :is="isLinkable(card) ? NuxtLink : 'div'"
               v-for="card in filteredCards"
               :key="card.routeSlug"
               :to="isLinkable(card) ? `/dashboard/connections/${card.routeSlug}` : undefined"
-              :class="isLinkable(card) ? 'block' : ''"
+              class="flex items-center gap-4 p-4"
+              :class="isLinkable(card) ? 'hover:bg-elevated transition-colors' : ''"
             >
-              <UCard
-                :class="[
-                  'transition-colors',
-                  isLinkable(card) ? 'hover:bg-elevated' : '',
-                ]"
+              <UIcon
+                :name="card.icon"
+                class="size-5 text-toned shrink-0"
+              />
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium truncate">
+                  {{ card.title }}
+                </p>
+                <p
+                  v-if="card.description"
+                  class="text-xs text-toned"
+                >
+                  {{ card.description }}
+                </p>
+              </div>
+              <UBadge
+                v-if="card.status === 'coming_soon'"
+                color="neutral"
+                variant="subtle"
+                size="sm"
               >
-                <div class="flex items-center gap-4">
-                  <div class="size-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                    <UIcon
-                      :name="card.icon"
-                      class="size-5 text-primary"
-                    />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <p class="font-medium truncate">
-                      {{ card.title }}
-                    </p>
-                    <p
-                      v-if="card.description"
-                      class="text-sm text-toned truncate"
-                      :title="card.description"
-                    >
-                      {{ card.description }}
-                    </p>
-                  </div>
-                  <UBadge
-                    v-if="card.status === 'coming_soon'"
-                    color="neutral"
-                    variant="subtle"
-                    size="sm"
-                  >
-                    Coming soon
-                  </UBadge>
-                  <UBadge
-                    v-else-if="card.status === 'none'"
-                    color="neutral"
-                    variant="subtle"
-                    size="sm"
-                  >
-                    Built-in
-                  </UBadge>
-                  <UBadge
-                    v-else-if="card.status === 'connected'"
-                    color="neutral"
-                    variant="subtle"
-                    size="sm"
-                  >
-                    Connected
-                  </UBadge>
-                  <UBadge
-                    v-else-if="card.status === 'available'"
-                    color="neutral"
-                    variant="subtle"
-                    size="sm"
-                  >
-                    Available
-                  </UBadge>
-                </div>
-              </UCard>
+                Coming soon
+              </UBadge>
+              <UBadge
+                v-else-if="card.status === 'none'"
+                color="neutral"
+                variant="subtle"
+                size="sm"
+              >
+                Built-in
+              </UBadge>
+              <UBadge
+                v-else-if="card.status === 'connected'"
+                color="neutral"
+                variant="subtle"
+                size="sm"
+              >
+                Connected
+              </UBadge>
+              <UBadge
+                v-else-if="card.status === 'available'"
+                color="neutral"
+                variant="subtle"
+                size="sm"
+              >
+                Available
+              </UBadge>
             </component>
           </div>
 

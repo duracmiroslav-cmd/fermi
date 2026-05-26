@@ -75,22 +75,27 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
 </script>
 
 <template>
-  <UFormField label="Capabilities">
-    <template #hint>
-      <UButton
-        size="xs"
-        color="neutral"
-        variant="link"
-        trailing-icon="i-lucide-arrow-up-right"
-        to="/dashboard/connections"
-      >
-        Manage credentials
-      </UButton>
+  <UCard :ui="{ body: 'p-0 sm:p-0' }">
+    <template #header>
+      <div class="flex items-center justify-between gap-4">
+        <p class="font-medium">
+          Capabilities
+        </p>
+        <UButton
+          size="xs"
+          color="neutral"
+          variant="link"
+          trailing-icon="i-lucide-arrow-up-right"
+          to="/dashboard/connections"
+        >
+          Manage credentials
+        </UButton>
+      </div>
     </template>
 
     <div
       v-if="pending && !rows"
-      class="rounded-md ring ring-inset ring-muted bg-elevated/50 divide-y divide-default"
+      class="divide-y divide-default overflow-hidden"
       aria-busy="true"
     >
       <div
@@ -101,10 +106,16 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
         <USkeleton class="size-5 shrink-0" />
         <div class="flex-1 min-w-0">
           <div class="h-5 flex items-center">
-            <USkeleton class="h-3" :class="CAP_WIDTHS[(i - 1) % CAP_WIDTHS.length]" />
+            <USkeleton
+              class="h-3"
+              :class="CAP_WIDTHS[(i - 1) % CAP_WIDTHS.length]"
+            />
           </div>
           <div class="h-5 flex items-center">
-            <USkeleton class="h-3 bg-muted/70" :class="CAP_DESC_WIDTHS[(i - 1) % CAP_DESC_WIDTHS.length]" />
+            <USkeleton
+              class="h-3 bg-muted/70"
+              :class="CAP_DESC_WIDTHS[(i - 1) % CAP_DESC_WIDTHS.length]"
+            />
           </div>
         </div>
         <USkeleton class="h-5 w-9 rounded-full shrink-0" />
@@ -113,7 +124,7 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
 
     <div
       v-else
-      class="rounded-md ring ring-inset ring-muted bg-elevated/50 divide-y divide-default"
+      class="divide-y divide-default overflow-hidden"
     >
       <div
         v-for="cap in rows ?? []"
@@ -126,28 +137,26 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
         />
 
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <p class="text-sm font-medium truncate">
-              {{ cap.displayName }}
-            </p>
-            <UBadge
-              v-if="cap.credentialKind === 'coming_soon'"
-              color="neutral"
-              variant="subtle"
-              size="sm"
-            >
-              Coming soon
-            </UBadge>
-          </div>
+          <p class="text-sm font-medium truncate">
+            {{ cap.displayName }}
+          </p>
           <p
             v-if="cap.description"
-            class="text-sm text-toned truncate"
+            class="text-xs text-toned"
           >
             {{ cap.description }}
           </p>
         </div>
 
         <div class="flex items-center gap-3 shrink-0">
+          <UBadge
+            v-if="cap.credentialKind === 'coming_soon'"
+            color="neutral"
+            variant="subtle"
+            size="sm"
+          >
+            Coming soon
+          </UBadge>
           <NuxtLink
             v-if="lockedHint(cap)?.to"
             :to="lockedHint(cap)!.to"
@@ -167,5 +176,5 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
         </div>
       </div>
     </div>
-  </UFormField>
+  </UCard>
 </template>

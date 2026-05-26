@@ -12,7 +12,7 @@
 import type { H3Event } from 'h3';
 import { z } from 'zod';
 import { getCurrentUser } from '~~/server/utils/auth';
-import { storeCredential, type KeyType } from '~~/shared/credentials';
+import { type KeyType, storeCredential } from '~~/shared/credentials';
 import { getKek } from '~~/shared/kek';
 
 export type ByokKeyType = Extract<KeyType, 'openai' | 'anthropic' | 'gemini'>;
@@ -39,7 +39,7 @@ const upstreamError = (vendor: string, status: number): never => {
 
 const verifyOpenaiKey: VerifyFn = async (apiKey) => {
   const res = await fetch('https://api.openai.com/v1/models', {
-    headers: { 'Authorization': `Bearer ${apiKey}` },
+    headers: { Authorization: `Bearer ${apiKey}` },
   });
   if (res.ok) return;
   if (res.status === 401 || res.status === 403) badKeyError('OpenAI');

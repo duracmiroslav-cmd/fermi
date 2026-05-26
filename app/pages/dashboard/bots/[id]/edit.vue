@@ -15,6 +15,8 @@ interface BotDetail {
   agent: { id: string; name: string };
 }
 
+type BotStatus = 'active' | 'paused';
+
 const route = useRoute();
 const notify = useNotify();
 
@@ -22,9 +24,23 @@ const { data: bot, error, pending } = useApiFetch<BotDetail>(
   () => `/api/bots/${route.params.id}`,
 );
 
+const STATUS_DOT: Record<BotStatus, string> = {
+  active: 'bg-success',
+  paused: 'bg-zinc-400',
+};
+const STATUS_LABEL: Record<BotStatus, string> = {
+  active: 'Active',
+  paused: 'Paused',
+};
+
 const saving = ref(false);
 const deleting = ref(false);
 const deleteDialogOpen = ref(false);
+
+const status = computed<BotStatus>(() => {
+  if (!bot.value || bot.value.disabledAt) return 'paused';
+  return 'active';
+});
 
 const onSubmit = async (value: { agentId: string; disabledAt: string | null }) => {
   saving.value = true;
@@ -69,26 +85,6 @@ const onDelete = async () => {
         />
       </template>
 
-      <template
-        v-if="bot"
-        #actions
-      >
-        <UButton
-          :to="`/dashboard/bots/${bot.id}`"
-          color="neutral"
-          variant="ghost"
-        >
-          Cancel
-        </UButton>
-        <UButton
-          type="submit"
-          form="bot-form"
-          :loading="saving"
-        >
-          Save
-        </UButton>
-      </template>
-
       <DashboardDetailSkeleton
         v-if="pending && !bot"
         :fields="2"
@@ -105,20 +101,78 @@ const onDelete = async () => {
       </DashboardContainer>
 
       <DashboardContainer v-if="bot">
-        <BotEditForm
-          form-id="bot-form"
-          :initial-value="{
-            agentId: bot.agentId,
-            disabledAt: bot.disabledAt,
-          }"
-          @submit="onSubmit"
-        />
+        <div class="flex items-center gap-4">
+          <div class="relative shrink-0">
+            <UAvatar
+              v-if="bot.avatarUrl"
+              :src="bot.avatarUrl"
+              size="3xl"
+            />
+            <div
+              v-else
+              class="size-12 shrink-0 rounded-full bg-primary/10 flex items-center justify-center"
+            >
+              <span class="font-mono text-xl font-semibold text-primary">
+                {{ (bot.displayName ?? '?').charAt(0).toUpperCase() }}
+              </span>
+            </div>
+            <span
+              class="absolute bottom-0 right-0 size-3 rounded-full ring-2 ring-default"
+              :class="STATUS_DOT[status]"
+              :aria-label="STATUS_LABEL[status]"
+            />
+          </div>
+          <div class="min-w-0">
+            <h1 class="text-2xl font-semibold truncate">
+              {{ bot.displayName || '(unnamed)' }}
+            </h1>
+            <p class="text-sm text-toned mt-1">
+              {{ STATUS_LABEL[status] }}
+            </p>
+          </div>
+        </div>
 
-        <section>
-          <h2 class="text-sm font-medium text-error mb-3">
-            Danger zone
-          </h2>
-          <div class="grid grid-cols-12 gap-4 md:items-center p-4 rounded-md border border-error/40">
+        <UCard>
+          <template #header>
+            <div class="flex items-center justify-between gap-4">
+              <p class="font-medium">
+                Settings
+              </p>
+              <div class="flex items-center gap-2">
+                <UButton
+                  :to="`/dashboard/bots/${bot.id}`"
+                  color="neutral"
+                  variant="ghost"
+                >
+                  Cancel
+                </UButton>
+                <UButton
+                  type="submit"
+                  form="bot-form"
+                  :loading="saving"
+                >
+                  Save
+                </UButton>
+              </div>
+            </div>
+          </template>
+          <BotEditForm
+            form-id="bot-form"
+            :initial-value="{
+              agentId: bot.agentId,
+              disabledAt: bot.disabledAt,
+            }"
+            @submit="onSubmit"
+          />
+        </UCard>
+
+        <UCard>
+          <template #header>
+            <p class="font-medium text-error">
+              Danger zone
+            </p>
+          </template>
+          <div class="grid grid-cols-12 gap-4 md:items-center">
             <div class="col-span-12 md:col-span-9 min-w-0">
               <p class="text-sm font-medium">
                 Delete this bot
@@ -136,7 +190,7 @@ const onDelete = async () => {
               Delete bot
             </UButton>
           </div>
-        </section>
+        </UCard>
 
         <DeleteConfirmDialog
           v-model:open="deleteDialogOpen"

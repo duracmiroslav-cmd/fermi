@@ -151,7 +151,7 @@ const onSubmit = () => {
           >
             <UIcon
               name="i-lucide-plus"
-              class="size-3.5"
+              class="size-3"
             />
             New agent
           </NuxtLink>

@@ -38,7 +38,7 @@ const notify = useNotify();
 const { data: bot, error, refresh, pending } = useApiFetch<BotDetail>(
   () => `/api/bots/${route.params.id}`,
 );
-const { data: openrouter } = useApiFetch<OpenRouterStatus>('/api/oauth/openrouter');
+const { data: openrouter, pending: openrouterPending } = useApiFetch<OpenRouterStatus>('/api/oauth/openrouter');
 
 const STATUS_DOT: Record<BotStatus, string> = {
   ready: 'bg-success',
@@ -179,20 +179,6 @@ onBeforeUnmount(() => {
         />
       </template>
 
-      <template
-        v-if="bot"
-        #actions
-      >
-        <UButton
-          :to="`/dashboard/bots/${bot.id}/edit`"
-          icon="i-lucide-pencil"
-          color="neutral"
-          variant="outline"
-        >
-          Edit
-        </UButton>
-      </template>
-
       <DashboardDetailSkeleton
         v-if="pending && !bot"
         :fields="2"
@@ -266,7 +252,7 @@ onBeforeUnmount(() => {
           mode="out-in"
         >
           <div
-            v-if="!isSetupComplete && !bot.disabledAt"
+            v-if="!openrouterPending && !isSetupComplete && !bot.disabledAt"
             key="checklist"
             class="p-4 rounded-md ring ring-inset ring-warning/40 bg-warning/5"
           >
@@ -399,55 +385,68 @@ onBeforeUnmount(() => {
           </div>
         </Transition>
 
-        <UFormField label="Details">
-          <UCard>
-            <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-6">
-              <dt class="text-toned text-right">
-                External ID
-              </dt>
-              <dd class="text-highlighted break-all">
-                {{ bot.externalId }}
-              </dd>
-              <dt class="text-toned text-right">
-                Agent
-              </dt>
-              <dd class="min-w-0 truncate">
-                <NuxtLink
-                  :to="`/dashboard/agents/${bot.agent.id}`"
-                  class="text-primary hover:underline"
-                >
-                  {{ bot.agent.name }}
-                </NuxtLink>
-              </dd>
-              <dt class="text-toned text-right">
-                Webhook URL
-              </dt>
-              <dd class="text-highlighted flex items-center gap-2 min-w-0">
-                <code class="font-mono truncate select-all">{{ bot.webhookUrl }}</code>
-                <UButton
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  :icon="webhookCopied ? 'i-lucide-check' : 'i-lucide-copy'"
-                  :aria-label="webhookCopied ? 'Copied' : 'Copy webhook URL'"
-                  @click="copyWebhook"
-                />
-              </dd>
-              <dt class="text-toned text-right">
-                Created
-              </dt>
-              <dd class="text-highlighted">
-                <TimeAgo :date="bot.createdAt" />
-              </dd>
-              <dt class="text-toned text-right">
-                Updated
-              </dt>
-              <dd class="text-highlighted">
-                <TimeAgo :date="bot.updatedAt" />
-              </dd>
-            </dl>
-          </UCard>
-        </UFormField>
+        <UCard>
+          <template #header>
+            <div class="flex items-center justify-between gap-4">
+              <p class="font-medium">
+                Details
+              </p>
+              <UButton
+                :to="`/dashboard/bots/${bot.id}/edit`"
+                icon="i-lucide-pencil"
+                color="neutral"
+                variant="ghost"
+              >
+                Edit
+              </UButton>
+            </div>
+          </template>
+          <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-6">
+            <dt class="text-toned text-right">
+              External ID
+            </dt>
+            <dd class="text-highlighted break-all">
+              {{ bot.externalId }}
+            </dd>
+            <dt class="text-toned text-right">
+              Agent
+            </dt>
+            <dd class="min-w-0 truncate">
+              <NuxtLink
+                :to="`/dashboard/agents/${bot.agent.id}`"
+                class="text-primary hover:underline"
+              >
+                {{ bot.agent.name }}
+              </NuxtLink>
+            </dd>
+            <dt class="text-toned text-right">
+              Webhook URL
+            </dt>
+            <dd class="text-highlighted flex items-center gap-2 min-w-0">
+              <code class="font-mono truncate select-all">{{ bot.webhookUrl }}</code>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                :icon="webhookCopied ? 'i-lucide-check' : 'i-lucide-copy'"
+                :aria-label="webhookCopied ? 'Copied' : 'Copy webhook URL'"
+                @click="copyWebhook"
+              />
+            </dd>
+            <dt class="text-toned text-right">
+              Created
+            </dt>
+            <dd class="text-highlighted">
+              <TimeAgo :date="bot.createdAt" />
+            </dd>
+            <dt class="text-toned text-right">
+              Updated
+            </dt>
+            <dd class="text-highlighted">
+              <TimeAgo :date="bot.updatedAt" />
+            </dd>
+          </dl>
+        </UCard>
       </DashboardContainer>
     </NuxtLayout>
   </div>
