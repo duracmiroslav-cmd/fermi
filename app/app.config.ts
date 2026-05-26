@@ -37,8 +37,15 @@ export default defineAppConfig({
       },
     },
     card: {
-      slots: {
-        root: 'bg-elevated/50! rounded-md! ring-inset! ring-muted!',
+      variants: {
+        variant: {
+          fermi: {
+            root: 'bg-elevated/50 rounded-md ring ring-inset ring-muted divide-y divide-muted',
+          },
+        },
+      },
+      defaultVariants: {
+        variant: 'fermi',
       },
     },
     empty: {

@@ -16,10 +16,10 @@ const SUBTITLE_WIDTHS = ['w-24', 'w-28', 'w-20'];
     aria-busy="true"
     aria-live="polite"
   >
-    <BaseCard
+    <div
       v-for="i in rows"
       :key="i"
-      class="flex items-center gap-4 animate-pulse"
+      class="p-4 rounded-md ring ring-inset ring-muted bg-elevated/50 flex items-center gap-4 animate-pulse"
     >
       <div class="size-9 rounded-full bg-muted shrink-0" />
       <div class="flex-1 min-w-0">
@@ -39,6 +39,6 @@ const SUBTITLE_WIDTHS = ['w-24', 'w-28', 'w-20'];
       <div class="h-5 flex items-center shrink-0">
         <div class="h-3 w-20 rounded bg-muted/70" />
       </div>
-    </BaseCard>
+    </div>
   </div>
 </template>

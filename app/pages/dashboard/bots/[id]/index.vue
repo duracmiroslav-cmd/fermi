@@ -400,7 +400,7 @@ onBeforeUnmount(() => {
         </Transition>
 
         <UFormField label="Details">
-          <BaseCard>
+          <UCard>
             <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-6">
               <dt class="text-toned text-right">
                 External ID
@@ -446,7 +446,7 @@ onBeforeUnmount(() => {
                 <TimeAgo :date="bot.updatedAt" />
               </dd>
             </dl>
-          </BaseCard>
+          </UCard>
         </UFormField>
       </DashboardContainer>
     </NuxtLayout>

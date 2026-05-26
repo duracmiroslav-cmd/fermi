@@ -112,7 +112,7 @@ const onTavilyDisconnect = async () => {
             <h2 class="text-base font-semibold">
               Providers
             </h2>
-            <BaseCard
+            <UCard
               v-for="provider in capability.providers"
               :key="provider.slug"
             >
@@ -204,7 +204,7 @@ const onTavilyDisconnect = async () => {
                   </UFormField>
                 </form>
               </div>
-            </BaseCard>
+            </UCard>
           </div>
         </template>
 

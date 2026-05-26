@@ -144,7 +144,7 @@ const onDelete = async () => {
         <AgentCapabilities :agent-id="agent.id" />
 
         <UFormField label="Details">
-          <BaseCard>
+          <UCard>
             <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
               <dt class="text-toned text-right">
                 ID
@@ -165,7 +165,7 @@ const onDelete = async () => {
                 <TimeAgo :date="agent.updatedAt" />
               </dd>
             </dl>
-          </BaseCard>
+          </UCard>
         </UFormField>
 
         <section v-if="!agent.isDefault">

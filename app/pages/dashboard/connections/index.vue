@@ -30,6 +30,8 @@ const flatCards = computed(() => flattenCapabilities(capabilities.value ?? []));
 const isLinkable = (card: FlatCard) =>
   card.status === 'connected' || card.status === 'available';
 
+const NuxtLink = resolveComponent('NuxtLink');
+
 const filteredCards = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
   if (!q) return flatCards.value;
@@ -77,42 +79,46 @@ const filteredCards = computed(() => {
             <div class="h-3 w-20 rounded bg-muted/70 shrink-0" />
           </div>
 
-          <BaseCard
+          <NuxtLink
             v-else
             to="/dashboard/connections/openrouter"
-            class="flex items-center gap-4 transition-colors hover:bg-elevated"
+            class="block"
           >
-            <div class="size-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-              <UIcon
-                name="i-simple-icons-openrouter"
-                class="size-5 text-primary"
-              />
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="font-medium truncate">
-                OpenRouter
-              </p>
-              <p class="text-sm text-toned truncate">
-                Routes messages to Claude, GPT, Gemini, and 200+ other models.
-              </p>
-            </div>
-            <UBadge
-              v-if="openrouter?.connected"
-              color="neutral"
-              variant="subtle"
-              size="sm"
-            >
-              Connected
-            </UBadge>
-            <UBadge
-              v-else
-              color="neutral"
-              variant="subtle"
-              size="sm"
-            >
-              Available
-            </UBadge>
-          </BaseCard>
+            <UCard class="transition-colors hover:bg-elevated">
+              <div class="flex items-center gap-4">
+                <div class="size-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                  <UIcon
+                    name="i-simple-icons-openrouter"
+                    class="size-5 text-primary"
+                  />
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium truncate">
+                    OpenRouter
+                  </p>
+                  <p class="text-sm text-toned truncate">
+                    Routes messages to Claude, GPT, Gemini, and 200+ other models.
+                  </p>
+                </div>
+                <UBadge
+                  v-if="openrouter?.connected"
+                  color="neutral"
+                  variant="subtle"
+                  size="sm"
+                >
+                  Connected
+                </UBadge>
+                <UBadge
+                  v-else
+                  color="neutral"
+                  variant="subtle"
+                  size="sm"
+                >
+                  Available
+                </UBadge>
+              </div>
+            </UCard>
+          </NuxtLink>
         </section>
 
         <section class="flex flex-col gap-3">
@@ -167,66 +173,73 @@ const filteredCards = computed(() => {
             v-else-if="filteredCards.length"
             class="space-y-2"
           >
-            <BaseCard
+            <component
+              :is="isLinkable(card) ? NuxtLink : 'div'"
               v-for="card in filteredCards"
               :key="card.routeSlug"
               :to="isLinkable(card) ? `/dashboard/connections/${card.routeSlug}` : undefined"
-              :class="[
-                'flex items-center gap-4 transition-colors',
-                isLinkable(card) ? 'hover:bg-elevated' : '',
-              ]"
+              :class="isLinkable(card) ? 'block' : ''"
             >
-              <div class="size-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                <UIcon
-                  :name="card.icon"
-                  class="size-5 text-primary"
-                />
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="font-medium truncate">
-                  {{ card.title }}
-                </p>
-                <p
-                  v-if="card.description"
-                  class="text-sm text-toned truncate"
-                  :title="card.description"
-                >
-                  {{ card.description }}
-                </p>
-              </div>
-              <UBadge
-                v-if="card.status === 'coming_soon'"
-                color="neutral"
-                variant="subtle"
-                size="sm"
+              <UCard
+                :class="[
+                  'transition-colors',
+                  isLinkable(card) ? 'hover:bg-elevated' : '',
+                ]"
               >
-                Coming soon
-              </UBadge>
-              <UBadge
-                v-else-if="card.status === 'none'"
-                color="neutral"
-                variant="subtle"
-                size="sm"
-              >
-                Built-in
-              </UBadge>
-              <UBadge
-                v-else-if="card.status === 'connected'"
-                color="neutral"
-                variant="subtle"
-                size="sm"
-              >
-                Connected
-              </UBadge>
-              <UBadge
-                v-else-if="card.status === 'available'"
-                color="neutral"
-                variant="subtle"
-                size="sm"
-              >
-                Available
-              </UBadge>
-            </BaseCard>
+                <div class="flex items-center gap-4">
+                  <div class="size-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                    <UIcon
+                      :name="card.icon"
+                      class="size-5 text-primary"
+                    />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="font-medium truncate">
+                      {{ card.title }}
+                    </p>
+                    <p
+                      v-if="card.description"
+                      class="text-sm text-toned truncate"
+                      :title="card.description"
+                    >
+                      {{ card.description }}
+                    </p>
+                  </div>
+                  <UBadge
+                    v-if="card.status === 'coming_soon'"
+                    color="neutral"
+                    variant="subtle"
+                    size="sm"
+                  >
+                    Coming soon
+                  </UBadge>
+                  <UBadge
+                    v-else-if="card.status === 'none'"
+                    color="neutral"
+                    variant="subtle"
+                    size="sm"
+                  >
+                    Built-in
+                  </UBadge>
+                  <UBadge
+                    v-else-if="card.status === 'connected'"
+                    color="neutral"
+                    variant="subtle"
+                    size="sm"
+                  >
+                    Connected
+                  </UBadge>
+                  <UBadge
+                    v-else-if="card.status === 'available'"
+                    color="neutral"
+                    variant="subtle"
+                    size="sm"
+                  >
+                    Available
+                  </UBadge>
+                </div>
+              </UCard>
+            </component>
           </div>
 
           <p

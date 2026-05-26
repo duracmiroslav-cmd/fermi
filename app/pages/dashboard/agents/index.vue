@@ -100,7 +100,7 @@ const filteredAgents = computed(() => {
               :to="`/dashboard/agents/${agent.id}`"
               class="block"
             >
-              <UCard class="hover:bg-elevated! transition-colors">
+              <UCard class="hover:bg-elevated transition-colors">
                 <div class="flex items-center gap-4">
                   <UAvatar
                     :src="agent.avatarUrl ?? undefined"

@@ -127,7 +127,7 @@ const filteredBots = computed(() => {
               :to="`/dashboard/bots/${bot.id}`"
               class="block"
             >
-              <UCard class="hover:bg-elevated! transition-colors">
+              <UCard class="hover:bg-elevated transition-colors">
                 <div class="flex items-center gap-4">
                   <div class="relative shrink-0">
                     <UAvatar
