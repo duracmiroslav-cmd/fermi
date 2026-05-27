@@ -19,7 +19,7 @@ import {
 import { uploadUserImage } from '../../../shared/messageImages.ts';
 import { tryClaimIdempotencyKey } from './dedup.ts';
 import { LineContentError, fetchLineMessageContent } from './line-content.ts';
-import { OpenRouterError, chatCompletion, type ChatMessage } from './openrouter.ts';
+import { OpenRouterError, completeChat, type ChatMessage } from './openrouter.ts';
 import { COUNTER_ENV, consumeQuota } from './quota.ts';
 import { errorCodeFromStatus, finishRun, logStep, startRun } from './runs.ts';
 import { STTError, transcribeAudio } from './stt.ts';
@@ -420,7 +420,7 @@ const runAgentLoop = async (params: {
       });
 
       const llmStart = performance.now();
-      const result = await chatCompletion({
+      const result = await completeChat({
         apiKey: openrouterKey,
         model,
         messages,

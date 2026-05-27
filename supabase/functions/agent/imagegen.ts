@@ -28,7 +28,7 @@ const sizeMap: Record<ImageSize, string> = {
 // composite is a follow-up if launch UX demands a guarantee.
 const WATERMARK_SUFFIX = ", with small 'fermi' text watermark in bottom-right corner";
 
-export interface GeneratedImage {
+export interface ImageResult {
   // Raw bytes downloaded from fal's hosted result URL. Worker uploads
   // these to Supabase Storage before delivering to LINE so we control
   // retention (fal's hosted URL expires).
@@ -54,7 +54,7 @@ export const generateImage = async (params: {
   model: string;
   prompt: string;
   size: ImageSize;
-}): Promise<GeneratedImage> => {
+}): Promise<ImageResult> => {
   const { apiKey, model, prompt, size } = params;
   const res = await fetch(`https://fal.run/${model}`, {
     method: 'POST',
