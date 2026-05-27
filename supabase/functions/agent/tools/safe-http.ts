@@ -55,11 +55,22 @@ interface ResolvedTarget {
   family: 4 | 6;
 }
 
-const resolveAndValidate = async (host: string): Promise<ResolvedTarget> => {
+// Injected so the DNS-rebinding guard is testable with a fake resolver
+// instead of real network. Production binds to Deno.resolveDns; the
+// reference lives in the body so importing this module under Node (for
+// unit tests) never touches the Deno global at load time.
+export type DnsResolver = (host: string, recordType: 'A' | 'AAAA') => Promise<string[]>;
+
+const denoResolver: DnsResolver = (host, recordType) => Deno.resolveDns(host, recordType);
+
+export const resolveAndValidate = async (
+  host:    string,
+  resolve: DnsResolver = denoResolver,
+): Promise<ResolvedTarget> => {
   if (isBlockedLiteralHost(host)) throw new Error(`Blocked host: ${host}`);
   const [v4, v6] = await Promise.allSettled([
-    Deno.resolveDns(host, 'A'),
-    Deno.resolveDns(host, 'AAAA'),
+    resolve(host, 'A'),
+    resolve(host, 'AAAA'),
   ]);
   const v4Ips = v4.status === 'fulfilled' ? v4.value : [];
   const v6Ips = v6.status === 'fulfilled' ? v6.value : [];
@@ -153,7 +164,7 @@ const findHeaderTerminator = (buf: Uint8Array): number => {
   return -1;
 };
 
-const parseResponse = (raw: Uint8Array): ParsedResponse => {
+export const parseResponse = (raw: Uint8Array): ParsedResponse => {
   const end = findHeaderTerminator(raw);
   if (end === -1) throw new Error('Malformed HTTP response: no header terminator');
 
@@ -176,7 +187,7 @@ const parseResponse = (raw: Uint8Array): ParsedResponse => {
 // chunked = (<hex size>[;ext]\r\n<bytes>\r\n)+ then "0\r\n\r\n". The
 // real spec also allows trailers; fermi doesn't read them. Stops at
 // the first 0-size chunk.
-const decodeChunkedBody = (body: Uint8Array): Uint8Array => {
+export const decodeChunkedBody = (body: Uint8Array): Uint8Array => {
   const out: number[] = [];
   let pos = 0;
   while (pos < body.length) {
