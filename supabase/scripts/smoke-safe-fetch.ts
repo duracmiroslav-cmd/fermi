@@ -1,13 +1,12 @@
 // Smoke test for safe-http.ts. Run with:
-//   deno run --allow-net scripts/smoke-safe-fetch.ts
+//   deno run --allow-net supabase/scripts/smoke-safe-fetch.ts
 //
 // Validates the three concerns from the security review:
 //   1. Public domains work (HTTPS, redirects, chunked)
 //   2. Literal private hosts blocked (IPv4 and IPv6)
 //   3. Hostname → private DNS gets blocked at resolve time
 
-/* eslint-disable no-console -- CLI smoke script; stdout is its output */
-import { safeFetch } from '../supabase/functions/agent/tools/safe-http.ts';
+import { safeFetch } from '../functions/agent/tools/safe-http.ts';
 
 interface Case {
   name:          string;
