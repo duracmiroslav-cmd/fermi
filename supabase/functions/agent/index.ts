@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { loadActiveCapabilitySlugs } from '../../../shared/agentCapabilities.ts';
+import { type AudioMime, detectAudioMime } from '../../../shared/audio.ts';
 import { detectImageMime, type ImageMime } from '../../../shared/image.ts';
 import { findAgentById } from '../../../shared/agents.ts';
 import { findBotById } from '../../../shared/bots.ts';
@@ -15,6 +16,7 @@ import { tryClaimIdempotencyKey } from './dedup.ts';
 import { LineContentError, fetchLineMessageContent } from './line-content.ts';
 import { OpenRouterError, chatCompletion, type ChatMessage } from './openrouter.ts';
 import { errorCodeFromStatus, finishRun, logStep, startRun } from './runs.ts';
+import { WhisperError, transcribeAudio } from './stt.ts';
 import {
   appendMessage,
   loadRecentMessages,
@@ -199,8 +201,11 @@ const NO_AGENT_NOTICE = '⚙️ 這個 bot 還沒設定 agent，請到 https://f
 const FREE_BYOK_NOTICE_OPENROUTER
   = '⚙️ 還沒連接 OpenRouter。Free 方案請到 https://fermi.tw/dashboard/connections 連接，或升級 Pro 由 fermi 代管。';
 const PLATFORM_KEY_OPS_NOTICE = '⚠️ Pro 服務暫時不可用，已通知 fermi 處理，請稍後再試。';
+const FREE_BYOK_NOTICE_OPENAI
+  = '🎙️ 語音功能需要 OpenAI key。Free 方案請到 https://fermi.tw/dashboard/connections 連接，或升級 Pro 由 fermi 代管。';
 
 const PLATFORM_OPENROUTER_KEY = Deno.env.get('OPENROUTER_API_KEY') ?? null;
+const PLATFORM_OPENAI_KEY = Deno.env.get('OPENAI_API_KEY') ?? null;
 
 const isTextMessageFromUser = (event: LineEvent): event is LineEvent & {
   replyToken: string;
@@ -228,13 +233,31 @@ const isImageMessageFromUser = (event: LineEvent): event is LineEvent & {
   && typeof event.source.userId === 'string'
 );
 
+const isAudioMessageFromUser = (event: LineEvent): event is LineEvent & {
+  replyToken: string;
+  source: LineSource & { userId: string };
+  message: { type: 'audio'; id: string };
+} => (
+  event.type === 'message'
+  && event.message?.type === 'audio'
+  && typeof event.message.id === 'string'
+  && typeof event.replyToken === 'string'
+  && event.source?.type === 'user'
+  && typeof event.source.userId === 'string'
+);
+
 // Reply-bearing user message of any modality we accept. Used by the
-// "no agent / no openrouter key" early-return paths so an image
-// arriving in those states still gets the configuration notice.
+// "no agent / no openrouter key" early-return paths so a message of
+// any supported type arriving in those states still gets the
+// configuration notice.
 const isReplyableUserMessage = (event: LineEvent): event is LineEvent & {
   replyToken: string;
   source: LineSource & { userId: string };
-} => isTextMessageFromUser(event) || isImageMessageFromUser(event);
+} => (
+  isTextMessageFromUser(event)
+  || isImageMessageFromUser(event)
+  || isAudioMessageFromUser(event)
+);
 
 const runAgentLoop = async (params: {
   bot: { id: string; ownerId: string };
@@ -657,6 +680,87 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         externalUserId: event.source.userId,
         replyToken: event.replyToken,
         userInput: { type: 'image', lineMessageId: event.message.id, mime, bytes: imageBytes },
+        eventTimestamp,
+      });
+      continue;
+    }
+
+    if (isAudioMessageFromUser(event)) {
+      let audioBytes: Uint8Array;
+      let audioMime: AudioMime;
+      try {
+        const content = await fetchLineMessageContent(lineAccessToken, event.message.id);
+        const detected = detectAudioMime(content.bytes);
+        if (!detected) {
+          await safeReply(lineAccessToken, event.replyToken, '⚠️ 不支援的音訊格式。');
+          continue;
+        }
+        audioMime = detected;
+        audioBytes = content.bytes;
+      } catch (err) {
+        if (err instanceof LineContentError && err.status === 413) {
+          await safeReply(lineAccessToken, event.replyToken, '⚠️ 音訊太大，上限 10MB。');
+          continue;
+        }
+        throw err;
+      }
+
+      // STT runs *before* the agent loop because the rest of the
+      // pipeline only knows text + image. Whisper turns audio into
+      // text, then the loop proceeds exactly like a typed message.
+      // Errors here short-circuit with a user-facing notice — no
+      // agent_run is started for failed transcriptions.
+      let openaiKey: string;
+      try {
+        const resolved = await resolveKey(admin, kek, {
+          ownerId: bot.ownerId,
+          purpose: 'openai',
+          platformKey: PLATFORM_OPENAI_KEY,
+        });
+        openaiKey = resolved.key;
+      } catch (err) {
+        if (err instanceof FreeBYOKRequiredError) {
+          await safeReply(lineAccessToken, event.replyToken, FREE_BYOK_NOTICE_OPENAI);
+          continue;
+        }
+        if (err instanceof PlatformKeyNotConfiguredError) {
+          console.error('platform OpenAI key missing for Pro user', { ownerId: bot.ownerId });
+          await safeReply(lineAccessToken, event.replyToken, PLATFORM_KEY_OPS_NOTICE);
+          continue;
+        }
+        throw err;
+      }
+
+      let transcript: string;
+      try {
+        transcript = await transcribeAudio({ apiKey: openaiKey, bytes: audioBytes, mime: audioMime });
+      } catch (err) {
+        if (err instanceof WhisperError) {
+          console.warn('Whisper failed; dropping audio', { status: err.status });
+          await safeReply(lineAccessToken, event.replyToken, '⚠️ 無法辨識這段語音，請再試一次。');
+          continue;
+        }
+        throw err;
+      }
+      if (transcript.length === 0) {
+        await safeReply(lineAccessToken, event.replyToken, '⚠️ 沒聽清楚，請再試一次。');
+        continue;
+      }
+
+      // `[audio]` prefix flags the modality so the LLM knows the input
+      // was transcribed (homophones / accent errors are common, the
+      // model can ask for clarification when ambiguous). Stored in
+      // messages history as plain text so re-loads don't re-pay
+      // Whisper.
+      await runAgentLoop({
+        bot,
+        agent,
+        openrouterKey,
+        lineAccessToken,
+        kek,
+        externalUserId: event.source.userId,
+        replyToken: event.replyToken,
+        userInput: { type: 'text', text: `[audio] ${transcript}` },
         eventTimestamp,
       });
     }
