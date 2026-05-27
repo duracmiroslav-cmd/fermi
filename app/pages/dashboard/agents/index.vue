@@ -124,7 +124,7 @@ const filteredAgents = computed(() => {
                     </p>
                   </div>
                   <span class="text-sm text-toned shrink-0">
-                    <TimeAgo :date="agent.updatedAt" />
+                    Edited <TimeAgo :date="agent.updatedAt" />
                   </span>
                 </div>
               </UCard>

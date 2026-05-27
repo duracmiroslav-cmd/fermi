@@ -37,21 +37,42 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultText
         />
       </template>
 
-      <template #actions>
-        <UButton
-          type="submit"
-          form="agent-form"
-          :loading="saving"
-        >
-          Create
-        </UButton>
-      </template>
-
       <DashboardContainer>
-        <AgentForm
-          form-id="agent-form"
-          @submit="onSubmit"
-        />
+        <h1 class="text-2xl font-semibold">
+          New agent
+        </h1>
+
+        <UCard>
+          <template #header>
+            <div class="flex items-center justify-between gap-4">
+              <p class="font-medium">
+                Settings
+              </p>
+              <div class="flex items-center gap-2">
+                <UButton
+                  to="/dashboard/agents"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                >
+                  Cancel
+                </UButton>
+                <UButton
+                  type="submit"
+                  form="agent-form"
+                  :loading="saving"
+                  size="sm"
+                >
+                  Create
+                </UButton>
+              </div>
+            </div>
+          </template>
+          <AgentForm
+            form-id="agent-form"
+            @submit="onSubmit"
+          />
+        </UCard>
       </DashboardContainer>
     </NuxtLayout>
   </div>
