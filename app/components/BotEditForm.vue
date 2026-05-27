@@ -44,11 +44,7 @@ const agentItems = computed(() =>
     label: a.name,
     value: a.id,
     description: a.defaultTextModel ?? '—',
-    avatar: {
-      src: a.avatarUrl ?? undefined,
-      text: a.name.charAt(0).toUpperCase(),
-      color: 'primary' as const,
-    },
+    avatarUrl: a.avatarUrl,
     isDefault: a.isDefault,
   })),
 );
@@ -87,7 +83,7 @@ const onSubmit = () => {
         value-key="value"
         placeholder="Select an agent"
         :loading="agentsPending || isAgentPickerOpening"
-        :ui="{ base: 'ps-10!', itemLeadingAvatarSize: 'lg' }"
+        :ui="{ base: 'ps-10!' }"
         @pointerdown="isAgentPickerOpening = true"
         @update:open="isAgentPickerOpening = false"
       >
@@ -97,12 +93,20 @@ const onSubmit = () => {
             name="i-lucide-loader-circle"
             class="size-5 animate-spin text-toned"
           />
-          <UAvatar
+          <AgentAvatar
             v-else-if="selectedAgent"
-            :src="selectedAgent.avatarUrl ?? undefined"
-            :text="selectedAgent.name.charAt(0).toUpperCase()"
+            :src="selectedAgent.avatarUrl"
+            :name="selectedAgent.name"
+            :seed="selectedAgent.id"
             size="xs"
-            color="primary"
+          />
+        </template>
+        <template #item-leading="{ item }">
+          <AgentAvatar
+            :src="item.avatarUrl"
+            :name="item.label"
+            :seed="item.value"
+            size="lg"
           />
         </template>
         <template #item-label="{ item }">

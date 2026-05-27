@@ -103,7 +103,6 @@ const onDelete = async () => {
             <AgentAvatarUpload
               :agent-id="agent.id"
               :current-url="agent.avatarUrl"
-              :fallback="(agent.name ?? '?').charAt(0).toUpperCase()"
               @change="onAvatarChange"
             />
           </div>

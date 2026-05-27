@@ -413,11 +413,11 @@ onBeforeUnmount(() => {
             </dt>
             <dd class="min-w-0">
               <div class="flex items-center gap-1.5 min-w-0">
-                <UAvatar
-                  :src="bot.agent.avatarUrl || undefined"
-                  :text="(bot.agent.name ?? '?').charAt(0).toUpperCase()"
+                <AgentAvatar
+                  :src="bot.agent.avatarUrl"
+                  :name="bot.agent.name"
+                  :seed="bot.agent.id"
                   size="sm"
-                  class="shrink-0"
                 />
                 <NuxtLink
                   :to="`/dashboard/agents/${bot.agent.id}`"

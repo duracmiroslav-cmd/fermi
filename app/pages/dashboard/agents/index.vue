@@ -14,8 +14,6 @@ interface AgentRow {
 
 const { items: agents, used, atLimit, pending, limitMessage } = useTierLimit<AgentRow>('agents');
 
-const initial = (name: string) => name.charAt(0).toUpperCase() || '?';
-
 const search = ref('');
 const filteredAgents = computed(() => {
   const q = search.value.toLowerCase();
@@ -102,11 +100,11 @@ const filteredAgents = computed(() => {
             >
               <UCard class="hover:bg-elevated transition-colors">
                 <div class="flex items-center gap-4">
-                  <UAvatar
-                    :src="agent.avatarUrl ?? undefined"
-                    :text="initial(agent.name)"
+                  <AgentAvatar
+                    :src="agent.avatarUrl"
+                    :name="agent.name"
+                    :seed="agent.id"
                     size="lg"
-                    color="primary"
                   />
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">

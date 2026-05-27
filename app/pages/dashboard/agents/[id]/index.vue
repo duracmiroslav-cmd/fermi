@@ -72,20 +72,12 @@ const model = computed<ProviderModel | null>(() => {
 
       <DashboardContainer v-if="agent">
         <div class="flex items-center gap-4">
-          <UAvatar
-            v-if="agent.avatarUrl"
+          <AgentAvatar
             :src="agent.avatarUrl"
+            :name="agent.name"
+            :seed="agent.id"
             size="3xl"
-            class="shrink-0"
           />
-          <div
-            v-else
-            class="size-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0"
-          >
-            <span class="font-mono text-xl font-semibold text-primary">
-              {{ (agent.name ?? '?').charAt(0).toUpperCase() }}
-            </span>
-          </div>
           <div class="min-w-0">
             <h1 class="text-2xl font-semibold truncate">
               {{ agent.name || '(unnamed)' }}

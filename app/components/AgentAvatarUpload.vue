@@ -2,7 +2,6 @@
 const props = defineProps<{
   agentId: string;
   currentUrl: string | null;
-  fallback?: string;
 }>();
 
 const emit = defineEmits<{
@@ -89,12 +88,13 @@ const onFileChange = async (event: Event) => {
         class="absolute inset-0 m-auto size-5 text-primary animate-spin"
       />
       <template v-else>
-        <span
+        <AgentAvatar
           v-if="!currentUrl"
-          class="absolute inset-0 flex items-center justify-center font-mono text-xl font-semibold text-primary transition-opacity group-hover:opacity-0"
-        >
-          {{ fallback ?? '?' }}
-        </span>
+          :name="null"
+          :seed="agentId"
+          size="3xl"
+          class="absolute inset-0 transition-opacity group-hover:opacity-0"
+        />
         <UIcon
           name="i-lucide-camera"
           class="absolute inset-0 m-auto size-5 text-primary opacity-0 transition-opacity group-hover:opacity-100"
