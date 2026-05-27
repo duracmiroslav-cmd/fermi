@@ -10,7 +10,7 @@ paths:
 
 ## File / module naming: grammatical number
 
-A module file's name takes the grammatical number of its subject, not its standing as a module. A countable entity, or a collection of them, is plural; a mass noun, a single concept, or a single action is singular. Countability is the deciding axis — "is this a module or a collection" never discriminates, since every file here is a module. The number must agree with the same subject named elsewhere in the codebase and with its database table.
+A module file's name takes the grammatical number of its subject — the thing it is named after, not the things it operates over nor its standing as a module. A countable entity, or a collection of them, is plural; a mass noun, a single concept, or a single action is singular. Countability of that subject is the deciding axis: a file ranging over many items stays singular when its subject is the concept it embodies rather than those items, and "is this a module or a collection" never discriminates, since every file here is a module. The number must agree with the same subject named elsewhere in the codebase and with its database table.
 
 ## Enum / state values: past-verb form
 
