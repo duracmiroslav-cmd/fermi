@@ -19,7 +19,7 @@ interface FetchProvider {
 const MAX_CHARS = 8000;
 
 // ---- Provider 1: Tavily Extract --------------------------------------------
-// Reuses the owner's Tavily credential (same key + tier policy as web_search,
+// Reuses the owner's Tavily credential (same key + tier policy as search_web,
 // via shared resolveKey). Tavily fetches the page itself, so this path carries
 // no SSRF exposure on our infra and returns already-clean text. When the tier
 // can't supply a key it returns null, degrading to the direct fetch below.
@@ -188,11 +188,11 @@ const directProvider: FetchProvider = {
 
 const providers: FetchProvider[] = [tavilyProvider, directProvider];
 
-export const webFetch: Tool = {
-  name: 'web_fetch',
+export const fetchWeb: Tool = {
+  name: 'fetch_web',
   capabilitySlug: 'web-fetch',
   description:
-    'Fetch and return the readable text content of a specific web page URL. Use after web_search returns a promising link, or when the user supplies a URL directly.',
+    'Fetch and return the readable text content of a specific web page URL. Use after search_web returns a promising link, or when the user supplies a URL directly.',
   parameters: {
     type: 'object',
     properties: {
@@ -207,12 +207,12 @@ export const webFetch: Tool = {
   execute: async (rawArgs, ctx) => {
     const { url } = rawArgs as { url?: unknown };
     if (typeof url !== 'string' || url.trim().length === 0) {
-      return { error: 'web_fetch requires a non-empty `url` string.' };
+      return { error: 'fetch_web requires a non-empty `url` string.' };
     }
     try {
       new URL(url);
     } catch {
-      return { error: `web_fetch received an invalid URL: ${url}` };
+      return { error: `fetch_web received an invalid URL: ${url}` };
     }
 
     for (const provider of providers) {
@@ -225,6 +225,6 @@ export const webFetch: Tool = {
         // Provider failed (blocked host, network); try the next.
       }
     }
-    return { error: `web_fetch could not retrieve readable content from ${url}.` };
+    return { error: `fetch_web could not retrieve readable content from ${url}.` };
   },
 };

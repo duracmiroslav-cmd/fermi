@@ -28,8 +28,8 @@ interface TavilyResponse {
 // burning context on five paragraphs of marketing copy.
 const SNIPPET_MAX_CHARS = 300;
 
-export const webSearch: Tool = {
-  name: 'web_search',
+export const searchWeb: Tool = {
+  name: 'search_web',
   capabilitySlug: 'web-search',
   description:
     'Search the web for current information. Returns a brief AI-synthesized answer plus relevant URLs with short snippets. Use when you need facts that may have changed, recent news, or anything outside your training data.',
@@ -67,12 +67,12 @@ export const webSearch: Tool = {
     } catch (err) {
       if (err instanceof FreeBYOKRequiredError) {
         return {
-          error: 'web_search requires a Tavily API key. Tell the user the bot owner needs to either connect Tavily at https://fermi.tw/dashboard/connections (Tavily free tier gives 1000 queries/month, ~30 seconds at https://tavily.com) or upgrade to Pro so fermi handles it.',
+          error: 'search_web requires a Tavily API key. Tell the user the bot owner needs to either connect Tavily at https://fermi.tw/dashboard/connections (Tavily free tier gives 1000 queries/month, ~30 seconds at https://tavily.com) or upgrade to Pro so fermi handles it.',
         };
       }
       if (err instanceof PlatformKeyNotConfiguredError) {
         return {
-          error: 'web_search is temporarily unavailable. Tell the user that fermi\'s Pro web search backend is down and to try again shortly.',
+          error: 'search_web is temporarily unavailable. Tell the user that fermi\'s Pro web search backend is down and to try again shortly.',
         };
       }
       throw err;
@@ -80,7 +80,7 @@ export const webSearch: Tool = {
 
     const { query, max_results } = rawArgs as Args;
     if (typeof query !== 'string' || query.trim().length === 0) {
-      return { error: 'web_search requires a non-empty `query` string.' };
+      return { error: 'search_web requires a non-empty `query` string.' };
     }
 
     const requested = typeof max_results === 'number' ? max_results : 5;
