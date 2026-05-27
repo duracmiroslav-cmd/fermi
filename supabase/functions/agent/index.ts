@@ -763,6 +763,24 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         userInput: { type: 'text', text: `[audio] ${transcript}` },
         eventTimestamp,
       });
+      continue;
+    }
+
+    // Fallback for message events whose subtype we don't support yet:
+    // sticker / video / file / location / imagemap. Reply once with a
+    // clear scope notice so the user knows what to send instead.
+    // Non-message events (follow / unfollow / postback / ...) drop
+    // through silently — they have no replyToken to address.
+    if (
+      event.type === 'message'
+      && typeof event.replyToken === 'string'
+      && event.source?.type === 'user'
+    ) {
+      await safeReply(
+        lineAccessToken,
+        event.replyToken,
+        '⚠️ 目前只支援文字、圖片、語音訊息。',
+      );
     }
   }
 };
