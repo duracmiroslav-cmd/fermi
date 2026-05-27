@@ -9,7 +9,7 @@
 // keep-alive, no cookies. fermi only needs to read a single page body
 // safely. Anything beyond that goes via Tavily (the preferred provider).
 
-const isPrivateIpv4 = (ip: string): boolean => {
+export const isPrivateIpv4 = (ip: string): boolean => {
   const parts = ip.split('.').map(Number);
   if (parts.length !== 4 || parts.some(n => Number.isNaN(n) || n < 0 || n > 255)) return false;
   const [a, b] = parts;
@@ -25,7 +25,7 @@ const isPrivateIpv4 = (ip: string): boolean => {
 // already-resolved address string (lowercased, no zone suffix), so the
 // prefix-based test covers the canonical normalized forms returned by
 // Deno.resolveDns.
-const isPrivateIpv6 = (raw: string): boolean => {
+export const isPrivateIpv6 = (raw: string): boolean => {
   const ip = raw.toLowerCase().replace(/%.*$/, '');
   if (ip === '::' || ip === '::1') return true;
   if (ip.startsWith('fc') || ip.startsWith('fd')) return true;
@@ -35,7 +35,7 @@ const isPrivateIpv6 = (raw: string): boolean => {
   return false;
 };
 
-const isBlockedLiteralHost = (host: string): boolean => {
+export const isBlockedLiteralHost = (host: string): boolean => {
   const h = host.toLowerCase().replace(/^\[|\]$/g, '');
   if (h === 'localhost' || h.endsWith('.localhost')) return true;
   if (h.endsWith('.local') || h.endsWith('.internal')) return true;
