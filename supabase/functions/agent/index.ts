@@ -111,17 +111,24 @@ class LinePushError extends Error {
 // and avoids a Reply 400 wasting the only delivery attempt.
 const REPLY_BUDGET_MS = 25_000;
 
-// LINE outbound message shapes we emit. Adding a new variant (image,
-// flex, sticker) extends the union here, the JSON.stringify body just
-// forwards the discriminated object straight to LINE's API.
+// LINE outbound message shapes we emit. Adding a new variant (flex,
+// sticker, video) extends the union here, the JSON.stringify body
+// just forwards the discriminated objects straight to LINE's API.
 export type LineMessage
   = | { type: 'text';  text: string }
-    | { type: 'audio'; originalContentUrl: string; duration: number };
+    | { type: 'audio'; originalContentUrl: string; duration: number }
+    | { type: 'image'; originalContentUrl: string; previewImageUrl: string };
 
-const replyMessage = async (
+// LINE Reply / Push API both accept up to 5 messages in one call.
+// We cap at the API limit to keep the contract explicit — image-gen
+// tool calls that produce >4 images (rare) will be truncated by the
+// caller before reaching this layer.
+const LINE_MESSAGES_PER_CALL = 5;
+
+const replyMessages = async (
   accessToken: string,
   replyToken: string,
-  message: LineMessage,
+  messages: LineMessage[],
 ): Promise<void> => {
   const res = await fetch('https://api.line.me/v2/bot/message/reply', {
     method: 'POST',
@@ -129,7 +136,7 @@ const replyMessage = async (
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({ replyToken, messages: [message] }),
+    body: JSON.stringify({ replyToken, messages: messages.slice(0, LINE_MESSAGES_PER_CALL) }),
   });
   if (!res.ok) {
     const body = await res.text();
@@ -137,10 +144,10 @@ const replyMessage = async (
   }
 };
 
-const pushMessage = async (
+const pushMessages = async (
   accessToken: string,
   to: string,
-  message: LineMessage,
+  messages: LineMessage[],
 ): Promise<void> => {
   const res = await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',
@@ -148,7 +155,7 @@ const pushMessage = async (
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({ to, messages: [message] }),
+    body: JSON.stringify({ to, messages: messages.slice(0, LINE_MESSAGES_PER_CALL) }),
   });
   if (!res.ok) {
     const body = await res.text();
@@ -161,27 +168,27 @@ export type DeliveryMethod = 'reply' | 'push';
 // Delivers the bot's response, picking Reply (free) when we're inside
 // the reply-token window and Push (quota) when we're not. If a Reply
 // attempt fails with 400 (token expired or already used), falls back
-// to Push so the message isn't dropped on the floor.
-const deliverMessage = async (params: {
+// to Push so the messages aren't dropped on the floor.
+const deliverMessages = async (params: {
   accessToken: string;
   replyToken: string;
   userId: string;
-  message: LineMessage;
+  messages: LineMessage[];
   elapsedMs: number;
 }): Promise<DeliveryMethod> => {
-  const { accessToken, replyToken, userId, message, elapsedMs } = params;
+  const { accessToken, replyToken, userId, messages, elapsedMs } = params;
 
   if (elapsedMs >= REPLY_BUDGET_MS) {
-    await pushMessage(accessToken, userId, message);
+    await pushMessages(accessToken, userId, messages);
     return 'push';
   }
 
   try {
-    await replyMessage(accessToken, replyToken, message);
+    await replyMessages(accessToken, replyToken, messages);
     return 'reply';
   } catch (err) {
     if (err instanceof LineReplyError && err.status === 400) {
-      await pushMessage(accessToken, userId, message);
+      await pushMessages(accessToken, userId, messages);
       return 'push';
     }
     throw err;
@@ -197,7 +204,7 @@ const safeReply = async (
   text: string,
 ): Promise<void> => {
   try {
-    await replyMessage(accessToken, replyToken, { type: 'text', text });
+    await replyMessages(accessToken, replyToken, [{ type: 'text', text }]);
   } catch (err) {
     if (err instanceof LineReplyError && err.status === 400) {
       console.warn('reply token expired or already used; dropping', { replyToken });
@@ -484,7 +491,7 @@ const runAgentLoop = async (params: {
     const wantsVoiceReply
       = agent.voiceReplyMode === 'always'
         || (agent.voiceReplyMode === 'auto' && userInput.type === 'audio');
-    let deliveryMessage: LineMessage = { type: 'text', text: `🤖 ${finalText}` };
+    const outbound: LineMessage[] = [{ type: 'text', text: `🤖 ${finalText}` }];
     if (wantsVoiceReply) {
       try {
         const resolved = await resolveKey(admin, kek, {
@@ -501,7 +508,7 @@ const runAgentLoop = async (params: {
           bytes: speech.bytes,
         });
         const signedUrl = await signMessageAudioUrl(admin, storagePath);
-        deliveryMessage = {
+        outbound[0] = {
           type: 'audio',
           originalContentUrl: signedUrl,
           duration: speech.durationMs,
@@ -517,11 +524,11 @@ const runAgentLoop = async (params: {
 
     const elapsedMs = Date.now() - eventTimestamp;
     try {
-      const method = await deliverMessage({
+      const method = await deliverMessages({
         accessToken: lineAccessToken,
         replyToken,
         userId: externalUserId,
-        message: deliveryMessage,
+        messages: outbound,
         elapsedMs,
       });
       await logStep(admin, {
@@ -584,11 +591,11 @@ const runAgentLoop = async (params: {
     // notice + admin-only debug link (see roadmap M3 P1).
     let userNotified = false;
     try {
-      await deliverMessage({
+      await deliverMessages({
         accessToken: lineAccessToken,
         replyToken,
         userId: externalUserId,
-        message: { type: 'text', text: formatErrorForLine(err) },
+        messages: [{ type: 'text', text: formatErrorForLine(err) }],
         elapsedMs: Date.now() - eventTimestamp,
       });
       userNotified = true;
