@@ -1,5 +1,18 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+// Matches `agents.voice_reply_mode` CHECK constraint. Narrow type
+// gates downstream switches on a closed set; widening requires both
+// a migration and a TS change so they stay in lockstep.
+export type VoiceReplyMode = 'off' | 'auto' | 'always';
+
+const VOICE_REPLY_MODES: readonly VoiceReplyMode[] = ['off', 'auto', 'always'];
+
+const parseVoiceReplyMode = (raw: string): VoiceReplyMode => (
+  (VOICE_REPLY_MODES as readonly string[]).includes(raw)
+    ? raw as VoiceReplyMode
+    : 'off'
+);
+
 export interface AgentConfig {
   id: string;
   ownerId: string;
@@ -7,7 +20,7 @@ export interface AgentConfig {
   systemPrompt: string | null;
   defaultTextModel: string | null;
   avatarUrl: string | null;
-  voiceReplyEnabled: boolean;
+  voiceReplyMode: VoiceReplyMode;
 }
 
 const mapRow = (data: {
@@ -17,7 +30,7 @@ const mapRow = (data: {
   system_prompt: string | null;
   default_text_model: string | null;
   avatar_url: string | null;
-  voice_reply_enabled: boolean;
+  voice_reply_mode: string;
 }): AgentConfig => ({
   id: data.id,
   ownerId: data.owner_id,
@@ -25,7 +38,7 @@ const mapRow = (data: {
   systemPrompt: data.system_prompt,
   defaultTextModel: data.default_text_model,
   avatarUrl: data.avatar_url,
-  voiceReplyEnabled: data.voice_reply_enabled,
+  voiceReplyMode: parseVoiceReplyMode(data.voice_reply_mode),
 });
 
 // Filters trashed agents so callers can treat a non-null return as
@@ -37,7 +50,7 @@ export const findAgentById = async (
 ): Promise<AgentConfig | null> => {
   const { data, error } = await admin
     .from('agents')
-    .select('id, owner_id, name, system_prompt, default_text_model, avatar_url, voice_reply_enabled')
+    .select('id, owner_id, name, system_prompt, default_text_model, avatar_url, voice_reply_mode')
     .eq('id', agentId)
     .is('deleted_at', null)
     .maybeSingle();

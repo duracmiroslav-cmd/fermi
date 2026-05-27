@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { loadActiveCapabilitySlugs } from '../../../shared/agentCapabilities.ts';
 import { type AudioMime, detectAudioMime } from '../../../shared/audio.ts';
 import { detectImageMime, type ImageMime } from '../../../shared/image.ts';
-import { findAgentById } from '../../../shared/agents.ts';
+import { type VoiceReplyMode, findAgentById } from '../../../shared/agents.ts';
 import { findBotById } from '../../../shared/bots.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
 import { getKek } from '../../../shared/kek.ts';
@@ -65,9 +65,13 @@ interface LineEvent {
 
 // What the user just sent for this turn. Discriminated at the event
 // boundary in processLineMessage; runAgentLoop only sees the
-// validated form.
+// validated form. The `audio` variant carries the Whisper transcript
+// (raw bytes are dropped after STT — we don't persist the audio
+// itself, only the text equivalent). Knowing the input was audio is
+// load-bearing for `voiceReplyMode='auto'`, which mirrors back voice.
 type UserInput
   = | { type: 'text';  text: string }
+    | { type: 'audio'; transcript: string }
     | { type: 'image'; lineMessageId: string; mime: ImageMime; bytes: Uint8Array };
 
 interface LinePayload {
@@ -269,7 +273,7 @@ const runAgentLoop = async (params: {
     name: string;
     systemPrompt: string | null;
     defaultTextModel: string | null;
-    voiceReplyEnabled: boolean;
+    voiceReplyMode: VoiceReplyMode;
   };
   openrouterKey: string;
   lineAccessToken: string;
@@ -287,6 +291,15 @@ const runAgentLoop = async (params: {
   const threadId = await resolveOrCreateLatestThread(admin, bot.id, externalUserId);
   if (userInput.type === 'text') {
     await appendMessage(admin, threadId, 'user', { type: 'text', text: userInput.text });
+  } else if (userInput.type === 'audio') {
+    // Persist as text with an `[audio]` prefix so the LLM knows the
+    // turn was transcribed (homophone / accent errors common; model
+    // can ask for clarification) and history re-loads don't re-pay
+    // Whisper. The raw audio bytes are discarded after STT.
+    await appendMessage(admin, threadId, 'user', {
+      type: 'text',
+      text: `[audio] ${userInput.transcript}`,
+    });
   } else {
     const { storagePath } = await uploadMessageImage(admin, {
       ownerId: bot.ownerId,
@@ -444,13 +457,19 @@ const runAgentLoop = async (params: {
 
     await appendMessage(admin, threadId, 'assistant', { type: 'text', text: finalText });
 
-    // Voice-reply agents synthesize the final text and deliver as a
-    // LINE audio message. Any failure along the path (Free without
-    // OpenAI BYOK, platform env unset, OpenAI 4xx/5xx, upload error)
-    // falls back to text — better a text reply than no reply. The
-    // text variant of `finalText` is the canonical record in `messages`.
+    // Voice-reply mode resolves to a yes/no per-turn:
+    //   always → every turn
+    //   auto   → only when this turn's user input was audio (mirror)
+    //   off    → never
+    // Any failure along the TTS path (Free without OpenAI BYOK,
+    // platform env unset, OpenAI 4xx/5xx, upload error) falls back to
+    // text — better a text reply than no reply. The text variant of
+    // `finalText` is the canonical record in `messages`.
+    const wantsVoiceReply
+      = agent.voiceReplyMode === 'always'
+        || (agent.voiceReplyMode === 'auto' && userInput.type === 'audio');
     let deliveryMessage: LineMessage = { type: 'text', text: `🤖 ${finalText}` };
-    if (agent.voiceReplyEnabled) {
+    if (wantsVoiceReply) {
       try {
         const resolved = await resolveKey(admin, kek, {
           ownerId: bot.ownerId,
@@ -792,11 +811,9 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         continue;
       }
 
-      // `[audio]` prefix flags the modality so the LLM knows the input
-      // was transcribed (homophones / accent errors are common, the
-      // model can ask for clarification when ambiguous). Stored in
-      // messages history as plain text so re-loads don't re-pay
-      // Whisper.
+      // `audio` variant retains the modality so runAgentLoop can both
+      // (a) prefix `[audio]` in messages history for the LLM and
+      // (b) honor voiceReplyMode='auto' (mirror back voice).
       await runAgentLoop({
         bot,
         agent,
@@ -805,7 +822,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         kek,
         externalUserId: event.source.userId,
         replyToken: event.replyToken,
-        userInput: { type: 'text', text: `[audio] ${transcript}` },
+        userInput: { type: 'audio', transcript },
         eventTimestamp,
       });
       continue;
