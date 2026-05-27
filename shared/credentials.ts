@@ -8,7 +8,8 @@ export type KeyType
     | 'anthropic'
     | 'openai'
     | 'gemini'
-    | 'tavily';
+    | 'tavily'
+    | 'fal';
 
 type Bytes = Uint8Array<ArrayBuffer>;
 

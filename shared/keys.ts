@@ -11,7 +11,7 @@ import { loadCredential } from './credentials.ts';
 // because `shared/` files are imported by both the Deno worker and
 // the Node Nuxt server; env-access shape differs.
 
-export type KeyPurpose = 'openrouter' | 'openai' | 'tavily';
+export type KeyPurpose = 'openrouter' | 'openai' | 'tavily' | 'fal';
 
 export type KeySource = 'byok' | 'platform';
 export interface KeyResult {
