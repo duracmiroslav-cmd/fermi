@@ -28,12 +28,18 @@ export type ToolAttachment
 // Per-call context passed to every tool. Tools that don't need a
 // field can ignore it. `attachments` is a mutable sink — tools that
 // produce media push entries; tools that don't leave it alone.
+//
+// `toolCallId` is the OpenAI/OpenRouter-issued identifier for this
+// specific tool invocation. Tools producing media use it to name
+// storage objects so the path itself is an audit trail back to the
+// `agent_run_steps` row that recorded the call.
 export interface ToolContext {
   admin: SupabaseClient;
   kek: CryptoKey;
   ownerId: string;
   threadId: string;
   runId: string;
+  toolCallId: string;
   attachments: ToolAttachment[];
 }
 

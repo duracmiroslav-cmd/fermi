@@ -86,11 +86,13 @@ export const generateImage: Tool = {
         prompt: prompt.trim(),
         size: parseSize(size),
       });
-      const imageId = crypto.randomUUID();
+      // Use the LLM-issued tool call ID as the storage object name —
+      // the path becomes an audit handle back to the `tool_called` /
+      // `tool_responded` rows in `agent_run_steps`.
       const { storagePath } = await uploadGeneratedImage(ctx.admin, {
         ownerId: ctx.ownerId,
         threadId: ctx.threadId,
-        imageId,
+        imageId: ctx.toolCallId,
         mime: generated.mime,
         bytes: generated.bytes,
       });

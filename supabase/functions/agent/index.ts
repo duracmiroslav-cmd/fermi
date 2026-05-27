@@ -454,6 +454,7 @@ const runAgentLoop = async (params: {
           ownerId: bot.ownerId,
           threadId,
           runId,
+          toolCallId: call.id,
           attachments,
         });
         const toolLatency = Math.round(performance.now() - toolStart);
