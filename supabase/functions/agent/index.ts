@@ -11,7 +11,11 @@ import {
   PlatformKeyNotConfiguredError,
   resolveKey,
 } from '../../../shared/keys.ts';
-import { signMessageAudioUrl, uploadMessageAudio } from '../../../shared/messageAudio.ts';
+import {
+  signMessageAudioUrl,
+  uploadGeneratedAudio,
+  uploadUserAudio,
+} from '../../../shared/messageAudio.ts';
 import { uploadMessageImage } from '../../../shared/messageImages.ts';
 import { tryClaimIdempotencyKey } from './dedup.ts';
 import { LineContentError, fetchLineMessageContent } from './line-content.ts';
@@ -65,13 +69,14 @@ interface LineEvent {
 
 // What the user just sent for this turn. Discriminated at the event
 // boundary in processLineMessage; runAgentLoop only sees the
-// validated form. The `audio` variant carries the Whisper transcript
-// (raw bytes are dropped after STT — we don't persist the audio
-// itself, only the text equivalent). Knowing the input was audio is
-// load-bearing for `voiceReplyMode='auto'`, which mirrors back voice.
+// validated form. The `audio` variant carries both the Whisper
+// transcript (LLM consumes) and the raw bytes (uploaded to storage
+// for future thread replay UI; M3.P2 retention cleans them up).
+// Knowing the input was audio is also load-bearing for
+// `voiceReplyMode='auto'`, which mirrors back voice.
 type UserInput
   = | { type: 'text';  text: string }
-    | { type: 'audio'; transcript: string }
+    | { type: 'audio'; lineMessageId: string; mime: AudioMime; bytes: Uint8Array; transcript: string }
     | { type: 'image'; lineMessageId: string; mime: ImageMime; bytes: Uint8Array };
 
 interface LinePayload {
@@ -292,13 +297,24 @@ const runAgentLoop = async (params: {
   if (userInput.type === 'text') {
     await appendMessage(admin, threadId, 'user', { type: 'text', text: userInput.text });
   } else if (userInput.type === 'audio') {
-    // Persist as text with an `[audio]` prefix so the LLM knows the
-    // turn was transcribed (homophone / accent errors common; model
-    // can ask for clarification) and history re-loads don't re-pay
-    // Whisper. The raw audio bytes are discarded after STT.
+    // Upload the raw bytes alongside the transcript: LLM history
+    // rebuild reads the transcript (so re-loads never re-pay
+    // Whisper), the future replay viewer reads the storagePath.
+    // Bytes are retained for thread lifetime; M3.P2 thread-retention
+    // cron prefix-deletes them with the rest of the thread media.
+    const { storagePath } = await uploadUserAudio(admin, {
+      ownerId: bot.ownerId,
+      threadId,
+      lineMessageId: userInput.lineMessageId,
+      mime: userInput.mime,
+      bytes: userInput.bytes,
+    });
     await appendMessage(admin, threadId, 'user', {
-      type: 'text',
-      text: `[audio] ${userInput.transcript}`,
+      type: 'audio',
+      mime: userInput.mime,
+      sizeBytes: userInput.bytes.byteLength,
+      storagePath,
+      transcript: userInput.transcript,
     });
   } else {
     const { storagePath } = await uploadMessageImage(admin, {
@@ -477,7 +493,7 @@ const runAgentLoop = async (params: {
           platformKey: PLATFORM_OPENAI_KEY,
         });
         const speech = await synthesizeSpeech({ apiKey: resolved.key, text: finalText });
-        const { storagePath } = await uploadMessageAudio(admin, {
+        const { storagePath } = await uploadGeneratedAudio(admin, {
           ownerId: bot.ownerId,
           threadId,
           runId,
@@ -811,9 +827,10 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         continue;
       }
 
-      // `audio` variant retains the modality so runAgentLoop can both
-      // (a) prefix `[audio]` in messages history for the LLM and
-      // (b) honor voiceReplyMode='auto' (mirror back voice).
+      // `audio` variant retains modality + raw bytes so runAgentLoop
+      // can (a) prefix `[audio]` in messages history for the LLM,
+      // (b) persist bytes to storage for future replay viewer, and
+      // (c) honor voiceReplyMode='auto' (mirror back voice).
       await runAgentLoop({
         bot,
         agent,
@@ -822,7 +839,13 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         kek,
         externalUserId: event.source.userId,
         replyToken: event.replyToken,
-        userInput: { type: 'audio', transcript },
+        userInput: {
+          type: 'audio',
+          lineMessageId: event.message.id,
+          mime: audioMime,
+          bytes: audioBytes,
+          transcript,
+        },
         eventTimestamp,
       });
       continue;

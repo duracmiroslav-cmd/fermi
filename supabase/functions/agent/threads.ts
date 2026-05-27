@@ -2,13 +2,17 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { signMessageImageUrl } from '../../../shared/messageImages.ts';
 import type { ChatMessage } from './openrouter.ts';
 
-// Message content shapes we persist. Vision attachments store only a
-// pointer (`storagePath`) into the `message-images` bucket — actual
-// bytes never live in the row, so loadRecentMessages on text-heavy
-// threads stays cheap even when images sit in history.
+// Message content shapes we persist. Media attachments store only a
+// pointer (`storagePath`); actual bytes never live in the row, so
+// loadRecentMessages on a media-heavy thread stays cheap.
+//
+// Audio holds *both* transcript (what the LLM consumes on history
+// rebuild) and storagePath (what a future replay viewer plays back).
+// One DB row per voice turn, two consumers reading their own field.
 type TextContent  = { type: 'text';  text: string };
 type ImageContent = { type: 'image'; mime: string; sizeBytes: number; storagePath: string };
-export type MessageContent = TextContent | ImageContent;
+type AudioContent = { type: 'audio'; mime: string; sizeBytes: number; storagePath: string; transcript: string };
+export type MessageContent = TextContent | ImageContent | AudioContent;
 
 export type MessageRole = 'user' | 'assistant' | 'tool';
 
@@ -99,6 +103,11 @@ export const loadRecentMessages = async (
       } catch {
         return { role, content: '[image no longer available]' };
       }
+    }
+    if (c.type === 'audio') {
+      // History rebuild reads the transcript only; the storagePath
+      // exists for the (future) replay viewer, not the LLM.
+      return { role, content: `[audio] ${c.transcript}` };
     }
     return null;
   }));
