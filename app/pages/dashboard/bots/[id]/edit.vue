@@ -143,6 +143,7 @@ const onDelete = async () => {
                   :to="`/dashboard/bots/${bot.id}`"
                   color="neutral"
                   variant="ghost"
+                  size="sm"
                 >
                   Cancel
                 </UButton>
@@ -150,6 +151,7 @@ const onDelete = async () => {
                   type="submit"
                   form="bot-form"
                   :loading="saving"
+                  size="sm"
                 >
                   Save
                 </UButton>

@@ -28,31 +28,30 @@ const filteredAgents = computed(() => {
       <template #title>
         <DashboardBreadcrumb :items="[{ label: 'Agents' }]" />
       </template>
-      <template #actions>
-        <UTooltip
-          v-if="atLimit"
-          :text="limitMessage"
-        >
+      <DashboardContainer>
+        <div class="flex items-center justify-between gap-4">
+          <h1 class="text-2xl font-semibold">
+            Agents <span class="text-toned font-normal">({{ used }})</span>
+          </h1>
+          <UTooltip
+            v-if="atLimit"
+            :text="limitMessage"
+          >
+            <UButton
+              icon="i-lucide-plus"
+              disabled
+            >
+              New agent
+            </UButton>
+          </UTooltip>
           <UButton
+            v-else
             icon="i-lucide-plus"
-            disabled
+            to="/dashboard/agents/new"
           >
             New agent
           </UButton>
-        </UTooltip>
-        <UButton
-          v-else
-          icon="i-lucide-plus"
-          to="/dashboard/agents/new"
-        >
-          New agent
-        </UButton>
-      </template>
-
-      <DashboardContainer>
-        <h1 class="text-2xl font-semibold">
-          Agents <span class="text-toned font-normal">({{ used }})</span>
-        </h1>
+        </div>
 
         <div class="flex flex-col gap-4">
           <UInput

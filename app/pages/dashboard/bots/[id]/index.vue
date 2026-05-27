@@ -396,6 +396,7 @@ onBeforeUnmount(() => {
                 icon="i-lucide-pencil"
                 color="neutral"
                 variant="ghost"
+                size="sm"
               >
                 Edit
               </UButton>
