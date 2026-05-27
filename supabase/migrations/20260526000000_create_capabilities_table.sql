@@ -76,9 +76,56 @@ insert into public.capabilities (slug, display_name, description) values
    'Search the web for current information beyond the model''s training cutoff. Returns ranked titles, snippets, and URLs.'),
   ('web-fetch', 'Web fetch',
    'Fetch and return the text contents of a specific URL. Use after web-search returns a promising link, or when the user supplies a URL directly.'),
+  ('image-gen', 'Image generation',
+   'Generate an image from a natural-language prompt. Use when the user explicitly asks to "draw", "generate an image", "make a picture", or similar; do NOT use to fetch existing images from the web.'),
   ('github', 'GitHub',
    'Browse repositories, issues, pull requests, and source code on the connected GitHub account.'),
   ('google-calendar', 'Google Calendar',
    'Read and create events on the connected Google Calendar.'),
   ('notion', 'Notion',
    'Read and update pages and databases in the connected Notion workspace.');
+
+-- MCP wiring for the github capability: a capability whose `config.url`
+-- is set is treated as MCP by the agent runtime, which connects to that
+-- remote server, sends the owner's `authKeyType` credential as a bearer
+-- token, and surfaces only the tools in `toolAllowlist`.
+--
+-- GitHub's MCP server exposes ~42 tools including destructive writes
+-- (create_or_update_file, delete_file, create_pull_request, ...). The
+-- allowlist deliberately keeps only read-only tools: the agent is driven
+-- by untrusted LINE / web content, so it must never hold a write
+-- capability it could be prompt-injected into using. (A fine-grained
+-- PAT's read-only scope does NOT filter the server's tool list, so this
+-- allowlist is the enforcement point, not the token.)
+update public.capabilities
+set config = jsonb_build_object(
+  'url', 'https://api.githubcopilot.com/mcp/',
+  'authKeyType', 'github',
+  'toolAllowlist', jsonb_build_array(
+    'get_commit',
+    'get_file_contents',
+    'get_label',
+    'get_latest_release',
+    'get_me',
+    'get_release_by_tag',
+    'get_tag',
+    'get_team_members',
+    'get_teams',
+    'issue_read',
+    'list_branches',
+    'list_commits',
+    'list_issue_types',
+    'list_issues',
+    'list_pull_requests',
+    'list_releases',
+    'list_repository_collaborators',
+    'list_tags',
+    'pull_request_read',
+    'search_code',
+    'search_issues',
+    'search_pull_requests',
+    'search_repositories',
+    'search_users'
+  )
+)
+where slug = 'github' and owner_id is null;

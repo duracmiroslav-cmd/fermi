@@ -47,14 +47,12 @@ create policy "Users can view model providers." on public.model_providers
 -- ever disabled on the table.
 revoke insert, update, delete on public.model_providers from authenticated;
 
--- Seed the live catalog. OpenRouter is the only one with a working
--- connect flow today (OAuth via /api/oauth/openrouter). The other
--- three are seeded as coming_soon so the future connections-list UI
--- can render them as a teaser without offering a dead-end connect
--- button; flip to 'live' in the same migration that ships each one's
--- /api/connections/<slug> endpoint.
+-- Seed the live catalog. All four BYOK providers ship with working
+-- connect endpoints (OpenRouter via OAuth, OpenAI/Anthropic/Gemini via
+-- `/api/connections/<slug>` POST). `status = 'coming_soon'` is kept in
+-- the CHECK list for future additions whose endpoint lands later.
 insert into public.model_providers (slug, display_name, connect_type, routing_type, credential_key_type, status) values
   ('openrouter', 'OpenRouter', 'oauth',   'aggregator', 'openrouter', 'live'),
-  ('openai',     'OpenAI',     'api_key', 'direct',     'openai',     'coming_soon'),
-  ('anthropic',  'Anthropic',  'api_key', 'direct',     'anthropic',  'coming_soon'),
-  ('gemini',     'Google AI',  'api_key', 'direct',     'gemini',     'coming_soon');
+  ('openai',     'OpenAI',     'api_key', 'direct',     'openai',     'live'),
+  ('anthropic',  'Anthropic',  'api_key', 'direct',     'anthropic',  'live'),
+  ('gemini',     'Google AI',  'api_key', 'direct',     'gemini',     'live');

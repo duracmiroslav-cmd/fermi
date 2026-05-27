@@ -1,8 +1,8 @@
 -- Creates the `handle_new_user` trigger that mirrors `auth.users`
 -- inserts into `public.users` on signup, pulling `display_name` and
 -- `avatar_url` from OAuth provider metadata. Also seeds the user's
--- Default agent so the "every user has one default agent" invariant
--- holds from signup onward.
+-- Default agent (bound to OpenRouter) so the "every user has one
+-- default agent" invariant holds from signup onward.
 --
 -- The function runs as `SECURITY DEFINER` with a locked `search_path`
 -- so it can write to `public.users` from the auth schema context
@@ -13,6 +13,8 @@ create function public.handle_new_user() returns trigger
   security definer
   set search_path = public
 as $$
+declare
+  openrouter_id uuid;
 begin
   insert into public.users (id, email, display_name, avatar_url)
   values (
@@ -28,8 +30,10 @@ begin
     )
   );
 
-  insert into public.agents (owner_id, name, is_default)
-  values (new.id, 'Default', true);
+  select id into openrouter_id from public.model_providers where slug = 'openrouter';
+
+  insert into public.agents (owner_id, name, is_default, model_provider_id)
+  values (new.id, 'Default', true, openrouter_id);
 
   return new;
 end;
