@@ -67,6 +67,16 @@ export interface Toolset {
   execute: (name: string, argumentsJson: string, ctx: ToolContext) => Promise<string>;
 }
 
+// Module-level: reused across warm edge-function invocations of the same isolate.
+// Key = `url\x00token`; PAT rotations bust stale entries automatically.
+interface CachedTools {
+  list:      McpTool[];
+  expiresAt: number;
+}
+const toolSchemaCache = new Map<string, CachedTools>();
+// 5 min keeps tool lists fresh across rapid successive runs without re-handshaking.
+const TOOL_CACHE_TTL_MS = 5 * 60 * 1000;
+
 const loadToken = async (
   base: { admin: SupabaseClient; kek: CryptoKey; ownerId: string },
   authKeyType: string,
@@ -113,11 +123,33 @@ export const buildToolset = async (
             ? await loadToken(base, cap.config.authKeyType)
             : undefined;
 
-          const client = new McpClient({ url: cap.config.url!, token });
-          await client.connect();
+          const cacheKey = `${cap.config.url}\x00${token ?? ''}`;
+
+          // Promise-coalesced lazy connect: all tools on this cap share one
+          // McpClient. On a cache hit the connect is deferred to the first
+          // actual tool call, saving the 3-RTT handshake on warm runs.
+          let connectionPromise: Promise<McpClient> | undefined;
+          const getClient = (): Promise<McpClient> => {
+            connectionPromise ??= (async () => {
+              const c = new McpClient({ url: cap.config.url!, token });
+              await c.connect();
+              return c;
+            })();
+            return connectionPromise;
+          };
+
+          const cached = toolSchemaCache.get(cacheKey);
+          let mcpTools: McpTool[];
+          if (cached && cached.expiresAt > Date.now()) {
+            mcpTools = cached.list;
+          } else {
+            const client = await getClient();
+            mcpTools = await client.listTools();
+            toolSchemaCache.set(cacheKey, { list: mcpTools, expiresAt: Date.now() + TOOL_CACHE_TTL_MS });
+          }
 
           const allow = cap.config.toolAllowlist ? new Set(cap.config.toolAllowlist) : null;
-          for (const t of await client.listTools()) {
+          for (const t of mcpTools) {
             if (allow && !allow.has(t.name)) continue;
             const llmName = `${cap.slug}__${t.name}`;
             schemas.push({
@@ -125,6 +157,7 @@ export const buildToolset = async (
               function: { name: llmName, description: t.description ?? '', parameters: t.inputSchema },
             });
             routers.set(llmName, async (args) => {
+              const client = await getClient();
               const r = await client.callTool(t.name, args);
               const text = (r.content ?? [])
                 .filter(c => c.type === 'text')
