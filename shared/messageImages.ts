@@ -13,10 +13,11 @@ const extFromMime = (mime: string): string => {
 };
 
 // Path layout in `message-images`:
-//   <owner>/<thread>/<lineMessageId>.<ext>     — user-uploaded image (vision)
-//   <owner>/<thread>/gen/<imageId>.<ext>       — model-generated image (image-gen)
-// `gen/` subfolder separates the two so an admin viewer / cleanup
-// cron can target them independently if needed.
+//   <owner>/<thread>/in/<lineMessageId>.<ext>   — user-uploaded (vision)
+//   <owner>/<thread>/out/<imageId>.<ext>        — fermi-generated (image-gen)
+// `in/` + `out/` describe direction of flow (user → fermi vs
+// fermi → user). Matches `message-audio` for cross-bucket symmetry;
+// future modalities slot into the same in/out taxonomy.
 
 // Uploads user-uploaded vision bytes. `upsert: true` makes the
 // operation idempotent — pgmq re-delivery or a worker restart
@@ -32,7 +33,7 @@ export const uploadMessageImage = async (
   },
 ): Promise<{ storagePath: string }> => {
   const { ownerId, threadId, lineMessageId, mime, bytes } = params;
-  const storagePath = `${ownerId}/${threadId}/${lineMessageId}.${extFromMime(mime)}`;
+  const storagePath = `${ownerId}/${threadId}/in/${lineMessageId}.${extFromMime(mime)}`;
   const { error: uploadErr } = await admin.storage.from(BUCKET).upload(storagePath, bytes, {
     contentType: mime,
     upsert: true,
@@ -41,7 +42,7 @@ export const uploadMessageImage = async (
   return { storagePath };
 };
 
-// Uploads model-generated image bytes. `imageId` is a caller-chosen
+// Uploads fermi-generated image bytes. `imageId` is a caller-chosen
 // unique identifier (e.g. crypto.randomUUID()) so multiple
 // generations within a single agent run don't collide.
 export const uploadGeneratedImage = async (
@@ -55,7 +56,7 @@ export const uploadGeneratedImage = async (
   },
 ): Promise<{ storagePath: string }> => {
   const { ownerId, threadId, imageId, mime, bytes } = params;
-  const storagePath = `${ownerId}/${threadId}/gen/${imageId}.${extFromMime(mime)}`;
+  const storagePath = `${ownerId}/${threadId}/out/${imageId}.${extFromMime(mime)}`;
   const { error: uploadErr } = await admin.storage.from(BUCKET).upload(storagePath, bytes, {
     contentType: mime,
     upsert: true,

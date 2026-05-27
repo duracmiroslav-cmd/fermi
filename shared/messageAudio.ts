@@ -11,11 +11,11 @@ const extFromMime = (mime: string): string => {
 };
 
 // Path layout in `message-audio`:
-//   `<owner>/<thread>/in/<lineMessageId>.<ext>` — user-uploaded audio
-//   `<owner>/<thread>/<runId>.<ext>`           — TTS-generated audio
-// `in/` subfolder separates the two so M3.P2's thread-retention cron
-// can prefix-delete an entire thread's media in one storage call
-// regardless of source.
+//   <owner>/<thread>/in/<lineMessageId>.<ext>  — user-uploaded voice
+//   <owner>/<thread>/out/<runId>.<ext>         — fermi-generated (TTS)
+// `in/` + `out/` describe direction of flow (user → fermi vs
+// fermi → user). Matches `message-images` for cross-bucket symmetry;
+// future modalities slot into the same in/out taxonomy.
 
 // Uploads TTS-generated audio. `upsert: true` keeps the operation
 // idempotent — pgmq re-delivery of the same agent run re-uses the
@@ -31,7 +31,7 @@ export const uploadGeneratedAudio = async (
   },
 ): Promise<{ storagePath: string }> => {
   const { ownerId, threadId, runId, mime, bytes } = params;
-  const storagePath = `${ownerId}/${threadId}/${runId}.${extFromMime(mime)}`;
+  const storagePath = `${ownerId}/${threadId}/out/${runId}.${extFromMime(mime)}`;
   const { error: uploadErr } = await admin.storage.from(BUCKET).upload(storagePath, bytes, {
     contentType: mime,
     upsert: true,
