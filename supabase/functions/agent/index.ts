@@ -486,51 +486,22 @@ const runAgentLoop = async (params: {
       finalText = `⚠️ 跑了 ${MAX_AGENT_STEPS} 步還沒收斂，先停下來。可以換個方式問我一次。`;
     }
 
-    await appendMessage(admin, threadId, 'assistant', { type: 'text', text: finalText });
-
-    // Persist tool-produced media to `messages` so history rebuild
-    // on subsequent turns can re-sign URLs and feed them to the LLM
-    // (same pattern as user-uploaded vision images). Each attachment
-    // becomes its own assistant message row, ordered after the text.
-    for (const att of attachments) {
-      if (att.type === 'image') {
-        await appendMessage(admin, threadId, 'assistant', {
-          type: 'image',
-          mime: att.mime,
-          sizeBytes: att.sizeBytes,
-          storagePath: att.storagePath,
-        });
-      }
-    }
-
     // Voice-reply mode resolves to a yes/no per-turn:
     //   always → every turn
     //   auto   → only when this turn's user input was audio (mirror)
     //   off    → never
     // Any failure along the TTS path (Free without OpenAI BYOK,
     // platform env unset, OpenAI 4xx/5xx, upload error) falls back to
-    // text — better a text reply than no reply. The text variant of
-    // `finalText` is the canonical record in `messages`.
+    // text — better a text reply than no reply.
     const wantsVoiceReply
       = agent.voiceReplyMode === 'always'
         || (agent.voiceReplyMode === 'auto' && userInput.type === 'audio');
-    const outbound: LineMessage[] = [{ type: 'text', text: `🤖 ${finalText}` }];
-    // Drain tool-produced attachments into the delivery array. LINE
-    // caps multi-message replies at 5; image attachments take the
-    // slots after the text, so a generation-heavy turn that produces
-    // 5+ images would lose the tail. Acceptable for v1 — the LLM is
-    // discouraged from generating that many images per turn in the
-    // tool description, and the layer that truncates (replyMessages /
-    // pushMessages) caps at LINE_MESSAGES_PER_CALL anyway.
-    for (const att of attachments) {
-      if (att.type === 'image') {
-        outbound.push({
-          type: 'image',
-          originalContentUrl: att.originalContentUrl,
-          previewImageUrl: att.previewImageUrl,
-        });
-      }
-    }
+
+    // Synthesize TTS first (if requested) so we know whether the
+    // primary `messages` row should be audio (with transcript) or
+    // plain text. Mirrors the user-side STT shape: a voice turn is
+    // stored as a single audio row with transcript embedded.
+    let ttsAudio: { storagePath: string; signedUrl: string; mime: string; sizeBytes: number; durationMs: number } | null = null;
     if (wantsVoiceReply) {
       try {
         const resolved = await resolveKey(admin, kek, {
@@ -547,16 +518,69 @@ const runAgentLoop = async (params: {
           bytes: speech.bytes,
         });
         const signedUrl = await signMessageAudioUrl(admin, storagePath);
-        outbound[0] = {
-          type: 'audio',
-          originalContentUrl: signedUrl,
-          duration: speech.durationMs,
+        ttsAudio = {
+          storagePath,
+          signedUrl,
+          mime: speech.mime,
+          sizeBytes: speech.bytes.byteLength,
+          durationMs: speech.durationMs,
         };
       } catch (ttsErr) {
         console.warn('TTS failed; falling back to text', {
           agentId: agent.id,
           ownerId: bot.ownerId,
           err: String(ttsErr),
+        });
+      }
+    }
+
+    // Primary assistant row: audio variant when TTS succeeded (single
+    // row with transcript embedded, mirroring the user STT shape),
+    // text variant otherwise. Either way `finalText` is the
+    // canonical semantic content.
+    if (ttsAudio) {
+      await appendMessage(admin, threadId, 'assistant', {
+        type: 'audio',
+        mime: ttsAudio.mime,
+        sizeBytes: ttsAudio.sizeBytes,
+        storagePath: ttsAudio.storagePath,
+        transcript: finalText,
+      });
+    } else {
+      await appendMessage(admin, threadId, 'assistant', { type: 'text', text: finalText });
+    }
+
+    // Persist tool-produced media as additional assistant rows so
+    // history rebuild on subsequent turns can re-sign URLs and feed
+    // them to the LLM (same pattern as user-uploaded vision images).
+    for (const att of attachments) {
+      if (att.type === 'image') {
+        await appendMessage(admin, threadId, 'assistant', {
+          type: 'image',
+          mime: att.mime,
+          sizeBytes: att.sizeBytes,
+          storagePath: att.storagePath,
+        });
+      }
+    }
+
+    // Compose LINE delivery: primary message (audio if TTS succeeded,
+    // text otherwise) followed by any image attachments. LINE caps
+    // multi-message replies at 5; image attachments take the slots
+    // after the primary, so a generation-heavy turn that produces 5+
+    // images would lose the tail. Acceptable for v1 — the LLM is
+    // discouraged from generating that many images per turn in the
+    // tool description, and the truncation layer (replyMessages /
+    // pushMessages) caps at LINE_MESSAGES_PER_CALL anyway.
+    const outbound: LineMessage[] = ttsAudio
+      ? [{ type: 'audio', originalContentUrl: ttsAudio.signedUrl, duration: ttsAudio.durationMs }]
+      : [{ type: 'text', text: `🤖 ${finalText}` }];
+    for (const att of attachments) {
+      if (att.type === 'image') {
+        outbound.push({
+          type: 'image',
+          originalContentUrl: att.originalContentUrl,
+          previewImageUrl: att.previewImageUrl,
         });
       }
     }
