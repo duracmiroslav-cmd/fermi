@@ -22,7 +22,7 @@ interface AgentDetail {
 interface ProviderModel {
   id: string;
   name: string;
-  avatar: { icon?: string; text?: string };
+  avatar: { icon: string };
 }
 
 const route = useRoute();
@@ -121,11 +121,9 @@ const model = computed<ProviderModel | null>(() => {
                 v-if="model"
                 class="flex items-center gap-1.5 min-w-0"
               >
-                <UAvatar
-                  v-bind="model.avatar"
-                  size="sm"
-                  class="shrink-0"
-                  :ui="{ icon: 'size-6' }"
+                <UIcon
+                  :name="model.avatar.icon"
+                  class="size-5 text-toned shrink-0"
                 />
                 <NuxtLink
                   :to="`https://openrouter.ai/${model.id}`"

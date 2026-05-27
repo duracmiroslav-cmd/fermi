@@ -15,7 +15,7 @@ interface ProviderModel {
   promptCost: number;
   completionCost: number;
   modality: string;
-  avatar: { icon?: string; text?: string };
+  avatar: { icon: string };
 }
 
 const props = defineProps<{
@@ -52,7 +52,7 @@ const modelItems = computed(() =>
     value: m.id,
     description: formatContext(m.contextLength),
     isFree: m.isFree,
-    avatar: { ...m.avatar, color: 'primary' as const },
+    avatar: m.avatar,
   })),
 );
 
@@ -115,21 +115,26 @@ const onSubmit = () => {
         value-key="value"
         placeholder="Select a model"
         :loading="modelsPending || isModelPickerOpening"
-        :ui="{ base: 'ps-10!', itemLeadingAvatarSize: 'lg' }"
+        :ui="{ itemTrailingIcon: 'size-4' }"
         @pointerdown="isModelPickerOpening = true"
         @update:open="isModelPickerOpening = false"
       >
+        <template #item-leading="{ item }">
+          <UIcon
+            :name="item.avatar.icon"
+            class="size-5 text-toned"
+          />
+        </template>
         <template #leading>
           <UIcon
             v-if="isModelPickerOpening"
             name="i-lucide-loader-circle"
             class="size-5 animate-spin text-toned"
           />
-          <UAvatar
+          <UIcon
             v-else-if="selectedModel"
-            v-bind="selectedModel.avatar"
-            size="xs"
-            color="primary"
+            :name="selectedModel.avatar.icon"
+            class="size-5 text-toned"
           />
         </template>
         <template #empty="{ searchTerm }">
@@ -168,7 +173,7 @@ const onSubmit = () => {
           </UTooltip>
           <div
             v-if="state.defaultTextModel !== item.value"
-            class="size-5 shrink-0"
+            class="size-4 shrink-0"
             aria-hidden="true"
           />
         </template>

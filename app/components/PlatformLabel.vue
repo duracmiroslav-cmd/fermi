@@ -17,7 +17,7 @@ const color = computed(() => PLATFORM_COLOR[props.platform]);
   <span class="inline-flex items-center gap-1.5">
     <UIcon
       :name="icon"
-      class="size-4"
+      class="size-5"
       :style="{ color }"
     />
     {{ label }}

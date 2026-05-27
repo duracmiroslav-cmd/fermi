@@ -171,7 +171,7 @@ const filteredBots = computed(() => {
                           :src="bot.agent.avatarUrl"
                           :name="bot.agent.name"
                           :seed="bot.agent.id"
-                          size="3xs"
+                          size="2xs"
                         />
                         <span class="truncate">{{ bot.agent?.name ?? 'No agent' }}</span>
                       </span>

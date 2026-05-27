@@ -83,7 +83,7 @@ const onSubmit = () => {
         value-key="value"
         placeholder="Select an agent"
         :loading="agentsPending || isAgentPickerOpening"
-        :ui="{ base: 'ps-10!' }"
+        :ui="{ itemTrailingIcon: 'size-4' }"
         @pointerdown="isAgentPickerOpening = true"
         @update:open="isAgentPickerOpening = false"
       >
@@ -98,7 +98,7 @@ const onSubmit = () => {
             :src="selectedAgent.avatarUrl"
             :name="selectedAgent.name"
             :seed="selectedAgent.id"
-            size="xs"
+            size="2xs"
           />
         </template>
         <template #item-leading="{ item }">
@@ -106,7 +106,7 @@ const onSubmit = () => {
             :src="item.avatarUrl"
             :name="item.label"
             :seed="item.value"
-            size="lg"
+            size="2xs"
           />
         </template>
         <template #item-label="{ item }">
@@ -140,7 +140,7 @@ const onSubmit = () => {
           </UTooltip>
           <div
             v-if="state.agentId !== item.value"
-            class="size-5 shrink-0"
+            class="size-4 shrink-0"
             aria-hidden="true"
           />
         </template>
