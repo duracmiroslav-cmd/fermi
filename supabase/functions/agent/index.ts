@@ -71,9 +71,9 @@ interface LineEvent {
 // boundary in processLineMessage; runAgentLoop only sees the
 // validated form. The `audio` variant carries both the Whisper
 // transcript (LLM consumes) and the raw bytes (uploaded to storage
-// for future thread replay UI; M3.P2 retention cleans them up).
-// Knowing the input was audio is also load-bearing for
-// `voiceReplyMode='auto'`, which mirrors back voice.
+// for a future thread replay UI). Knowing the input was audio is
+// also load-bearing for `voiceReplyMode='auto'`, which mirrors back
+// voice.
 type UserInput
   = | { type: 'text';  text: string }
     | { type: 'audio'; lineMessageId: string; mime: AudioMime; bytes: Uint8Array; transcript: string }
@@ -306,9 +306,9 @@ const runAgentLoop = async (params: {
   } else if (userInput.type === 'audio') {
     // Upload the raw bytes alongside the transcript: LLM history
     // rebuild reads the transcript (so re-loads never re-pay
-    // Whisper), the future replay viewer reads the storagePath.
-    // Bytes are retained for thread lifetime; M3.P2 thread-retention
-    // cron prefix-deletes them with the rest of the thread media.
+    // Whisper), a future replay viewer reads the storagePath. Bytes
+    // are retained for thread lifetime and prefix-deleted with the
+    // rest of the thread's media when retention cleanup runs.
     const { storagePath } = await uploadUserAudio(admin, {
       ownerId: bot.ownerId,
       threadId,
@@ -625,9 +625,9 @@ const runAgentLoop = async (params: {
     });
     // Surface the failure to LINE so the user (and dogfooding owner)
     // sees what went wrong instead of staring at a vanished `...`.
-    // v1 ships the raw error string for fast dogfooding — once we
-    // have non-trusted users this needs to switch to a friendly
-    // notice + admin-only debug link (see roadmap M3 P1).
+    // Ships the raw error string for fast dogfooding — once non-
+    // trusted users start arriving this needs to switch to a
+    // friendly notice plus an admin-only debug link.
     let userNotified = false;
     try {
       await deliverMessages({

@@ -13,7 +13,7 @@
 --   <owner_id>/<thread_id>/in/<line_message_id>.<ext>  — user-uploaded
 --   <owner_id>/<thread_id>/out/<image_id>.<ext>        — fermi-generated
 -- `in/` + `out/` describe direction of flow; both share a per-thread
--- prefix so M3.P2's retention cron can prefix-delete an entire
+-- prefix so a future retention cron can prefix-delete an entire
 -- thread's media in one storage call regardless of source.
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

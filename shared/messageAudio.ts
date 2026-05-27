@@ -42,8 +42,8 @@ export const uploadGeneratedAudio = async (
 
 // Uploads user-sent audio (LINE voice message bytes after Whisper has
 // extracted the transcript). Retained for future thread replay UIs —
-// no consumer reads this in v1, but path layout sets up M3.P2
-// retention cleanup without a follow-up migration.
+// no consumer reads this today, but the per-thread path layout lets a
+// future retention cron prefix-delete without a follow-up migration.
 export const uploadUserAudio = async (
   admin: SupabaseClient,
   params: {
