@@ -1,10 +1,15 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { loadActiveCapabilitySlugs } from '../../../shared/agentCapabilities.ts';
 import { detectImageMime, type ImageMime } from '../../../shared/image.ts';
 import { findAgentById } from '../../../shared/agents.ts';
 import { findBotById } from '../../../shared/bots.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
 import { getKek } from '../../../shared/kek.ts';
+import {
+  FreeBYOKRequiredError,
+  PlatformKeyNotConfiguredError,
+  resolveKey,
+} from '../../../shared/keys.ts';
 import { uploadMessageImage } from '../../../shared/messageImages.ts';
 import { tryClaimIdempotencyKey } from './dedup.ts';
 import { LineContentError, fetchLineMessageContent } from './line-content.ts';
@@ -189,27 +194,13 @@ const safeReply = async (
 };
 
 const NO_AGENT_NOTICE = '⚙️ 這個 bot 還沒設定 agent，請到 https://fermi.tw/dashboard 綁定一個。';
-const NO_OPENROUTER_NOTICE = '⚙️ fermi 還沒連接 OpenRouter，請到 https://fermi.tw/dashboard/connections 連接。';
+// Free tier: BYOK is the friction point. Notice surfaces both paths so
+// the bot owner can pick connect (manual) or upgrade (instant).
+const FREE_BYOK_NOTICE_OPENROUTER
+  = '⚙️ 還沒連接 OpenRouter。Free 方案請到 https://fermi.tw/dashboard/connections 連接，或升級 Pro 由 fermi 代管。';
+const PLATFORM_KEY_OPS_NOTICE = '⚠️ Pro 服務暫時不可用，已通知 fermi 處理，請稍後再試。';
 
-const tryLoadOpenRouterKey = async (
-  admin: SupabaseClient,
-  kek: CryptoKey,
-  userId: string,
-): Promise<string | null> => {
-  try {
-    const { plaintext } = await loadCredential(admin, kek, {
-      userId,
-      botId: null,
-      keyType: 'openrouter',
-    });
-    return plaintext;
-  } catch (err) {
-    // PGRST116 from PostgREST's .single() when no rows match — the
-    // user simply hasn't connected OpenRouter yet.
-    if ((err as { code?: string })?.code === 'PGRST116') return null;
-    throw err;
-  }
-};
+const PLATFORM_OPENROUTER_KEY = Deno.env.get('OPENROUTER_API_KEY') ?? null;
 
 const isTextMessageFromUser = (event: LineEvent): event is LineEvent & {
   replyToken: string;
@@ -586,11 +577,32 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     return;
   }
 
-  const openrouterKey = await tryLoadOpenRouterKey(admin, kek, bot.ownerId);
-  if (!openrouterKey) {
+  let openrouterKey: string;
+  try {
+    const resolved = await resolveKey(admin, kek, {
+      ownerId: bot.ownerId,
+      purpose: 'openrouter',
+      platformKey: PLATFORM_OPENROUTER_KEY,
+    });
+    openrouterKey = resolved.key;
+  } catch (err) {
+    // FreeBYOKRequiredError = owner is on Free + hasn't connected.
+    // PlatformKeyNotConfiguredError = Pro user but fermi's env is missing
+    // (operational issue on our side; user-facing message must not blame
+    // the user). Any other throw is a real DB/decryption error → bubble
+    // so pgmq retries.
+    const notice = err instanceof FreeBYOKRequiredError
+      ? FREE_BYOK_NOTICE_OPENROUTER
+      : err instanceof PlatformKeyNotConfiguredError
+        ? PLATFORM_KEY_OPS_NOTICE
+        : null;
+    if (notice === null) throw err;
+    if (err instanceof PlatformKeyNotConfiguredError) {
+      console.error('platform OpenRouter key missing for Pro user', { ownerId: bot.ownerId });
+    }
     for (const event of events) {
       if (isReplyableUserMessage(event)) {
-        await safeReply(lineAccessToken, event.replyToken, NO_OPENROUTER_NOTICE);
+        await safeReply(lineAccessToken, event.replyToken, notice);
       }
     }
     return;

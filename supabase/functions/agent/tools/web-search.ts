@@ -1,4 +1,8 @@
-import { loadCredential } from '../../../../shared/credentials.ts';
+import {
+  FreeBYOKRequiredError,
+  PlatformKeyNotConfiguredError,
+  resolveKey,
+} from '../../../../shared/keys.ts';
 import type { Tool } from './index.ts';
 
 interface Args {
@@ -48,29 +52,30 @@ export const webSearch: Tool = {
     additionalProperties: false,
   },
   execute: async (rawArgs, ctx) => {
-    // Owner's personal Tavily key takes precedence; falls back to
-    // the fermi platform key (TAVILY_API_KEY env) so dogfooding bots
-    // stay working before the owner connects. If neither is present,
-    // surface a lazy-connect notice the LLM will relay in the user's
-    // language — pointing the user at the bot owner's dashboard.
-    let apiKey: string | null = null;
+    // Tier policy: Free must BYOK Tavily; Pro falls back to fermi's
+    // platform key. Errors round-trip back to the LLM as tool-result
+    // JSON so the model can relay a sensible message in the user's
+    // language rather than crashing the loop.
+    let apiKey: string;
     try {
-      const { plaintext } = await loadCredential(ctx.admin, ctx.kek, {
-        userId: ctx.ownerId,
-        botId: null,
-        keyType: 'tavily',
+      const resolved = await resolveKey(ctx.admin, ctx.kek, {
+        ownerId: ctx.ownerId,
+        purpose: 'tavily',
+        platformKey: Deno.env.get('TAVILY_API_KEY') ?? null,
       });
-      apiKey = plaintext;
+      apiKey = resolved.key;
     } catch (err) {
-      // PGRST116 = no row from .single() — expected when owner
-      // hasn't connected Tavily yet. Re-throw anything else.
-      if ((err as { code?: string })?.code !== 'PGRST116') throw err;
-    }
-    if (!apiKey) apiKey = Deno.env.get('TAVILY_API_KEY') ?? null;
-    if (!apiKey) {
-      return {
-        error: 'web_search requires a Tavily API key, which the bot owner has not connected. Tell the user that the bot owner needs to visit https://fermi.tw/dashboard/connections and connect a Tavily API key (free tier gives 1000 queries/month, takes about 30 seconds at https://tavily.com).',
-      };
+      if (err instanceof FreeBYOKRequiredError) {
+        return {
+          error: 'web_search requires a Tavily API key. Tell the user the bot owner needs to either connect Tavily at https://fermi.tw/dashboard/connections (Tavily free tier gives 1000 queries/month, ~30 seconds at https://tavily.com) or upgrade to Pro so fermi handles it.',
+        };
+      }
+      if (err instanceof PlatformKeyNotConfiguredError) {
+        return {
+          error: 'web_search is temporarily unavailable. Tell the user that fermi\'s Pro web search backend is down and to try again shortly.',
+        };
+      }
+      throw err;
     }
 
     const { query, max_results } = rawArgs as Args;
