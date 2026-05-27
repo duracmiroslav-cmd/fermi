@@ -8,6 +8,7 @@ create table public.agents (
   name                  text not null,
   system_prompt         text,
   default_text_model    text,
+  default_vision_model  text,
   avatar_url            text,
   is_default            boolean not null default false,
   created_at            timestamptz not null default now(),

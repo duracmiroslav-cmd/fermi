@@ -280,6 +280,7 @@ const runAgentLoop = async (params: {
     name: string;
     systemPrompt: string | null;
     defaultTextModel: string | null;
+    defaultVisionModel: string | null;
     voiceReplyMode: VoiceReplyMode;
   };
   openrouterKey: string;
@@ -365,7 +366,7 @@ const runAgentLoop = async (params: {
       Array.isArray(m.content) && m.content.some((p) => p.type === 'image_url'),
     );
     const model = hasImageInHistory
-      ? DEFAULT_VISION_MODEL
+      ? (agent.defaultVisionModel ?? DEFAULT_VISION_MODEL)
       : (agent.defaultTextModel ?? DEFAULT_TEXT_MODEL);
 
     const messages: ChatMessage[] = [

@@ -14,6 +14,7 @@ interface AgentDetail {
   name: string;
   systemPrompt: string | null;
   defaultTextModel: string | null;
+  defaultVisionModel: string | null;
   avatarUrl: string | null;
   isDefault: boolean;
   createdAt: string;
@@ -43,12 +44,13 @@ const model = computed<ProviderModel | null>(() => {
     ?? { id, name: id, avatar: { icon: 'i-lucide-sparkles' } };
 });
 
-// Fixed across all agents for now: the worker swaps to this whenever a
-// conversation includes an image, regardless of the text model.
-const visionModel = computed<ProviderModel>(() =>
-  (models.value ?? []).find(m => m.id === DEFAULT_VISION_MODEL)
-  ?? { id: DEFAULT_VISION_MODEL, name: DEFAULT_VISION_MODEL, avatar: { icon: 'i-lucide-eye' } },
-);
+// The worker swaps to this whenever a conversation includes an image.
+// Falls back to the hardcoded default when the agent hasn't set one.
+const visionModel = computed<ProviderModel>(() => {
+  const id = agent.value?.defaultVisionModel ?? DEFAULT_VISION_MODEL;
+  return (models.value ?? []).find(m => m.id === id)
+    ?? { id, name: id, avatar: { icon: 'i-lucide-eye' } };
+});
 </script>
 
 <template>

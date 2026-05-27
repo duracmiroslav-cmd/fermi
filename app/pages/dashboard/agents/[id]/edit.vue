@@ -6,6 +6,7 @@ interface AgentDetail {
   name: string;
   systemPrompt: string | null;
   defaultTextModel: string | null;
+  defaultVisionModel: string | null;
   avatarUrl: string | null;
   isDefault: boolean;
   bots: Array<{ id: string; displayName: string | null; platform: string }>;
@@ -22,7 +23,7 @@ const saving = ref(false);
 const deleting = ref(false);
 const deleteDialogOpen = ref(false);
 
-const onSubmit = async (value: { name: string; systemPrompt: string; defaultTextModel: string }) => {
+const onSubmit = async (value: { name: string; systemPrompt: string; defaultTextModel: string; defaultVisionModel: string }) => {
   saving.value = true;
   try {
     await $fetch(`/api/agents/${route.params.id}`, {
@@ -31,6 +32,7 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultText
         name: value.name,
         systemPrompt: value.systemPrompt || null,
         defaultTextModel: value.defaultTextModel || null,
+        defaultVisionModel: value.defaultVisionModel || null,
       },
     });
     notify.success('Agent updated');
@@ -156,6 +158,7 @@ const onDelete = async () => {
               name: agent.name,
               systemPrompt: agent.systemPrompt ?? '',
               defaultTextModel: agent.defaultTextModel ?? undefined,
+              defaultVisionModel: agent.defaultVisionModel ?? undefined,
             }"
             @submit="onSubmit"
           />

@@ -6,6 +6,7 @@ interface AgentFormValue {
   name: string;
   systemPrompt: string;
   defaultTextModel: string;
+  defaultVisionModel: string;
 }
 
 interface ProviderModel {
@@ -36,18 +37,27 @@ const formatContext = (n: number) =>
 const state = reactive<AgentFormValue>({
   name: props.initialValue?.name ?? '',
   systemPrompt: props.initialValue?.systemPrompt ?? '',
-  // New agents seed the picker with the worker fallback; edit preserves the stored value.
+  // New agents seed both pickers with the worker fallbacks; edit preserves stored values.
   defaultTextModel: props.initialValue
     ? (props.initialValue.defaultTextModel ?? '')
     : DEFAULT_TEXT_MODEL,
+  defaultVisionModel: props.initialValue
+    ? (props.initialValue.defaultVisionModel ?? '')
+    : DEFAULT_VISION_MODEL,
 });
 
 const isModelPickerOpening = ref(false);
+const isVisionPickerOpening = ref(false);
 
 // Same UUID-flash-avoidance trick as the agent picker: hide value while loading.
 const displayModelId = computed<string | undefined>({
   get: () => (modelsPending.value ? undefined : state.defaultTextModel || undefined),
   set: (v) => { if (v) state.defaultTextModel = v; },
+});
+
+const displayVisionModelId = computed<string | undefined>({
+  get: () => (modelsPending.value ? undefined : state.defaultVisionModel || undefined),
+  set: (v) => { if (v) state.defaultVisionModel = v; },
 });
 
 const modelItems = computed(() =>
@@ -60,16 +70,27 @@ const modelItems = computed(() =>
   })),
 );
 
+// Vision-capable models only: the worker swaps to this whenever a
+// conversation includes an image, so a text-only pick would break it.
+const visionModelItems = computed(() =>
+  (models.value ?? [])
+    .filter(m => m.modality.includes('image'))
+    .map(m => ({
+      label: m.name,
+      value: m.id,
+      description: formatContext(m.contextLength),
+      isFree: m.isFree,
+      avatar: m.avatar,
+    })),
+);
+
 const selectedModel = computed(() =>
   (models.value ?? []).find(m => m.id === state.defaultTextModel) ?? null,
 );
 
-// Fixed for now (not per-agent). Resolve to a friendly name + logo,
-// falling back to the raw slug while the catalog loads.
-const visionModel = computed(() => {
-  const found = (models.value ?? []).find(m => m.id === DEFAULT_VISION_MODEL);
-  return { name: found?.name ?? DEFAULT_VISION_MODEL, icon: found?.avatar.icon ?? 'i-lucide-eye' };
-});
+const selectedVisionModel = computed(() =>
+  (models.value ?? []).find(m => m.id === state.defaultVisionModel) ?? null,
+);
 
 const promptCharCount = computed(() => state.systemPrompt.length);
 
@@ -193,15 +214,78 @@ const onSubmit = () => {
 
     <UFormField
       label="Vision model"
-      help="Messages with an image are answered by this vision model, whatever the text model is set to."
+      name="defaultVisionModel"
+      help="Used to read images sent into the conversation, whatever the text model is set to. Only vision-capable models are listed."
     >
-      <div class="flex items-center gap-1.5 h-9 text-toned">
-        <UIcon
-          :name="visionModel.icon"
-          class="size-5 shrink-0"
-        />
-        <span class="truncate">{{ visionModel.name }}</span>
-      </div>
+      <USelectMenu
+        v-model="displayVisionModelId"
+        :items="visionModelItems"
+        value-key="value"
+        placeholder="Select a model"
+        :loading="modelsPending || isVisionPickerOpening"
+        :ui="{ itemTrailingIcon: 'size-4' }"
+        @pointerdown="isVisionPickerOpening = true"
+        @update:open="isVisionPickerOpening = false"
+      >
+        <template #item-leading="{ item }">
+          <UIcon
+            :name="item.avatar.icon"
+            class="size-5 text-toned"
+          />
+        </template>
+        <template #leading>
+          <UIcon
+            v-if="isVisionPickerOpening"
+            name="i-lucide-loader-circle"
+            class="size-5 animate-spin text-toned"
+          />
+          <UIcon
+            v-else-if="selectedVisionModel"
+            :name="selectedVisionModel.avatar.icon"
+            class="size-5 text-toned"
+          />
+        </template>
+        <template #empty="{ searchTerm }">
+          <span v-if="modelsPending">Loading models…</span>
+          <span v-else-if="searchTerm">No models match "{{ searchTerm }}"</span>
+          <span v-else>No vision models available</span>
+        </template>
+        <template #item-label="{ item }">
+          <span class="inline-flex items-center gap-1.5 truncate">
+            {{ item.label }}
+            <UBadge
+              v-if="item.isFree"
+              color="neutral"
+              variant="subtle"
+              size="xs"
+            >
+              free
+            </UBadge>
+          </span>
+        </template>
+        <template #item-trailing="{ item }">
+          <UTooltip text="View on OpenRouter">
+            <UButton
+              :to="`https://openrouter.ai/${item.value}`"
+              target="_blank"
+              rel="noopener"
+              icon="i-lucide-external-link"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              aria-label="View on OpenRouter"
+              class="hover:bg-accented! group-data-[state=checked]:hover:bg-primary/20!"
+              @click.stop
+              @pointerdown.stop
+            />
+          </UTooltip>
+          <div
+            v-if="state.defaultVisionModel !== item.value"
+            class="size-4 shrink-0"
+            aria-hidden="true"
+          />
+        </template>
+      </USelectMenu>
     </UFormField>
   </UForm>
 </template>

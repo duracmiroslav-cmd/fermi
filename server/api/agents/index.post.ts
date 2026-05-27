@@ -39,6 +39,7 @@ export default defineEventHandler(async (event) => {
     p_name: input.name,
     p_system_prompt: input.systemPrompt ?? null,
     p_default_text_model: input.defaultTextModel ?? null,
+    p_default_vision_model: input.defaultVisionModel ?? null,
     p_model_provider_id: modelProviderId,
     p_avatar_url: input.avatarUrl ?? null,
     p_limit: limit,
@@ -62,6 +63,7 @@ export default defineEventHandler(async (event) => {
     name: input.name,
     systemPrompt: input.systemPrompt ?? null,
     defaultTextModel: input.defaultTextModel ?? null,
+    defaultVisionModel: input.defaultVisionModel ?? null,
     modelProviderId,
     avatarUrl: input.avatarUrl ?? null,
   };
