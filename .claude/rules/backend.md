@@ -67,3 +67,11 @@ const { data: defaultAgent, error: defaultAgentErr } = ... // no precedent
 // ❌ don't spell out Error
 const { error: archiveError } = ... // 15:1 minority
 ```
+
+## Capability vs core function
+
+A **capability** is a tool the LLM chooses to call inside its reasoning loop (`time`, `web-search`, `web-fetch`, `github`, `google-calendar`, `notion`, `image-gen`). Opt-in per agent via `agent_capabilities`; if unattached the agent just can't do that thing and normal conversation is unaffected. Per-agent config for a capability belongs in `agent_capabilities.config`, never as a column on `agents`.
+
+A **core function** is how the agent perceives input and delivers its reply across modalities — its senses and voice: read images (vision), transcribe audio (STT), speak replies (TTS), write text. The worker runs these automatically *around* the loop, driven by the message's media type or the agent's delivery settings; the LLM never invokes them. Their models are hardcoded constants or always-on `agents` columns, never capabilities.
+
+**The test:** does the LLM decide to invoke it mid-conversation (capability), or does the worker do it automatically before/after the loop based on modality (core function)? Output type doesn't decide it — `image-gen` *produces* an image yet is a capability, while TTS *produces* audio yet is a core function — *who triggers it and when* does.
