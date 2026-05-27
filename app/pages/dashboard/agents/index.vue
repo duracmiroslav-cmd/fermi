@@ -155,7 +155,7 @@ const modelFor = (id: string): ProviderModel =>
                       —
                     </p>
                   </div>
-                  <span class="text-sm text-toned shrink-0">
+                  <span class="text-xs text-toned shrink-0">
                     Edited <TimeAgo :date="agent.updatedAt" />
                   </span>
                 </div>

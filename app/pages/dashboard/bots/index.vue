@@ -183,13 +183,13 @@ const filteredBots = computed(() => {
                   </div>
                   <span
                     v-if="bot.lastRepliedAt"
-                    class="text-sm text-toned shrink-0"
+                    class="text-xs text-toned shrink-0"
                   >
                     Replied <TimeAgo :date="bot.lastRepliedAt" />
                   </span>
                   <span
                     v-else
-                    class="text-sm text-toned shrink-0"
+                    class="text-xs text-toned shrink-0"
                   >
                     No replies yet
                   </span>
