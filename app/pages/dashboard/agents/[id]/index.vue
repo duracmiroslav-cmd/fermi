@@ -125,6 +125,7 @@ const model = computed<ProviderModel | null>(() => {
                   v-bind="model.avatar"
                   size="sm"
                   class="shrink-0"
+                  :ui="{ icon: 'size-6' }"
                 />
                 <NuxtLink
                   :to="`https://openrouter.ai/${model.id}`"

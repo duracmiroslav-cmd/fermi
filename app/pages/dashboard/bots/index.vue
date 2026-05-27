@@ -181,14 +181,12 @@ const filteredBots = computed(() => {
                       />
                     </div>
                   </div>
-                  <UTooltip
+                  <span
                     v-if="bot.lastRepliedAt"
-                    text="Last reply"
+                    class="text-sm text-toned shrink-0"
                   >
-                    <span class="text-sm text-toned shrink-0">
-                      <TimeAgo :date="bot.lastRepliedAt" />
-                    </span>
-                  </UTooltip>
+                    Replied <TimeAgo :date="bot.lastRepliedAt" />
+                  </span>
                   <span
                     v-else
                     class="text-sm text-toned shrink-0"

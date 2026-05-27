@@ -394,7 +394,7 @@ onBeforeUnmount(() => {
                   :src="bot.agent.avatarUrl"
                   :name="bot.agent.name"
                   :seed="bot.agent.id"
-                  size="sm"
+                  size="xs"
                 />
                 <NuxtLink
                   :to="`/dashboard/agents/${bot.agent.id}`"
