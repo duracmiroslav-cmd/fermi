@@ -30,18 +30,18 @@ const extFromMime = (mime: string): string => {
 export const uploadUserAudio = async (
   admin: SupabaseClient,
   params: {
-    ownerId: string;
-    threadId: string;
+    ownerId:       string;
+    threadId:      string;
     lineMessageId: string;
-    mime: string;
-    bytes: Uint8Array;
+    mime:          string;
+    bytes:         Uint8Array;
   },
 ): Promise<{ storagePath: string }> => {
   const { ownerId, threadId, lineMessageId, mime, bytes } = params;
   const storagePath = `${ownerId}/${threadId}/in/${lineMessageId}.${extFromMime(mime)}`;
   const { error: uploadErr } = await admin.storage.from(BUCKET).upload(storagePath, bytes, {
     contentType: mime,
-    upsert: true,
+    upsert:      true,
   });
   if (uploadErr) throw uploadErr;
   return { storagePath };
@@ -55,18 +55,18 @@ export const uploadUserAudio = async (
 export const uploadGeneratedAudio = async (
   admin: SupabaseClient,
   params: {
-    ownerId: string;
+    ownerId:  string;
     threadId: string;
-    runId: string;
-    mime: string;
-    bytes: Uint8Array;
+    runId:    string;
+    mime:     string;
+    bytes:    Uint8Array;
   },
 ): Promise<{ storagePath: string }> => {
   const { ownerId, threadId, runId, mime, bytes } = params;
   const storagePath = `${ownerId}/${threadId}/out/${runId}.${extFromMime(mime)}`;
   const { error: uploadErr } = await admin.storage.from(BUCKET).upload(storagePath, bytes, {
     contentType: mime,
-    upsert: true,
+    upsert:      true,
   });
   if (uploadErr) throw uploadErr;
   return { storagePath };

@@ -2,18 +2,18 @@
 definePageMeta({ layout: false });
 
 interface BotDetail {
-  id: string;
-  platform: string;
-  externalId: string;
-  displayName: string | null;
-  avatarUrl: string | null;
-  agentId: string;
-  disabledAt: string | null;
+  id:                string;
+  platform:          string;
+  externalId:        string;
+  displayName:       string | null;
+  avatarUrl:         string | null;
+  agentId:           string;
+  disabledAt:        string | null;
   webhookVerifiedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  webhookUrl: string;
-  agent: { id: string; name: string };
+  createdAt:         string;
+  updatedAt:         string;
+  webhookUrl:        string;
+  agent:             { id: string; name: string };
 }
 
 const route = useRoute();
@@ -33,7 +33,7 @@ const onSubmit = async (value: { agentId: string; disabledAt: string | null }) =
   try {
     await $fetch(`/api/bots/${route.params.id}`, {
       method: 'PATCH',
-      body: value,
+      body:   value,
     });
     notify.success('Bot updated');
     await navigateTo(`/dashboard/bots/${route.params.id}`);

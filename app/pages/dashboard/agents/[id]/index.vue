@@ -4,27 +4,27 @@ import { DEFAULT_VISION_MODEL } from '~~/shared/constants/models';
 definePageMeta({ layout: false });
 
 interface BotRef {
-  id: string;
+  id:          string;
   displayName: string | null;
-  platform: string;
+  platform:    string;
 }
 
 interface AgentDetail {
-  id: string;
-  name: string;
-  systemPrompt: string | null;
-  defaultTextModel: string | null;
+  id:                 string;
+  name:               string;
+  systemPrompt:       string | null;
+  defaultTextModel:   string | null;
   defaultVisionModel: string | null;
-  avatarUrl: string | null;
-  isDefault: boolean;
-  createdAt: string;
-  updatedAt: string;
-  bots: BotRef[];
+  avatarUrl:          string | null;
+  isDefault:          boolean;
+  createdAt:          string;
+  updatedAt:          string;
+  bots:               BotRef[];
 }
 
 interface ProviderModel {
-  id: string;
-  name: string;
+  id:     string;
+  name:   string;
   avatar: { icon: string };
 }
 

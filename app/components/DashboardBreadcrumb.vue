@@ -2,7 +2,7 @@
 import type { BreadcrumbItem } from '@nuxt/ui';
 
 const props = defineProps<{
-  items: BreadcrumbItem[];
+  items:    BreadcrumbItem[];
   loading?: boolean;
 }>();
 

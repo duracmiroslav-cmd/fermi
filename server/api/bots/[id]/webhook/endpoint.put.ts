@@ -30,8 +30,8 @@ export default defineEventHandler(async (event) => {
   const { fermiKek, appUrl } = useRuntimeConfig(event);
   const kek = await getKek(fermiKek);
   const { plaintext: accessToken } = await loadCredential(admin, kek, {
-    userId: user.id,
-    botId: bot.id,
+    userId:  user.id,
+    botId:   bot.id,
     keyType: 'line_channel_access_token',
   });
 

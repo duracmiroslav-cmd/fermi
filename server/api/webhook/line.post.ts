@@ -2,6 +2,7 @@ import { validateSignature } from '@line/bot-sdk';
 import { z } from 'zod';
 import { showLineLoadingAnimation } from '~~/server/utils/bots/line';
 import { checkBotUserRateLimit } from '~~/server/utils/rate-limit';
+import { isTrustedTriggerHost } from '~~/server/utils/trigger';
 import { findBotByExternalId } from '~~/shared/bots';
 import { loadCredential } from '~~/shared/credentials';
 import { getKek } from '~~/shared/kek';
@@ -12,16 +13,16 @@ const MAX_BODY_BYTES = 256 * 1024;
 // animation, group / room chats don't surface the indicator and
 // non-message events (follow / postback / etc.) don't expect one.
 const userMessageEventSchema = z.object({
-  type: z.literal('message'),
+  type:   z.literal('message'),
   source: z.object({
-    type: z.literal('user'),
+    type:   z.literal('user'),
     userId: z.string().min(1),
   }),
 });
 
 const webhookBodySchema = z.looseObject({
   destination: z.string().min(1),
-  events: z.array(z.unknown()).default([]),
+  events:      z.array(z.unknown()).default([]),
 });
 
 const collectUserSourceIds = (events: unknown[]): string[] => {
@@ -32,14 +33,6 @@ const collectUserSourceIds = (events: unknown[]): string[] => {
   }
   return [...ids];
 };
-
-// Hostname must match this for fermi to forward the service-role
-// bearer to /functions/v1/agent. A misconfigured SUPABASE_URL would
-// otherwise leak the bearer to whatever host it resolves to.
-const isTrustedTriggerHost = (url: URL): boolean =>
-  (url.protocol === 'https:' && url.hostname.endsWith('.supabase.co'))
-  || url.hostname === 'localhost'
-  || url.hostname === '127.0.0.1';
 
 export default defineEventHandler(async (event) => {
   const contentLength = Number(getHeader(event, 'content-length') ?? 0);
@@ -81,8 +74,8 @@ export default defineEventHandler(async (event) => {
   const { fermiKek, supabaseUrl, supabaseServiceRoleKey, upstashUrl, upstashToken } = useRuntimeConfig(event);
   const kek = await getKek(fermiKek);
   const { plaintext: channelSecret } = await loadCredential(admin, kek, {
-    userId: bot.ownerId,
-    botId: bot.id,
+    userId:  bot.ownerId,
+    botId:   bot.id,
     keyType: 'line_channel_secret',
   });
 
@@ -113,7 +106,7 @@ export default defineEventHandler(async (event) => {
   // events would add complexity without protecting real users.
   const userIds = collectUserSourceIds(payload.events);
   const counterEnv = {
-    upstashUrl:   upstashUrl   || null,
+    upstashUrl:   upstashUrl || null,
     upstashToken: upstashToken || null,
   };
   const rateLimitResults = await Promise.all(
@@ -147,8 +140,8 @@ export default defineEventHandler(async (event) => {
   if (userIds.length > 0) {
     try {
       const { plaintext: accessToken } = await loadCredential(admin, kek, {
-        userId: bot.ownerId,
-        botId: bot.id,
+        userId:  bot.ownerId,
+        botId:   bot.id,
         keyType: 'line_channel_access_token',
       });
       for (const userId of userIds) {
@@ -160,18 +153,18 @@ export default defineEventHandler(async (event) => {
   }
 
   await enqueueWebhookEvent(admin, {
-    platform: 'line',
-    botId: bot.id,
+    platform:    'line',
+    botId:       bot.id,
     destination: payload.destination,
-    events: payload.events,
+    events:      payload.events,
   });
 
   const triggerUrl = new URL('/functions/v1/agent', supabaseUrl);
   if (isTrustedTriggerHost(triggerUrl)) {
     void fetch(triggerUrl, {
-      method: 'POST',
+      method:  'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type':  'application/json',
         'Authorization': `Bearer ${supabaseServiceRoleKey}`,
       },
     }).catch(console.error);

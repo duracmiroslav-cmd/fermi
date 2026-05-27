@@ -13,18 +13,18 @@ const bodySchema = z.object({
 // later, far from where the user pasted the key.
 const verifyTavilyKey = async (apiKey: string): Promise<void> => {
   const res = await fetch('https://api.tavily.com/search', {
-    method: 'POST',
+    method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      api_key: apiKey,
-      query: 'ping',
-      max_results: 1,
+    body:    JSON.stringify({
+      api_key:      apiKey,
+      query:        'ping',
+      max_results:  1,
       search_depth: 'basic',
     }),
   });
   if (res.ok) return;
   throw createError({
-    statusCode: res.status === 401 || res.status === 403 ? 401 : 400,
+    statusCode:    res.status === 401 || res.status === 403 ? 401 : 400,
     statusMessage: res.status === 401 || res.status === 403
       ? 'Invalid Tavily API key'
       : `Tavily verification failed (${res.status})`,
@@ -61,11 +61,11 @@ export default defineEventHandler(async (event) => {
   const maskedKey = `${apiKey.slice(0, 12)}...${apiKey.slice(-3)}`;
 
   await storeCredential(admin, kek, {
-    userId: user.id,
-    botId: null,
-    keyType: 'tavily',
+    userId:    user.id,
+    botId:     null,
+    keyType:   'tavily',
     plaintext: apiKey,
-    metadata: { masked_key: maskedKey },
+    metadata:  { masked_key: maskedKey },
   });
 
   return { ok: true as const };

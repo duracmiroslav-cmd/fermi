@@ -11,29 +11,29 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 export type CredentialKind = 'none' | 'providers' | 'coming_soon';
 
 export interface ProviderMeta {
-  slug: string;
+  slug:        string;
   displayName: string;
-  keyType: string;
-  status: 'live' | 'coming_soon';
+  keyType:     string;
+  status:      'live' | 'coming_soon';
 }
 
 export interface CapabilityMeta {
   credentialKind: CredentialKind;
-  providers?: ProviderMeta[];
+  providers?:     ProviderMeta[];
 }
 
 export const CAPABILITY_META: Record<string, CapabilityMeta> = {
-  'time': { credentialKind: 'none' },
+  'time':       { credentialKind: 'none' },
   'web-search': {
     credentialKind: 'providers',
-    providers: [
+    providers:      [
       { slug: 'tavily', displayName: 'Tavily', keyType: 'tavily', status: 'live' },
     ],
   },
-  'web-fetch': { credentialKind: 'none' },
-  'github': { credentialKind: 'coming_soon' },
+  'web-fetch':       { credentialKind: 'none' },
+  'github':          { credentialKind: 'coming_soon' },
   'google-calendar': { credentialKind: 'coming_soon' },
-  'notion': { credentialKind: 'coming_soon' },
+  'notion':          { credentialKind: 'coming_soon' },
 };
 
 // BYO capabilities (rows with owner_id IS NOT NULL) won't have an
@@ -45,20 +45,20 @@ export const getCapabilityMeta = (slug: string): CapabilityMeta =>
 export type ProviderStatus = 'connected' | 'available' | 'coming_soon';
 
 export interface CapabilityProviderRow {
-  slug: string;
-  displayName: string;
-  status: ProviderStatus;
-  maskedKey?: string | null;
+  slug:         string;
+  displayName:  string;
+  status:       ProviderStatus;
+  maskedKey?:   string | null;
   connectedAt?: string;
 }
 
 export interface CapabilityRow {
-  id: string;
-  slug: string;
-  displayName: string;
-  description: string | null;
+  id:             string;
+  slug:           string;
+  displayName:    string;
+  description:    string | null;
   credentialKind: CredentialKind;
-  providers?: CapabilityProviderRow[];
+  providers?:     CapabilityProviderRow[];
 }
 
 export type AgentCapabilityRow = CapabilityRow & {
@@ -93,10 +93,10 @@ export const listCapabilitiesForUser = async (
   return (caps ?? []).map((cap) => {
     const meta = getCapabilityMeta(cap.slug);
     const row: CapabilityRow = {
-      id: cap.id,
-      slug: cap.slug,
-      displayName: cap.display_name,
-      description: cap.description,
+      id:             cap.id,
+      slug:           cap.slug,
+      displayName:    cap.display_name,
+      description:    cap.description,
       credentialKind: meta.credentialKind,
     };
     if (meta.credentialKind !== 'providers' || !meta.providers) return row;
@@ -111,10 +111,10 @@ export const listCapabilitiesForUser = async (
       }
       const credMeta = (cred.metadata ?? {}) as { masked_key?: string };
       return {
-        slug: p.slug,
+        slug:        p.slug,
         displayName: p.displayName,
-        status: 'connected',
-        maskedKey: credMeta.masked_key ?? null,
+        status:      'connected',
+        maskedKey:   credMeta.masked_key ?? null,
         connectedAt: cred.created_at,
       };
     });

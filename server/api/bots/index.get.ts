@@ -39,18 +39,18 @@ export default defineEventHandler(async (event) => {
   return botRows.map((row) => {
     const agent = row.agent_id ? agentsById.get(row.agent_id) ?? null : null;
     return {
-      id: row.id,
-      platform: row.platform,
-      externalId: row.external_id,
-      displayName: row.display_name,
-      avatarUrl: row.avatar_url,
-      agentId: row.agent_id,
-      disabledAt: row.disabled_at,
+      id:                row.id,
+      platform:          row.platform,
+      externalId:        row.external_id,
+      displayName:       row.display_name,
+      avatarUrl:         row.avatar_url,
+      agentId:           row.agent_id,
+      disabledAt:        row.disabled_at,
       webhookVerifiedAt: row.webhook_verified_at,
-      createdAt: row.created_at,
-      webhookUrl: `${url.origin}/api/webhook/${row.platform}`,
-      agent: agent ? { id: agent.id, name: agent.name, avatarUrl: agent.avatar_url } : null,
-      lastRepliedAt: lastRepliedByBot.get(row.id) ?? null,
+      createdAt:         row.created_at,
+      webhookUrl:        `${url.origin}/api/webhook/${row.platform}`,
+      agent:             agent ? { id: agent.id, name: agent.name, avatarUrl: agent.avatar_url } : null,
+      lastRepliedAt:     lastRepliedByBot.get(row.id) ?? null,
     };
   });
 });

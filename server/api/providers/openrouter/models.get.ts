@@ -1,11 +1,11 @@
 import { getCurrentUser } from '~~/server/utils/auth';
 
 interface OpenRouterModel {
-  id: string;
-  name: string;
+  id:             string;
+  name:           string;
   context_length: number;
-  architecture: { modality: string };
-  pricing: { prompt: string; completion: string };
+  architecture:   { modality: string };
+  pricing:        { prompt: string; completion: string };
 }
 
 interface ModelAvatar {
@@ -14,14 +14,14 @@ interface ModelAvatar {
 }
 
 interface ProviderModel {
-  id: string;
-  name: string;
-  contextLength: number;
-  isFree: boolean;
-  promptCost: number;
+  id:             string;
+  name:           string;
+  contextLength:  number;
+  isFree:         boolean;
+  promptCost:     number;
   completionCost: number;
-  modality: string;
-  avatar: ModelAvatar;
+  modality:       string;
+  avatar:         ModelAvatar;
 }
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -46,18 +46,18 @@ const ALLOWED_PROVIDERS = new Set([
 
 // id prefix → Iconify icon. Unknown providers fall back to a letter avatar.
 const PROVIDER_ICONS: Record<string, string> = {
-  'amazon': 'i-simple-icons-amazonaws',
-  'anthropic': 'i-simple-icons-anthropic',
-  'deepseek': 'i-simple-icons-deepseek',
-  'google': 'i-simple-icons-google',
+  'amazon':     'i-simple-icons-amazonaws',
+  'anthropic':  'i-simple-icons-anthropic',
+  'deepseek':   'i-simple-icons-deepseek',
+  'google':     'i-simple-icons-google',
   'meta-llama': 'i-simple-icons-meta',
-  'microsoft': 'i-simple-icons-microsoft',
-  'mistralai': 'i-simple-icons-mistralai',
-  'nvidia': 'i-simple-icons-nvidia',
-  'openai': 'i-simple-icons-openai',
+  'microsoft':  'i-simple-icons-microsoft',
+  'mistralai':  'i-simple-icons-mistralai',
+  'nvidia':     'i-simple-icons-nvidia',
+  'openai':     'i-simple-icons-openai',
   'perplexity': 'i-simple-icons-perplexity',
-  'qwen': 'i-simple-icons-alibabacloud',
-  'x-ai': 'i-simple-icons-x',
+  'qwen':       'i-simple-icons-alibabacloud',
+  'x-ai':       'i-simple-icons-x',
 };
 
 const avatarFor = (id: string): ModelAvatar => {
@@ -81,14 +81,14 @@ const fetchModels = async (): Promise<ProviderModel[]> => {
       const promptCost = Number(m.pricing.prompt);
       const completionCost = Number(m.pricing.completion);
       return {
-        id: m.id,
-        name: m.name,
+        id:            m.id,
+        name:          m.name,
         contextLength: m.context_length,
-        isFree: promptCost === 0 && completionCost === 0,
+        isFree:        promptCost === 0 && completionCost === 0,
         promptCost,
         completionCost,
-        modality: m.architecture.modality,
-        avatar: avatarFor(m.id),
+        modality:      m.architecture.modality,
+        avatar:        avatarFor(m.id),
       };
     })
     .sort((a, b) => {

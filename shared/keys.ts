@@ -15,7 +15,7 @@ export type KeyPurpose = 'openrouter' | 'openai' | 'tavily' | 'fal';
 
 export type KeySource = 'byok' | 'platform';
 export interface KeyResult {
-  key: string;
+  key:    string;
   source: KeySource;
 }
 
@@ -35,8 +35,8 @@ export const resolveKey = async (
   admin: SupabaseClient,
   kek: CryptoKey,
   params: {
-    ownerId: string;
-    purpose: KeyPurpose;
+    ownerId:     string;
+    purpose:     KeyPurpose;
     // Platform fallback candidate. `null` means "no platform key
     // configured", Pro users will trip PlatformKeyNotConfiguredError.
     platformKey: string | null;
@@ -44,8 +44,8 @@ export const resolveKey = async (
 ): Promise<KeyResult> => {
   try {
     const { plaintext } = await loadCredential(admin, kek, {
-      userId: params.ownerId,
-      botId: null,
+      userId:  params.ownerId,
+      botId:   null,
       keyType: params.purpose,
     });
     return { key: plaintext, source: 'byok' };

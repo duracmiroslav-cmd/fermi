@@ -2,14 +2,14 @@
 definePageMeta({ layout: false });
 
 interface AgentDetail {
-  id: string;
-  name: string;
-  systemPrompt: string | null;
-  defaultTextModel: string | null;
+  id:                 string;
+  name:               string;
+  systemPrompt:       string | null;
+  defaultTextModel:   string | null;
   defaultVisionModel: string | null;
-  avatarUrl: string | null;
-  isDefault: boolean;
-  bots: Array<{ id: string; displayName: string | null; platform: string }>;
+  avatarUrl:          string | null;
+  isDefault:          boolean;
+  bots:               Array<{ id: string; displayName: string | null; platform: string }>;
 }
 
 const route = useRoute();
@@ -28,10 +28,10 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultText
   try {
     await $fetch(`/api/agents/${route.params.id}`, {
       method: 'PATCH',
-      body: {
-        name: value.name,
-        systemPrompt: value.systemPrompt || null,
-        defaultTextModel: value.defaultTextModel || null,
+      body:   {
+        name:               value.name,
+        systemPrompt:       value.systemPrompt || null,
+        defaultTextModel:   value.defaultTextModel || null,
         defaultVisionModel: value.defaultVisionModel || null,
       },
     });
@@ -48,7 +48,7 @@ const onAvatarChange = async (url: string | null) => {
   try {
     await $fetch(`/api/agents/${route.params.id}`, {
       method: 'PATCH',
-      body: { avatarUrl: url },
+      body:   { avatarUrl: url },
     });
     if (agent.value) agent.value.avatarUrl = url;
     notify.success(url ? 'Avatar updated' : 'Avatar removed');

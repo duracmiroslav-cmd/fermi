@@ -4,24 +4,24 @@ import Avatar from 'vue-boring-avatars';
 type AvatarSize = '3xs' | '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
 
 const props = withDefaults(defineProps<{
-  name: string | null;
+  name:  string | null;
   seed?: string | null;
-  src?: string | null;
+  src?:  string | null;
   size?: AvatarSize;
 }>(), {
   seed: null,
-  src: null,
+  src:  null,
   size: 'md',
 });
 
 const SIZE_PX: Record<AvatarSize, number> = {
   '3xs': 16,
   '2xs': 20,
-  'xs': 24,
-  'sm': 28,
-  'md': 32,
-  'lg': 36,
-  'xl': 40,
+  'xs':  24,
+  'sm':  28,
+  'md':  32,
+  'lg':  36,
+  'xl':  40,
   '2xl': 44,
   '3xl': 48,
 };

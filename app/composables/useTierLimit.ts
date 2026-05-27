@@ -2,7 +2,7 @@ import { AGENT_LIMIT, BOT_LIMIT, type Tier } from '~~/shared/constants/tiers';
 
 const LIMIT_MAP = {
   agents: AGENT_LIMIT,
-  bots: BOT_LIMIT,
+  bots:   BOT_LIMIT,
 } as const;
 
 export const useTierLimit = <T = unknown>(kind: 'agents' | 'bots') => {

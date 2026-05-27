@@ -4,23 +4,23 @@ import type { CapabilityRow } from '~~/server/utils/capabilities';
 // inside the capability's detail page; the list view aggregates
 // provider status into a single chip.
 export interface FlatCard {
-  routeSlug: string;
-  title: string;
-  description: string | null;
-  icon: string;
-  status: 'connected' | 'available' | 'coming_soon' | 'none';
+  routeSlug:      string;
+  title:          string;
+  description:    string | null;
+  icon:           string;
+  status:         'connected' | 'available' | 'coming_soon' | 'none';
   // Lowercased title + description + provider names so the list-page
   // search can match "tavily" against the Web search row.
   searchHaystack: string;
 }
 
 const iconBySlug: Record<string, string> = {
-  'time': 'i-lucide-clock',
-  'web-search': 'i-lucide-search',
-  'web-fetch': 'i-lucide-globe',
-  'github': 'i-simple-icons-github',
+  'time':            'i-lucide-clock',
+  'web-search':      'i-lucide-search',
+  'web-fetch':       'i-lucide-globe',
+  'github':          'i-simple-icons-github',
   'google-calendar': 'i-simple-icons-googlecalendar',
-  'notion': 'i-simple-icons-notion',
+  'notion':          'i-simple-icons-notion',
 };
 
 export const capabilityIcon = (slug: string): string =>
@@ -33,10 +33,10 @@ export const flattenCapabilities = (list: CapabilityRow[]): FlatCard[] => {
       .join(' ')
       .toLowerCase();
     const base = {
-      routeSlug: cap.slug,
-      title: cap.displayName,
+      routeSlug:   cap.slug,
+      title:       cap.displayName,
       description: cap.description,
-      icon: capabilityIcon(cap.slug),
+      icon:        capabilityIcon(cap.slug),
       searchHaystack,
     };
     if (cap.credentialKind === 'coming_soon') return { ...base, status: 'coming_soon' };

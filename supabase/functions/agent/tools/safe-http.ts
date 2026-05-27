@@ -9,7 +9,7 @@
 // keep-alive, no cookies. fermi only needs to read a single page body
 // safely. Anything beyond that goes via Tavily (the preferred provider).
 
-const isPrivateIpv4 = (ip: string): boolean => {
+export const isPrivateIpv4 = (ip: string): boolean => {
   const parts = ip.split('.').map(Number);
   if (parts.length !== 4 || parts.some(n => Number.isNaN(n) || n < 0 || n > 255)) return false;
   const [a, b] = parts;
@@ -25,7 +25,7 @@ const isPrivateIpv4 = (ip: string): boolean => {
 // already-resolved address string (lowercased, no zone suffix), so the
 // prefix-based test covers the canonical normalized forms returned by
 // Deno.resolveDns.
-const isPrivateIpv6 = (raw: string): boolean => {
+export const isPrivateIpv6 = (raw: string): boolean => {
   const ip = raw.toLowerCase().replace(/%.*$/, '');
   if (ip === '::' || ip === '::1') return true;
   if (ip.startsWith('fc') || ip.startsWith('fd')) return true;
@@ -35,7 +35,7 @@ const isPrivateIpv6 = (raw: string): boolean => {
   return false;
 };
 
-const isBlockedLiteralHost = (host: string): boolean => {
+export const isBlockedLiteralHost = (host: string): boolean => {
   const h = host.toLowerCase().replace(/^\[|\]$/g, '');
   if (h === 'localhost' || h.endsWith('.localhost')) return true;
   if (h.endsWith('.local') || h.endsWith('.internal')) return true;
@@ -55,11 +55,22 @@ interface ResolvedTarget {
   family: 4 | 6;
 }
 
-const resolveAndValidate = async (host: string): Promise<ResolvedTarget> => {
+// Injected so the DNS-rebinding guard is testable with a fake resolver
+// instead of real network. Production binds to Deno.resolveDns; the
+// reference lives in the body so importing this module under Node (for
+// unit tests) never touches the Deno global at load time.
+export type DnsResolver = (host: string, recordType: 'A' | 'AAAA') => Promise<string[]>;
+
+const denoResolver: DnsResolver = (host, recordType) => Deno.resolveDns(host, recordType);
+
+export const resolveAndValidate = async (
+  host:    string,
+  resolve: DnsResolver = denoResolver,
+): Promise<ResolvedTarget> => {
   if (isBlockedLiteralHost(host)) throw new Error(`Blocked host: ${host}`);
   const [v4, v6] = await Promise.allSettled([
-    Deno.resolveDns(host, 'A'),
-    Deno.resolveDns(host, 'AAAA'),
+    resolve(host, 'A'),
+    resolve(host, 'AAAA'),
   ]);
   const v4Ips = v4.status === 'fulfilled' ? v4.value : [];
   const v6Ips = v6.status === 'fulfilled' ? v6.value : [];
@@ -153,7 +164,7 @@ const findHeaderTerminator = (buf: Uint8Array): number => {
   return -1;
 };
 
-const parseResponse = (raw: Uint8Array): ParsedResponse => {
+export const parseResponse = (raw: Uint8Array): ParsedResponse => {
   const end = findHeaderTerminator(raw);
   if (end === -1) throw new Error('Malformed HTTP response: no header terminator');
 
@@ -176,7 +187,7 @@ const parseResponse = (raw: Uint8Array): ParsedResponse => {
 // chunked = (<hex size>[;ext]\r\n<bytes>\r\n)+ then "0\r\n\r\n". The
 // real spec also allows trailers; fermi doesn't read them. Stops at
 // the first 0-size chunk.
-const decodeChunkedBody = (body: Uint8Array): Uint8Array => {
+export const decodeChunkedBody = (body: Uint8Array): Uint8Array => {
   const out: number[] = [];
   let pos = 0;
   while (pos < body.length) {

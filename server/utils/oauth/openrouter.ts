@@ -28,15 +28,15 @@ export const deriveChallenge = async (verifier: string): Promise<string> => {
 };
 
 export interface AuthorizeUrlParams {
-  callbackUrl: string;
+  callbackUrl:   string;
   codeChallenge: string;
-  state: string;
+  state:         string;
 }
 
 export const buildAuthorizeUrl = ({ callbackUrl, codeChallenge, state }: AuthorizeUrlParams): string => {
   const params = new URLSearchParams({
-    callback_url: callbackUrl,
-    code_challenge: codeChallenge,
+    callback_url:          callbackUrl,
+    code_challenge:        codeChallenge,
     code_challenge_method: 'S256',
     state,
   });
@@ -44,17 +44,17 @@ export const buildAuthorizeUrl = ({ callbackUrl, codeChallenge, state }: Authori
 };
 
 export interface ExchangeResult {
-  key: string;
+  key:    string;
   userId: string | null;
 }
 
 export const exchangeCodeForKey = async (code: string, codeVerifier: string): Promise<ExchangeResult> => {
   const res = await fetch(TOKEN_URL, {
-    method: 'POST',
+    method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    body:    JSON.stringify({
       code,
-      code_verifier: codeVerifier,
+      code_verifier:         codeVerifier,
       code_challenge_method: 'S256',
     }),
   });

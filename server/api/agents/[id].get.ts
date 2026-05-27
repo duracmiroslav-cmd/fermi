@@ -27,20 +27,20 @@ export default defineEventHandler(async (event) => {
   if (botErr) throw botErr;
 
   return {
-    id: data.id,
-    name: data.name,
-    systemPrompt: data.system_prompt,
-    defaultTextModel: data.default_text_model,
+    id:                 data.id,
+    name:               data.name,
+    systemPrompt:       data.system_prompt,
+    defaultTextModel:   data.default_text_model,
     defaultVisionModel: data.default_vision_model,
-    modelProviderId: data.model_provider_id,
-    avatarUrl: data.avatar_url,
-    isDefault: data.is_default,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-    bots: (bots ?? []).map(b => ({
-      id: b.id,
+    modelProviderId:    data.model_provider_id,
+    avatarUrl:          data.avatar_url,
+    isDefault:          data.is_default,
+    createdAt:          data.created_at,
+    updatedAt:          data.updated_at,
+    bots:               (bots ?? []).map(b => ({
+      id:          b.id,
       displayName: b.display_name,
-      platform: b.platform,
+      platform:    b.platform,
     })),
   };
 });

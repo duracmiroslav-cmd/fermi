@@ -35,8 +35,8 @@ export default defineEventHandler(async (event) => {
   const { fermiKek } = useRuntimeConfig(event);
   const kek = await getKek(fermiKek);
   const { plaintext: accessToken } = await loadCredential(admin, kek, {
-    userId: user.id,
-    botId: bot.id,
+    userId:  user.id,
+    botId:   bot.id,
     keyType: 'line_channel_access_token',
   });
 
@@ -46,8 +46,8 @@ export default defineEventHandler(async (event) => {
   // (an OA that removed its picture should clear fermi's copy too).
   const patch = {
     display_name: botInfo.displayName,
-    avatar_url: botInfo.pictureUrl ?? null,
-    handle: botInfo.basicId ?? null,
+    avatar_url:   botInfo.pictureUrl ?? null,
+    handle:       botInfo.basicId ?? null,
   };
   const { data: updated, error: updateErr } = await admin
     .from('bots')
@@ -58,9 +58,9 @@ export default defineEventHandler(async (event) => {
   if (updateErr) throw updateErr;
 
   return {
-    id: updated.id,
+    id:          updated.id,
     displayName: updated.display_name,
-    avatarUrl: updated.avatar_url,
-    handle: updated.handle,
+    avatarUrl:   updated.avatar_url,
+    handle:      updated.handle,
   };
 });

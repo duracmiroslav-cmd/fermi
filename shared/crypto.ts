@@ -16,13 +16,13 @@ const KEY_BYTES = 32;
 type Bytes = Uint8Array<ArrayBuffer>;
 
 export interface EncryptedCredential {
-  ciphertext: Bytes;
-  iv: Bytes;
-  wrappedDek: Bytes;
-  wrappedDekIv: Bytes;
-  alg: string;
+  ciphertext:         Bytes;
+  iv:                 Bytes;
+  wrappedDek:         Bytes;
+  wrappedDekIv:       Bytes;
+  alg:                string;
   refreshCiphertext?: Bytes;
-  refreshIv?: Bytes;
+  refreshIv?:         Bytes;
 }
 
 export const loadKek = (base64: string): Promise<CryptoKey> => {

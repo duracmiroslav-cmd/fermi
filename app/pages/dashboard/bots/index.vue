@@ -2,18 +2,18 @@
 definePageMeta({ layout: false });
 
 interface BotRow {
-  id: string;
-  platform: string;
-  externalId: string;
-  displayName: string | null;
-  avatarUrl: string | null;
-  agentId: string | null;
-  disabledAt: string | null;
+  id:                string;
+  platform:          string;
+  externalId:        string;
+  displayName:       string | null;
+  avatarUrl:         string | null;
+  agentId:           string | null;
+  disabledAt:        string | null;
   webhookVerifiedAt: string | null;
-  createdAt: string;
-  webhookUrl: string;
-  agent: { id: string; name: string; avatarUrl: string | null } | null;
-  lastRepliedAt: string | null;
+  createdAt:         string;
+  webhookUrl:        string;
+  agent:             { id: string; name: string; avatarUrl: string | null } | null;
+  lastRepliedAt:     string | null;
 }
 
 const { items: bots, used, atLimit, pending, refresh, limitMessage } = useTierLimit<BotRow>('bots');

@@ -9,7 +9,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // "drop the connection."
 
 export interface BotRef {
-  id: string;
+  id:      string;
   ownerId: string;
   agentId: string | null;
 }

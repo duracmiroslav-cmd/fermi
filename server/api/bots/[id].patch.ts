@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
     // Unique violation on agent_id (1:1 binding enforced at DB level).
     if (error.code === '23505') {
       throw createError({
-        statusCode: 409,
+        statusCode:    409,
         statusMessage: 'Agent is already bound to another bot',
       });
     }
@@ -62,12 +62,12 @@ export default defineEventHandler(async (event) => {
   }
 
   return {
-    id: data.id,
-    platform: data.platform,
-    externalId: data.external_id,
+    id:          data.id,
+    platform:    data.platform,
+    externalId:  data.external_id,
     displayName: data.display_name,
-    agentId: data.agent_id,
-    disabledAt: data.disabled_at,
-    updatedAt: data.updated_at,
+    agentId:     data.agent_id,
+    disabledAt:  data.disabled_at,
+    updatedAt:   data.updated_at,
   };
 });

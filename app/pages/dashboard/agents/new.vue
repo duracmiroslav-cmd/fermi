@@ -9,10 +9,10 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultText
   try {
     const created = await $fetch<{ id: string }>('/api/agents', {
       method: 'POST',
-      body: {
-        name: value.name,
-        systemPrompt: value.systemPrompt || null,
-        defaultTextModel: value.defaultTextModel || null,
+      body:   {
+        name:               value.name,
+        systemPrompt:       value.systemPrompt || null,
+        defaultTextModel:   value.defaultTextModel || null,
         defaultVisionModel: value.defaultVisionModel || null,
       },
     });

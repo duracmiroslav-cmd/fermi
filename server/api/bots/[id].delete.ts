@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
 
   const admin = useSupabaseAdmin();
   const { data, error } = await admin.rpc('delete_bot', {
-    p_bot_id: id,
+    p_bot_id:   id,
     p_owner_id: user.id,
   });
   if (error) {

@@ -17,9 +17,9 @@ export default defineEventHandler(async (event) => {
 
   const meta = (data.metadata ?? {}) as { openrouter_user_id?: string; masked_key?: string };
   return {
-    connected: true as const,
+    connected:        true as const,
     openrouterUserId: meta.openrouter_user_id ?? null,
-    maskedKey: meta.masked_key ?? null,
-    connectedAt: data.created_at,
+    maskedKey:        meta.masked_key ?? null,
+    connectedAt:      data.created_at,
   };
 });

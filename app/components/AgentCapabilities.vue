@@ -14,12 +14,12 @@ const { data: rows, pending } = useApiFetch<AgentCapabilityRow[]>(
 const pendingIds = ref(new Set<string>());
 
 const iconBySlug: Record<string, string> = {
-  'time': 'i-lucide-clock',
-  'web-search': 'i-lucide-search',
-  'web-fetch': 'i-lucide-globe',
-  'github': 'i-simple-icons-github',
+  'time':            'i-lucide-clock',
+  'web-search':      'i-lucide-search',
+  'web-fetch':       'i-lucide-globe',
+  'github':          'i-simple-icons-github',
   'google-calendar': 'i-simple-icons-googlecalendar',
-  'notion': 'i-simple-icons-notion',
+  'notion':          'i-simple-icons-notion',
 };
 const iconFor = (slug: string) => iconBySlug[slug] ?? 'i-lucide-puzzle';
 
@@ -56,7 +56,7 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
     if (next) {
       await $fetch(`/api/agents/${props.agentId}/capabilities`, {
         method: 'POST',
-        body: { capabilityId: cap.id },
+        body:   { capabilityId: cap.id },
       });
       notify.success(`${cap.displayName} attached`);
     } else {

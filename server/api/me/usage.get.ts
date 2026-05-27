@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const admin = useSupabaseAdmin();
   const { upstashUrl, upstashToken } = useRuntimeConfig(event);
   const counterEnv = {
-    upstashUrl:   upstashUrl   || null,
+    upstashUrl:   upstashUrl || null,
     upstashToken: upstashToken || null,
   };
 

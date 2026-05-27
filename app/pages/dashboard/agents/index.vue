@@ -2,19 +2,19 @@
 definePageMeta({ layout: false });
 
 interface AgentRow {
-  id: string;
-  name: string;
-  systemPrompt: string | null;
+  id:               string;
+  name:             string;
+  systemPrompt:     string | null;
   defaultTextModel: string | null;
-  avatarUrl: string | null;
-  isDefault: boolean;
-  createdAt: string;
-  updatedAt: string;
+  avatarUrl:        string | null;
+  isDefault:        boolean;
+  createdAt:        string;
+  updatedAt:        string;
 }
 
 interface ProviderModel {
-  id: string;
-  name: string;
+  id:     string;
+  name:   string;
   avatar: { icon: string };
 }
 

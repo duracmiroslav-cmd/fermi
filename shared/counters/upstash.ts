@@ -23,7 +23,7 @@ const incrWithTtl = async (
   ttlSec: number,
 ): Promise<number> => {
   const reply = await pipelineFetch(config, [
-    ['INCR',   key],
+    ['INCR', key],
     ['EXPIRE', key, ttlSec, 'NX'],
   ]);
   return Number(reply[0]?.result ?? 0);

@@ -4,10 +4,10 @@ import type { CapabilityRow } from '~~/server/utils/capabilities';
 definePageMeta({ layout: false });
 
 interface OpenRouterStatus {
-  connected: boolean;
+  connected:         boolean;
   openrouterUserId?: string | null;
-  maskedKey?: string | null;
-  connectedAt?: string;
+  maskedKey?:        string | null;
+  connectedAt?:      string;
 }
 
 const {

@@ -11,9 +11,9 @@ describe('updateProfileInputSchema', () => {
     it('all 4 whitelisted fields', () => {
       const result = updateProfileInputSchema.safeParse({
         display_name: 'Memo',
-        locale: 'zh-Hant',
-        timezone: 'Asia/Taipei',
-        avatar_url: 'https://example.com/a.png',
+        locale:       'zh-Hant',
+        timezone:     'Asia/Taipei',
+        avatar_url:   'https://example.com/a.png',
       });
       expect(result.success).toBe(true);
     });

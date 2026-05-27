@@ -35,7 +35,7 @@ const onTavilyConnect = async () => {
   try {
     await $fetch('/api/connections/tavily', {
       method: 'POST',
-      body: { apiKey: tavilyKey.value },
+      body:   { apiKey: tavilyKey.value },
     });
     tavilyKey.value = '';
     await refreshCapabilities();

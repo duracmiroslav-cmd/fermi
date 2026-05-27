@@ -5,19 +5,19 @@ import type { Ref } from 'vue';
 export type BotStatus = 'ready' | 'paused' | 'unconfigured';
 
 export const BOT_STATUS_LABEL: Record<BotStatus, string> = {
-  ready: 'Ready',
-  paused: 'Paused',
+  ready:        'Ready',
+  paused:       'Paused',
   unconfigured: 'Needs setup',
 };
 
 export const BOT_STATUS_DOT: Record<BotStatus, string> = {
-  ready: 'bg-success',
-  paused: 'bg-zinc-400',
+  ready:        'bg-success',
+  paused:       'bg-zinc-400',
   unconfigured: 'bg-warning',
 };
 
 interface StatusBot {
-  disabledAt: string | null;
+  disabledAt:        string | null;
   webhookVerifiedAt: string | null;
 }
 
