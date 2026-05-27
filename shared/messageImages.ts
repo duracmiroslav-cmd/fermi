@@ -19,9 +19,11 @@ const extFromMime = (mime: string): string => {
 // fermi → user). Matches `message-audio` for cross-bucket symmetry;
 // future modalities slot into the same in/out taxonomy.
 
-// Uploads user-uploaded vision bytes. `upsert: true` makes the
-// operation idempotent — pgmq re-delivery or a worker restart
-// re-running the same image won't error.
+// Uploads user-uploaded vision bytes. `lineMessageId` is the LINE
+// webhook event ID — using a real entity ID as the storage key means
+// the path doubles as an audit handle back to the source event, and
+// pgmq re-delivery of the same message upserts to the same path
+// (idempotent).
 export const uploadMessageImage = async (
   admin: SupabaseClient,
   params: {
@@ -42,9 +44,11 @@ export const uploadMessageImage = async (
   return { storagePath };
 };
 
-// Uploads fermi-generated image bytes. `imageId` is a caller-chosen
-// unique identifier (e.g. crypto.randomUUID()) so multiple
-// generations within a single agent run don't collide.
+// Uploads fermi-generated image bytes. `imageId` is typically the
+// LLM-issued `tool_call_id` — using a real entity ID as the storage
+// key means the path doubles as an audit handle back to the
+// `agent_run_steps` row that recorded the tool call, and a retry of
+// the same call upserts to the same path (idempotent).
 export const uploadGeneratedImage = async (
   admin: SupabaseClient,
   params: {

@@ -17,9 +17,11 @@ const extFromMime = (mime: string): string => {
 // fermi → user). Matches `message-images` for cross-bucket symmetry;
 // future modalities slot into the same in/out taxonomy.
 
-// Uploads TTS-generated audio. `upsert: true` keeps the operation
-// idempotent — pgmq re-delivery of the same agent run re-uses the
-// same path without erroring.
+// Uploads TTS-generated audio. `runId` is the `agent_runs.id` —
+// TTS is 1-per-run by construction (one final reply per agent run),
+// so using runId as the storage key means the path doubles as an
+// audit handle back to the run, and pgmq retries upsert to the same
+// path (idempotent).
 export const uploadGeneratedAudio = async (
   admin: SupabaseClient,
   params: {
@@ -40,10 +42,11 @@ export const uploadGeneratedAudio = async (
   return { storagePath };
 };
 
-// Uploads user-sent audio (LINE voice message bytes after Whisper has
-// extracted the transcript). Retained for future thread replay UIs —
-// no consumer reads this today, but the per-thread path layout lets a
-// future retention cron prefix-delete without a follow-up migration.
+// Uploads user-sent audio (LINE voice message bytes after Whisper
+// extracted the transcript). `lineMessageId` is the LINE webhook
+// event ID — same audit-handle + upsert-idempotency story as
+// `uploadMessageImage`. Retained for a future thread replay UI; no
+// consumer reads this today.
 export const uploadUserAudio = async (
   admin: SupabaseClient,
   params: {
