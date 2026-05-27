@@ -13,6 +13,7 @@ interface BotRow {
   createdAt: string;
   webhookUrl: string;
   agent: { id: string; name: string; avatarUrl: string | null } | null;
+  lastRepliedAt: string | null;
 }
 
 const { items: bots, used, atLimit, pending, refresh, limitMessage } = useTierLimit<BotRow>('bots');
@@ -180,8 +181,19 @@ const filteredBots = computed(() => {
                       />
                     </div>
                   </div>
-                  <span class="text-sm text-toned shrink-0">
-                    <TimeAgo :date="bot.createdAt" />
+                  <UTooltip
+                    v-if="bot.lastRepliedAt"
+                    text="Last reply"
+                  >
+                    <span class="text-sm text-toned shrink-0">
+                      <TimeAgo :date="bot.lastRepliedAt" />
+                    </span>
+                  </UTooltip>
+                  <span
+                    v-else
+                    class="text-sm text-toned shrink-0"
+                  >
+                    No replies yet
                   </span>
                 </div>
               </UCard>

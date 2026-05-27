@@ -639,6 +639,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_bots_last_replied: {
+        Args: { p_owner_id: string }
+        Returns: { bot_id: string; last_replied_at: string }[]
+      }
       delete_agent: {
         Args: { p_agent_id: string; p_owner_id: string }
         Returns: string

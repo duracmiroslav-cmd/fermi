@@ -27,6 +27,14 @@ export default defineEventHandler(async (event) => {
     for (const a of agentRows) agentsById.set(a.id, a);
   }
 
+  // Most-recent successful reply per bot, derived from agent_runs.
+  const { data: lastReplied, error: lastRepliedErr } = await admin
+    .rpc('get_bots_last_replied', { p_owner_id: user.id });
+  if (lastRepliedErr) throw lastRepliedErr;
+  const lastRepliedByBot = new Map<string, string>(
+    (lastReplied ?? []).map(r => [r.bot_id, r.last_replied_at]),
+  );
+
   const url = getRequestURL(event);
   return botRows.map((row) => {
     const agent = row.agent_id ? agentsById.get(row.agent_id) ?? null : null;
@@ -42,6 +50,7 @@ export default defineEventHandler(async (event) => {
       createdAt: row.created_at,
       webhookUrl: `${url.origin}/api/webhook/${row.platform}`,
       agent: agent ? { id: agent.id, name: agent.name, avatarUrl: agent.avatar_url } : null,
+      lastRepliedAt: lastRepliedByBot.get(row.id) ?? null,
     };
   });
 });
