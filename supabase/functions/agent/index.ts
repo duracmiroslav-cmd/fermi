@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { loadActiveCapabilitySlugs } from '../../../shared/agentCapabilities.ts';
+import { loadActiveCapabilities } from '../../../shared/agentCapabilities.ts';
 import { type AudioMime, detectAudioMime } from '../../../shared/audio.ts';
 import { detectImageMime, type ImageMime } from '../../../shared/image.ts';
 import { type VoiceReplyMode, findAgentById } from '../../../shared/agents.ts';
@@ -29,7 +29,7 @@ import {
   loadRecentMessages,
   resolveOrCreateLatestThread,
 } from './threads.ts';
-import { type ToolAttachment, executeTool, toolSchemasForCapabilities } from './tools/index.ts';
+import { type ToolAttachment, buildToolset } from './tools/index.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -368,8 +368,9 @@ const runAgentLoop = async (params: {
     // Resolved once per run: capability attachment changes mid-loop
     // (e.g. user toggles in dashboard) shouldn't reshape the tool set
     // an LLM call already in flight believes it has.
-    const attachedSlugs = await loadActiveCapabilitySlugs(admin, agent.id);
-    const tools = toolSchemasForCapabilities(attachedSlugs);
+    const attachedCapabilities = await loadActiveCapabilities(admin, agent.id);
+    const toolset = await buildToolset(attachedCapabilities, { admin, kek, ownerId: bot.ownerId });
+    const tools = toolset.schemas;
 
     const history = await loadRecentMessages(admin, threadId, HISTORY_WINDOW);
     const systemPrompt = agent.systemPrompt
@@ -476,7 +477,7 @@ const runAgentLoop = async (params: {
         });
 
         const toolStart = performance.now();
-        const toolResult = await executeTool(call.name, call.argumentsJson, {
+        const toolResult = await toolset.execute(call.name, call.argumentsJson, {
           admin,
           kek,
           ownerId: bot.ownerId,
