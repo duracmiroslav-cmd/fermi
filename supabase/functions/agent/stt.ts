@@ -5,14 +5,14 @@
 
 import type { AudioMime } from '../../../shared/audio.ts';
 
-export class WhisperError extends Error {
+export class STTError extends Error {
   constructor(public readonly status: number, message: string) {
     super(message);
   }
 }
 
 const WHISPER_ENDPOINT = 'https://api.openai.com/v1/audio/transcriptions';
-const WHISPER_MODEL = 'whisper-1';
+const DEFAULT_STT_MODEL = 'whisper-1';
 
 // Extension Whisper recognizes for each accepted mime. Wrong extension
 // makes OpenAI reject the upload with a 400 — the mime header alone
@@ -31,7 +31,7 @@ export const transcribeAudio = async (params: {
   const { apiKey, bytes, mime } = params;
   const form = new FormData();
   form.append('file', new Blob([bytes as unknown as ArrayBuffer], { type: mime }), `audio.${extFor(mime)}`);
-  form.append('model', WHISPER_MODEL);
+  form.append('model', DEFAULT_STT_MODEL);
   // `response_format=text` makes Whisper return raw text rather than a
   // JSON envelope — saves a parse step and removes one place for the
   // shape to drift.
@@ -44,7 +44,7 @@ export const transcribeAudio = async (params: {
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new WhisperError(res.status, `Whisper ${res.status}: ${body.slice(0, 400)}`);
+    throw new STTError(res.status, `Whisper ${res.status}: ${body.slice(0, 400)}`);
   }
   const transcript = (await res.text()).trim();
   return transcript;

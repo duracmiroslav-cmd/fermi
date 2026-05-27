@@ -4,7 +4,7 @@
 // well under the worker's 400s wall clock, so we keep it sync and
 // skip the polling complexity.
 
-export class FalError extends Error {
+export class ImageGenError extends Error {
   constructor(public readonly status: number, message: string) {
     super(message);
   }
@@ -49,7 +49,7 @@ interface FalResponse {
   }>;
 }
 
-export const generateImageBytes = async (params: {
+export const generateImage = async (params: {
   apiKey: string;
   model: string;
   prompt: string;
@@ -71,13 +71,13 @@ export const generateImageBytes = async (params: {
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new FalError(res.status, `fal.ai ${res.status}: ${body.slice(0, 400)}`);
+    throw new ImageGenError(res.status, `fal.ai ${res.status}: ${body.slice(0, 400)}`);
   }
 
   const data: FalResponse = await res.json();
   const first = data.images?.[0];
   if (!first?.url) {
-    throw new FalError(502, 'fal.ai returned no image URL');
+    throw new ImageGenError(502, 'fal.ai returned no image URL');
   }
 
   // fal hosts the result; download once into the worker so we can
@@ -85,7 +85,7 @@ export const generateImageBytes = async (params: {
   // expose the user to fal-side URL expiry / outages.
   const imgRes = await fetch(first.url);
   if (!imgRes.ok) {
-    throw new FalError(imgRes.status, `fetching fal result ${imgRes.status}`);
+    throw new ImageGenError(imgRes.status, `fetching fal result ${imgRes.status}`);
   }
   const bytes = new Uint8Array(await imgRes.arrayBuffer());
   return {

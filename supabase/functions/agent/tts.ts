@@ -4,14 +4,14 @@
 // expected m4a — some clients accept it as-is; if LINE rejects we
 // add an MP4 muxing pass downstream rather than baking it in here.
 
-export class OpenAITTSError extends Error {
+export class TTSError extends Error {
   constructor(public readonly status: number, message: string) {
     super(message);
   }
 }
 
 const TTS_ENDPOINT = 'https://api.openai.com/v1/audio/speech';
-const TTS_MODEL = 'tts-1';
+const DEFAULT_TTS_MODEL = 'tts-1';
 const DEFAULT_VOICE = 'alloy';
 
 // LINE audio messages need a duration in milliseconds for the player
@@ -47,7 +47,7 @@ export const synthesizeSpeech = async (params: {
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: TTS_MODEL,
+      model: DEFAULT_TTS_MODEL,
       input: text,
       voice,
       response_format: 'aac',
@@ -55,7 +55,7 @@ export const synthesizeSpeech = async (params: {
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new OpenAITTSError(res.status, `OpenAI tts-1 ${res.status}: ${body.slice(0, 400)}`);
+    throw new TTSError(res.status, `OpenAI tts-1 ${res.status}: ${body.slice(0, 400)}`);
   }
 
   const bytes = new Uint8Array(await res.arrayBuffer());

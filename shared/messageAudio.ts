@@ -45,7 +45,7 @@ export const uploadGeneratedAudio = async (
 // Uploads user-sent audio (LINE voice message bytes after Whisper
 // extracted the transcript). `lineMessageId` is the LINE webhook
 // event ID — same audit-handle + upsert-idempotency story as
-// `uploadMessageImage`. Retained for a future thread replay UI; no
+// `uploadUserImage`. Retained for a future thread replay UI; no
 // consumer reads this today.
 export const uploadUserAudio = async (
   admin: SupabaseClient,

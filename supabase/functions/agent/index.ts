@@ -16,12 +16,12 @@ import {
   uploadGeneratedAudio,
   uploadUserAudio,
 } from '../../../shared/messageAudio.ts';
-import { uploadMessageImage } from '../../../shared/messageImages.ts';
+import { uploadUserImage } from '../../../shared/messageImages.ts';
 import { tryClaimIdempotencyKey } from './dedup.ts';
 import { LineContentError, fetchLineMessageContent } from './line-content.ts';
 import { OpenRouterError, chatCompletion, type ChatMessage } from './openrouter.ts';
 import { errorCodeFromStatus, finishRun, logStep, startRun } from './runs.ts';
-import { WhisperError, transcribeAudio } from './stt.ts';
+import { STTError, transcribeAudio } from './stt.ts';
 import { synthesizeSpeech } from './tts.ts';
 import {
   appendMessage,
@@ -324,7 +324,7 @@ const runAgentLoop = async (params: {
       transcript: userInput.transcript,
     });
   } else {
-    const { storagePath } = await uploadMessageImage(admin, {
+    const { storagePath } = await uploadUserImage(admin, {
       ownerId: bot.ownerId,
       threadId,
       lineMessageId: userInput.lineMessageId,
@@ -805,7 +805,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
 
     if (isImageMessageFromUser(event)) {
       let imageBytes: Uint8Array;
-      let mime: ImageMime;
+      let imageMime: ImageMime;
       try {
         const content = await fetchLineMessageContent(lineAccessToken, event.message.id);
         const detected = detectImageMime(content.bytes);
@@ -813,7 +813,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
           await safeReply(lineAccessToken, event.replyToken, '⚠️ 目前只支援 JPG / PNG / GIF / WebP。');
           continue;
         }
-        mime = detected;
+        imageMime = detected;
         imageBytes = content.bytes;
       } catch (err) {
         if (err instanceof LineContentError && err.status === 413) {
@@ -830,7 +830,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         kek,
         externalUserId: event.source.userId,
         replyToken: event.replyToken,
-        userInput: { type: 'image', lineMessageId: event.message.id, mime, bytes: imageBytes },
+        userInput: { type: 'image', lineMessageId: event.message.id, mime: imageMime, bytes: imageBytes },
         eventTimestamp,
       });
       continue;
@@ -886,7 +886,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       try {
         transcript = await transcribeAudio({ apiKey: openaiKey, bytes: audioBytes, mime: audioMime });
       } catch (err) {
-        if (err instanceof WhisperError) {
+        if (err instanceof STTError) {
           console.warn('Whisper failed; dropping audio', { status: err.status });
           await safeReply(lineAccessToken, event.replyToken, '⚠️ 無法辨識這段語音，請再試一次。');
           continue;

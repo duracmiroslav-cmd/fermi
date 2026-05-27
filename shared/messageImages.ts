@@ -24,7 +24,7 @@ const extFromMime = (mime: string): string => {
 // the path doubles as an audit handle back to the source event, and
 // pgmq re-delivery of the same message upserts to the same path
 // (idempotent).
-export const uploadMessageImage = async (
+export const uploadUserImage = async (
   admin: SupabaseClient,
   params: {
     ownerId: string;

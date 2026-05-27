@@ -6,9 +6,12 @@ import {
 import { signMessageImageUrl, uploadGeneratedImage } from '../../../../shared/messageImages.ts';
 import {
   DEFAULT_IMAGE_MODEL,
-  FalError,
+  ImageGenError,
   type ImageSize,
-  generateImageBytes,
+  // The client function and the tool object share the natural name
+  // `generateImage`; alias the client locally so the tool export
+  // can keep the camelCase-of-function-name convention.
+  generateImage as runImageGen,
 } from '../imagegen.ts';
 import type { Tool } from './index.ts';
 
@@ -80,7 +83,7 @@ export const generateImage: Tool = {
     }
 
     try {
-      const generated = await generateImageBytes({
+      const generated = await runImageGen({
         apiKey,
         model: DEFAULT_IMAGE_MODEL,
         prompt: prompt.trim(),
@@ -120,7 +123,7 @@ export const generateImage: Tool = {
         height: generated.height,
       };
     } catch (err) {
-      if (err instanceof FalError) {
+      if (err instanceof ImageGenError) {
         return {
           error: `Image generation failed (${err.status}). Tell the user briefly that the image service errored; suggest they try again or rephrase the prompt.`,
         };
