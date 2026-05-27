@@ -28,7 +28,7 @@ import {
   loadRecentMessages,
   resolveOrCreateLatestThread,
 } from './threads.ts';
-import { executeTool, toolSchemasForCapabilities } from './tools/index.ts';
+import { type ToolAttachment, executeTool, toolSchemasForCapabilities } from './tools/index.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -348,6 +348,11 @@ const runAgentLoop = async (params: {
   let step = 1;
   let totalCostUsd = 0;
 
+  // Side-effect sink for tools that produce media (image-gen, future
+  // TTS-via-tool etc.). Tools push entries during execute; the loop
+  // tail drains them into the LINE delivery array.
+  const attachments: ToolAttachment[] = [];
+
   try {
     // Resolved once per run: capability attachment changes mid-loop
     // (e.g. user toggles in dashboard) shouldn't reshape the tool set
@@ -447,6 +452,9 @@ const runAgentLoop = async (params: {
           admin,
           kek,
           ownerId: bot.ownerId,
+          threadId,
+          runId,
+          attachments,
         });
         const toolLatency = Math.round(performance.now() - toolStart);
 
@@ -492,6 +500,22 @@ const runAgentLoop = async (params: {
       = agent.voiceReplyMode === 'always'
         || (agent.voiceReplyMode === 'auto' && userInput.type === 'audio');
     const outbound: LineMessage[] = [{ type: 'text', text: `🤖 ${finalText}` }];
+    // Drain tool-produced attachments into the delivery array. LINE
+    // caps multi-message replies at 5; image attachments take the
+    // slots after the text, so a generation-heavy turn that produces
+    // 5+ images would lose the tail. Acceptable for v1 — the LLM is
+    // discouraged from generating that many images per turn in the
+    // tool description, and the layer that truncates (replyMessages /
+    // pushMessages) caps at LINE_MESSAGES_PER_CALL anyway.
+    for (const att of attachments) {
+      if (att.type === 'image') {
+        outbound.push({
+          type: 'image',
+          originalContentUrl: att.originalContentUrl,
+          previewImageUrl: att.previewImageUrl,
+        });
+      }
+    }
     if (wantsVoiceReply) {
       try {
         const resolved = await resolveKey(admin, kek, {

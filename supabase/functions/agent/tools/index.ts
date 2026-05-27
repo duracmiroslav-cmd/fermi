@@ -1,15 +1,37 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { generateImage } from './image-gen.ts';
 import { getCurrentTime } from './time.ts';
 import { searchWeb } from './web-search.ts';
 import { fetchWeb } from './web-fetch.ts';
 
-// Per-call context passed to every tool so they can load the bot
-// owner's credentials (e.g., personal Tavily key) on the fly.
-// Kept minimal: tools that don't need it can ignore the second arg.
+// Side-effect attachments a tool can produce (image, future audio /
+// video). Tools push entries here, the worker drains the array after
+// the agent loop ends and appends matching LINE messages to delivery.
+// runId + thread context flows in via ToolContext so tools can build
+// storage paths without the caller threading them through args.
+export type ToolAttachment
+  = | {
+      type: 'image';
+      mime: string;
+      // Pre-signed URL for LINE to download from. The preview is what
+      // shows in the chat list / lock-screen notification — for now
+      // identical to original (LINE accepts that).
+      originalContentUrl: string;
+      previewImageUrl: string;
+      // Persisted storage path for future replay / debug viewer.
+      storagePath: string;
+    };
+
+// Per-call context passed to every tool. Tools that don't need a
+// field can ignore it. `attachments` is a mutable sink — tools that
+// produce media push entries; tools that don't leave it alone.
 export interface ToolContext {
   admin: SupabaseClient;
   kek: CryptoKey;
   ownerId: string;
+  threadId: string;
+  runId: string;
+  attachments: ToolAttachment[];
 }
 
 export interface Tool {
@@ -28,7 +50,7 @@ export interface Tool {
   execute: (args: Record<string, unknown>, ctx: ToolContext) => unknown | Promise<unknown>;
 }
 
-const tools: Tool[] = [getCurrentTime, searchWeb, fetchWeb];
+const tools: Tool[] = [getCurrentTime, searchWeb, fetchWeb, generateImage];
 
 const byName = new Map(tools.map(t => [t.name, t]));
 
