@@ -18,7 +18,15 @@ import {
 } from '../../../shared/messageAudio.ts';
 import { uploadUserImage } from '../../../shared/messageImages.ts';
 import { tryClaimIdempotencyKey } from './dedup.ts';
-import { LineContentError, fetchLineMessageContent } from './line-content.ts';
+import {
+  deliverMessages,
+  fetchMessageContent,
+  LineContentError,
+  LinePushError,
+  LineReplyError,
+  safeReply,
+  type LineMessage,
+} from './channels/line.ts';
 import { OpenRouterError, completeChat, type ChatMessage } from './openrouter.ts';
 import { COUNTER_ENV, consumeQuota } from './quota.ts';
 import { errorCodeFromStatus, finishRun, logStep, startRun } from './runs.ts';
@@ -93,127 +101,6 @@ interface QueueMessage {
   msg_id: number;
   payload: QueuePayload;
 }
-
-class LineReplyError extends Error {
-  constructor(public readonly status: number, message: string) {
-    super(message);
-  }
-}
-
-class LinePushError extends Error {
-  constructor(public readonly status: number, message: string) {
-    super(message);
-  }
-}
-
-// LINE reply tokens are valid roughly one minute from webhook delivery.
-// Switch to Push API once we've burned ~25s, leaving comfortable
-// headroom for the LLM call still in flight and the LINE round-trip,
-// and avoiding a Reply 400 wasting the only delivery attempt.
-const REPLY_BUDGET_MS = 25_000;
-
-// LINE outbound message shapes we emit. Adding a new variant (flex,
-// sticker, video) extends the union here, the JSON.stringify body
-// just forwards the discriminated objects straight to LINE's API.
-export type LineMessage
-  = | { type: 'text';  text: string }
-    | { type: 'audio'; originalContentUrl: string; duration: number }
-    | { type: 'image'; originalContentUrl: string; previewImageUrl: string };
-
-// LINE Reply / Push API both accept up to 5 messages in one call.
-// We cap at the API limit to keep the contract explicit. Image-gen
-// tool calls that produce >4 images (rare) will be truncated by the
-// caller before reaching this layer.
-const LINE_MESSAGES_PER_CALL = 5;
-
-const replyMessages = async (
-  accessToken: string,
-  replyToken: string,
-  messages: LineMessage[],
-): Promise<void> => {
-  const res = await fetch('https://api.line.me/v2/bot/message/reply', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({ replyToken, messages: messages.slice(0, LINE_MESSAGES_PER_CALL) }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new LineReplyError(res.status, `LINE Reply API ${res.status}: ${body}`);
-  }
-};
-
-const pushMessages = async (
-  accessToken: string,
-  to: string,
-  messages: LineMessage[],
-): Promise<void> => {
-  const res = await fetch('https://api.line.me/v2/bot/message/push', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({ to, messages: messages.slice(0, LINE_MESSAGES_PER_CALL) }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new LinePushError(res.status, `LINE Push API ${res.status}: ${body}`);
-  }
-};
-
-export type DeliveryMethod = 'reply' | 'push';
-
-// Delivers the bot's response, picking Reply (free) when we're inside
-// the reply-token window and Push (quota) when we're not. If a Reply
-// attempt fails with 400 (token expired or already used), falls back
-// to Push so the messages aren't dropped on the floor.
-const deliverMessages = async (params: {
-  accessToken: string;
-  replyToken: string;
-  userId: string;
-  messages: LineMessage[];
-  elapsedMs: number;
-}): Promise<DeliveryMethod> => {
-  const { accessToken, replyToken, userId, messages, elapsedMs } = params;
-
-  if (elapsedMs >= REPLY_BUDGET_MS) {
-    await pushMessages(accessToken, userId, messages);
-    return 'push';
-  }
-
-  try {
-    await replyMessages(accessToken, replyToken, messages);
-    return 'reply';
-  } catch (err) {
-    if (err instanceof LineReplyError && err.status === 400) {
-      await pushMessages(accessToken, userId, messages);
-      return 'push';
-    }
-    throw err;
-  }
-};
-
-// LINE Reply tokens are single-use and expire shortly; a 400 from
-// the Reply API is terminal. Other errors bubble up so pgmq retries
-// the whole webhook payload.
-const safeReply = async (
-  accessToken: string,
-  replyToken: string,
-  text: string,
-): Promise<void> => {
-  try {
-    await replyMessages(accessToken, replyToken, [{ type: 'text', text }]);
-  } catch (err) {
-    if (err instanceof LineReplyError && err.status === 400) {
-      console.warn('reply token expired or already used; dropping', { replyToken });
-      return;
-    }
-    throw err;
-  }
-};
 
 const NO_AGENT_NOTICE = '⚙️ 這個 bot 還沒設定 agent，請到 https://fermi.tw/dashboard 綁定一個。';
 // Free tier: BYOK is the friction point. Notice surfaces both paths so
@@ -863,7 +750,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       let imageBytes: Uint8Array;
       let imageMime: ImageMime;
       try {
-        const content = await fetchLineMessageContent(lineAccessToken, event.message.id);
+        const content = await fetchMessageContent(lineAccessToken, event.message.id);
         const detected = detectImageMime(content.bytes);
         if (!detected) {
           await safeReply(lineAccessToken, event.replyToken, '⚠️ 目前只支援 JPG / PNG / GIF / WebP。');
@@ -896,7 +783,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       let audioBytes: Uint8Array;
       let audioMime: AudioMime;
       try {
-        const content = await fetchLineMessageContent(lineAccessToken, event.message.id);
+        const content = await fetchMessageContent(lineAccessToken, event.message.id);
         const detected = detectAudioMime(content.bytes);
         if (!detected) {
           await safeReply(lineAccessToken, event.replyToken, '⚠️ 不支援的音訊格式。');
