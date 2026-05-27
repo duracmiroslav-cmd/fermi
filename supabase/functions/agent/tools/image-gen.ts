@@ -13,6 +13,7 @@ import {
   // can keep the camelCase-of-function-name convention.
   generateImage as runImageGen,
 } from '../imagegen.ts';
+import { COUNTER_ENV, consumeQuota } from '../quota.ts';
 import type { Tool } from './index.ts';
 
 interface Args {
@@ -51,6 +52,20 @@ export const generateImage: Tool = {
     additionalProperties: false,
   },
   execute: async (rawArgs, ctx) => {
+    // Quota gate first: cheaper fast-fail before fal credential
+    // resolution and the (paid) fal.ai call. Tool-result JSON routes
+    // the CTA through the LLM, which then phrases it in the user's
+    // language alongside the natural-language refusal.
+    const quota = await consumeQuota(ctx.admin, COUNTER_ENV, {
+      ownerId: ctx.ownerId,
+      purpose: 'image_gen',
+    });
+    if (!quota.allowed) {
+      return {
+        error: `Image generation quota exceeded: ${quota.count}/${quota.cap} this month. Tell the user the bot owner's free image quota is used up; they can either upgrade to Pro at https://fermi.tw/dashboard/billing ($19/mo, 200 images/mo) or connect their own fal.ai key at https://fermi.tw/dashboard/connections for unlimited usage.`,
+      };
+    }
+
     // Tier policy: Free must BYOK fal.ai; Pro falls back to fermi's
     // platform key. Errors round-trip back to the LLM as tool-result
     // JSON so the model can relay a sensible message in the user's

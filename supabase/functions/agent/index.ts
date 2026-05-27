@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { loadActiveCapabilitySlugs } from '../../../shared/agentCapabilities.ts';
+import { loadActiveCapabilities } from '../../../shared/agentCapabilities.ts';
 import { type AudioMime, detectAudioMime } from '../../../shared/audio.ts';
 import { detectImageMime, type ImageMime } from '../../../shared/image.ts';
 import { type VoiceReplyMode, findAgentById } from '../../../shared/agents.ts';
@@ -19,8 +19,18 @@ import {
 import { uploadUserImage } from '../../../shared/messageImages.ts';
 import { DEFAULT_TEXT_MODEL, DEFAULT_VISION_MODEL } from '../../../shared/constants/models.ts';
 import { tryClaimIdempotencyKey } from './dedup.ts';
-import { LineContentError, fetchLineMessageContent } from './line-content.ts';
-import { OpenRouterError, chatCompletion, type ChatMessage } from './openrouter.ts';
+import {
+  deliverMessages,
+  fetchMessageContent,
+  LineContentError,
+  LinePushError,
+  LineReplyError,
+  REPLY_BUDGET_MS,
+  safeReply,
+  type LineMessage,
+} from './channels/line.ts';
+import { OpenRouterError, completeChat, type ChatMessage } from './openrouter.ts';
+import { COUNTER_ENV, consumeQuota } from './quota.ts';
 import { errorCodeFromStatus, finishRun, logStep, startRun } from './runs.ts';
 import { STTError, transcribeAudio } from './stt.ts';
 import { synthesizeSpeech } from './tts.ts';
@@ -29,7 +39,7 @@ import {
   loadRecentMessages,
   resolveOrCreateLatestThread,
 } from './threads.ts';
-import { type ToolAttachment, executeTool, toolSchemasForCapabilities } from './tools/index.ts';
+import { type ToolAttachment, buildToolset } from './tools/index.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -88,127 +98,6 @@ interface QueueMessage {
   payload: QueuePayload;
 }
 
-class LineReplyError extends Error {
-  constructor(public readonly status: number, message: string) {
-    super(message);
-  }
-}
-
-class LinePushError extends Error {
-  constructor(public readonly status: number, message: string) {
-    super(message);
-  }
-}
-
-// LINE reply tokens are valid roughly one minute from webhook delivery.
-// Switch to Push API once we've burned ~25s, leaving comfortable
-// headroom for the LLM call still in flight and the LINE round-trip,
-// and avoiding a Reply 400 wasting the only delivery attempt.
-const REPLY_BUDGET_MS = 25_000;
-
-// LINE outbound message shapes we emit. Adding a new variant (flex,
-// sticker, video) extends the union here, the JSON.stringify body
-// just forwards the discriminated objects straight to LINE's API.
-export type LineMessage
-  = | { type: 'text';  text: string }
-    | { type: 'audio'; originalContentUrl: string; duration: number }
-    | { type: 'image'; originalContentUrl: string; previewImageUrl: string };
-
-// LINE Reply / Push API both accept up to 5 messages in one call.
-// We cap at the API limit to keep the contract explicit. Image-gen
-// tool calls that produce >4 images (rare) will be truncated by the
-// caller before reaching this layer.
-const LINE_MESSAGES_PER_CALL = 5;
-
-const replyMessages = async (
-  accessToken: string,
-  replyToken: string,
-  messages: LineMessage[],
-): Promise<void> => {
-  const res = await fetch('https://api.line.me/v2/bot/message/reply', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({ replyToken, messages: messages.slice(0, LINE_MESSAGES_PER_CALL) }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new LineReplyError(res.status, `LINE Reply API ${res.status}: ${body}`);
-  }
-};
-
-const pushMessages = async (
-  accessToken: string,
-  to: string,
-  messages: LineMessage[],
-): Promise<void> => {
-  const res = await fetch('https://api.line.me/v2/bot/message/push', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({ to, messages: messages.slice(0, LINE_MESSAGES_PER_CALL) }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new LinePushError(res.status, `LINE Push API ${res.status}: ${body}`);
-  }
-};
-
-export type DeliveryMethod = 'reply' | 'push';
-
-// Delivers the bot's response, picking Reply (free) when we're inside
-// the reply-token window and Push (quota) when we're not. If a Reply
-// attempt fails with 400 (token expired or already used), falls back
-// to Push so the messages aren't dropped on the floor.
-const deliverMessages = async (params: {
-  accessToken: string;
-  replyToken: string;
-  userId: string;
-  messages: LineMessage[];
-  elapsedMs: number;
-}): Promise<DeliveryMethod> => {
-  const { accessToken, replyToken, userId, messages, elapsedMs } = params;
-
-  if (elapsedMs >= REPLY_BUDGET_MS) {
-    await pushMessages(accessToken, userId, messages);
-    return 'push';
-  }
-
-  try {
-    await replyMessages(accessToken, replyToken, messages);
-    return 'reply';
-  } catch (err) {
-    if (err instanceof LineReplyError && err.status === 400) {
-      await pushMessages(accessToken, userId, messages);
-      return 'push';
-    }
-    throw err;
-  }
-};
-
-// LINE Reply tokens are single-use and expire shortly; a 400 from
-// the Reply API is terminal. Other errors bubble up so pgmq retries
-// the whole webhook payload.
-const safeReply = async (
-  accessToken: string,
-  replyToken: string,
-  text: string,
-): Promise<void> => {
-  try {
-    await replyMessages(accessToken, replyToken, [{ type: 'text', text }]);
-  } catch (err) {
-    if (err instanceof LineReplyError && err.status === 400) {
-      console.warn('reply token expired or already used; dropping', { replyToken });
-      return;
-    }
-    throw err;
-  }
-};
-
 const NO_AGENT_NOTICE = '⚙️ 這個 bot 還沒設定 agent，請到 https://fermi.tw/dashboard 綁定一個。';
 // Free tier: BYOK is the friction point. Notice surfaces both paths so
 // the bot owner can pick connect (manual) or upgrade (instant).
@@ -217,6 +106,16 @@ const FREE_BYOK_NOTICE_OPENROUTER
 const PLATFORM_KEY_OPS_NOTICE = '⚠️ Pro 服務暫時不可用，已通知 fermi 處理，請稍後再試。';
 const FREE_BYOK_NOTICE_OPENAI
   = '🎙️ 語音功能需要 OpenAI key。Free 方案請到 https://fermi.tw/dashboard/connections 連接，或升級 Pro 由 fermi 代管。';
+// Quota-exhausted notices. STT replies via safeReply; TTS suffix gets
+// appended to the LLM's text reply when audio fallback fires; the
+// extended_run notice fully replaces `finalText` when the agent loop
+// must abort mid-flight.
+const QUOTA_EXHAUSTED_STT
+  = '⚠️ 這個月語音輸入額度已用完。可改傳文字訊息，或請 bot 主人升 Pro 解鎖：https://fermi.tw/dashboard/billing';
+const QUOTA_EXHAUSTED_TTS_SUFFIX
+  = '\n\n（本次語音回覆額度已用完，改用文字。升 Pro 解鎖：https://fermi.tw/dashboard/billing）';
+const QUOTA_EXHAUSTED_EXTENDED_RUN
+  = '⚠️ 這個月長對話額度已用完。可換更具體的問法，或請 bot 主人升 Pro 解鎖：https://fermi.tw/dashboard/billing';
 
 const PLATFORM_OPENROUTER_KEY = Deno.env.get('OPENROUTER_API_KEY') ?? null;
 const PLATFORM_OPENAI_KEY = Deno.env.get('OPENAI_API_KEY') ?? null;
@@ -353,8 +252,9 @@ const runAgentLoop = async (params: {
     // Resolved once per run: capability attachment changes mid-loop
     // (e.g. user toggles in dashboard) shouldn't reshape the tool set
     // an LLM call already in flight believes it has.
-    const attachedSlugs = await loadActiveCapabilitySlugs(admin, agent.id);
-    const tools = toolSchemasForCapabilities(attachedSlugs);
+    const attachedCapabilities = await loadActiveCapabilities(admin, agent.id);
+    const toolset = await buildToolset(attachedCapabilities, { admin, kek, ownerId: bot.ownerId });
+    const tools = toolset.schemas;
 
     const history = await loadRecentMessages(admin, threadId, HISTORY_WINDOW);
     const systemPrompt = agent.systemPrompt
@@ -376,8 +276,25 @@ const runAgentLoop = async (params: {
 
     let finalText: string | null = null;
     let iteration = 0;
+    // INCR extended_run quota at most once per run, the first time
+    // wall time crosses the reply-token budget. Block → abort loop
+    // with a CTA. Already-paid LLM cost up to this point is sunk;
+    // the gate prevents further iterations on the same run.
+    let extendedRunConsumed = false;
     while (iteration < MAX_AGENT_STEPS) {
       iteration++;
+
+      if (!extendedRunConsumed && (Date.now() - eventTimestamp) >= REPLY_BUDGET_MS) {
+        const exQuota = await consumeQuota(admin, COUNTER_ENV, {
+          ownerId: bot.ownerId,
+          purpose: 'extended_run',
+        });
+        extendedRunConsumed = true;
+        if (!exQuota.allowed) {
+          finalText = QUOTA_EXHAUSTED_EXTENDED_RUN;
+          break;
+        }
+      }
 
       await logStep(admin, {
         runId,
@@ -387,7 +304,7 @@ const runAgentLoop = async (params: {
       });
 
       const llmStart = performance.now();
-      const result = await chatCompletion({
+      const result = await completeChat({
         apiKey: openrouterKey,
         model,
         messages,
@@ -444,7 +361,7 @@ const runAgentLoop = async (params: {
         });
 
         const toolStart = performance.now();
-        const toolResult = await executeTool(call.name, call.argumentsJson, {
+        const toolResult = await toolset.execute(call.name, call.argumentsJson, {
           admin,
           kek,
           ownerId: bot.ownerId,
@@ -499,35 +416,47 @@ const runAgentLoop = async (params: {
     // plain text. Mirrors the user-side STT shape: a voice turn is
     // stored as a single audio row with transcript embedded.
     let ttsAudio: { storagePath: string; signedUrl: string; mime: string; sizeBytes: number; durationMs: number } | null = null;
+    // Distinguishes quota block (suffix CTA on text fallback) from
+    // generic TTS failure (silent text fallback). Both end up as text;
+    // only the quota path warrants the user-facing CTA.
+    let ttsQuotaExhausted = false;
     if (wantsVoiceReply) {
-      try {
-        const resolved = await resolveKey(admin, kek, {
-          ownerId: bot.ownerId,
-          purpose: 'openai',
-          platformKey: PLATFORM_OPENAI_KEY,
-        });
-        const speech = await synthesizeSpeech({ apiKey: resolved.key, text: finalText });
-        const { storagePath } = await uploadGeneratedAudio(admin, {
-          ownerId: bot.ownerId,
-          threadId,
-          runId,
-          mime: speech.mime,
-          bytes: speech.bytes,
-        });
-        const signedUrl = await signMessageAudioUrl(admin, storagePath);
-        ttsAudio = {
-          storagePath,
-          signedUrl,
-          mime: speech.mime,
-          sizeBytes: speech.bytes.byteLength,
-          durationMs: speech.durationMs,
-        };
-      } catch (ttsErr) {
-        console.warn('TTS failed; falling back to text', {
-          agentId: agent.id,
-          ownerId: bot.ownerId,
-          err: String(ttsErr),
-        });
+      const ttsQuota = await consumeQuota(admin, COUNTER_ENV, {
+        ownerId: bot.ownerId,
+        purpose: 'tts',
+      });
+      if (!ttsQuota.allowed) {
+        ttsQuotaExhausted = true;
+      } else {
+        try {
+          const resolved = await resolveKey(admin, kek, {
+            ownerId: bot.ownerId,
+            purpose: 'openai',
+            platformKey: PLATFORM_OPENAI_KEY,
+          });
+          const speech = await synthesizeSpeech({ apiKey: resolved.key, text: finalText });
+          const { storagePath } = await uploadGeneratedAudio(admin, {
+            ownerId: bot.ownerId,
+            threadId,
+            runId,
+            mime: speech.mime,
+            bytes: speech.bytes,
+          });
+          const signedUrl = await signMessageAudioUrl(admin, storagePath);
+          ttsAudio = {
+            storagePath,
+            signedUrl,
+            mime: speech.mime,
+            sizeBytes: speech.bytes.byteLength,
+            durationMs: speech.durationMs,
+          };
+        } catch (ttsErr) {
+          console.warn('TTS failed; falling back to text', {
+            agentId: agent.id,
+            ownerId: bot.ownerId,
+            err: String(ttsErr),
+          });
+        }
       }
     }
 
@@ -569,9 +498,12 @@ const runAgentLoop = async (params: {
     // discouraged from generating that many images per turn in the
     // tool description), and the truncation layer (replyMessages /
     // pushMessages) caps at LINE_MESSAGES_PER_CALL anyway.
+    const textWithSuffix = ttsQuotaExhausted
+      ? `${finalText}${QUOTA_EXHAUSTED_TTS_SUFFIX}`
+      : finalText;
     const outbound: LineMessage[] = ttsAudio
       ? [{ type: 'audio', originalContentUrl: ttsAudio.signedUrl, duration: ttsAudio.durationMs }]
-      : [{ type: 'text', text: `🤖 ${finalText}` }];
+      : [{ type: 'text', text: `🤖 ${textWithSuffix}` }];
     for (const att of attachments) {
       if (att.type === 'image') {
         outbound.push({
@@ -591,6 +523,18 @@ const runAgentLoop = async (params: {
         messages: outbound,
         elapsedMs,
       });
+      // Observe-only: count successful pushes toward the LINE-side
+      // monthly cap so dashboard /usage can surface usage. Doesn't
+      // block — push is what gets the reply to the user and dropping
+      // it harms UX more than enforcing a cap helps. Fail-open: a
+      // counter outage here must not error the run that already
+      // delivered successfully.
+      if (method === 'push') {
+        await consumeQuota(admin, COUNTER_ENV, {
+          ownerId: bot.ownerId,
+          purpose: 'line_push',
+        }).catch((quotaErr) => console.error('line_push quota INCR failed', quotaErr));
+      }
       await logStep(admin, {
         runId,
         step: step++,
@@ -803,7 +747,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       let imageBytes: Uint8Array;
       let imageMime: ImageMime;
       try {
-        const content = await fetchLineMessageContent(lineAccessToken, event.message.id);
+        const content = await fetchMessageContent(lineAccessToken, event.message.id);
         const detected = detectImageMime(content.bytes);
         if (!detected) {
           await safeReply(lineAccessToken, event.replyToken, '⚠️ 目前只支援 JPG / PNG / GIF / WebP。');
@@ -836,7 +780,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       let audioBytes: Uint8Array;
       let audioMime: AudioMime;
       try {
-        const content = await fetchLineMessageContent(lineAccessToken, event.message.id);
+        const content = await fetchMessageContent(lineAccessToken, event.message.id);
         const detected = detectAudioMime(content.bytes);
         if (!detected) {
           await safeReply(lineAccessToken, event.replyToken, '⚠️ 不支援的音訊格式。');
@@ -850,6 +794,18 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
           continue;
         }
         throw err;
+      }
+
+      // Quota gate before resolving the OpenAI key: cheap fast-fail
+      // and stops a quota-exhausted user from being told "set up your
+      // key" when the real issue is the cap.
+      const sttQuota = await consumeQuota(admin, COUNTER_ENV, {
+        ownerId: bot.ownerId,
+        purpose: 'stt',
+      });
+      if (!sttQuota.allowed) {
+        await safeReply(lineAccessToken, event.replyToken, QUOTA_EXHAUSTED_STT);
+        continue;
       }
 
       // STT runs *before* the agent loop because the rest of the

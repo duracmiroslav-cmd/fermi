@@ -3,6 +3,7 @@ import {
   PlatformKeyNotConfiguredError,
   resolveKey,
 } from '../../../../shared/keys.ts';
+import { safeFetch } from './safe-http.ts';
 import type { Tool, ToolContext } from './index.ts';
 
 // A fetch backend. Returns null when it can't service the request (e.g.
@@ -60,49 +61,11 @@ const tavilyProvider: FetchProvider = {
 
 // ---- Provider 2: direct fetch ----------------------------------------------
 // Provider-independent fallback. Because the URL comes from the model, a
-// server-side fetch is an SSRF vector: restrict scheme to http(s), block
-// private/loopback/link-local hosts (incl. the cloud metadata IP), and
-// re-validate every redirect hop (a public URL can 30x into the internal
-// network). DNS-rebinding is only partially mitigated.
-
-const isPrivateIpv4 = (ip: string): boolean => {
-  const o = ip.split('.').map(Number);
-  if (o.length !== 4 || o.some(n => Number.isNaN(n) || n < 0 || n > 255)) return false;
-  const [a, b] = o;
-  if (a === 0 || a === 10 || a === 127) return true;
-  if (a === 169 && b === 254) return true;            // link-local + metadata
-  if (a === 172 && b >= 16 && b <= 31) return true;
-  if (a === 192 && b === 168) return true;
-  if (a === 100 && b >= 64 && b <= 127) return true;  // CGNAT
-  return false;
-};
-
-const isBlockedHost = (host: string): boolean => {
-  const h = host.toLowerCase().replace(/^\[|\]$/g, '');
-  if (h === 'localhost' || h.endsWith('.localhost')) return true;
-  if (h.endsWith('.local') || h.endsWith('.internal')) return true;
-  if (h === 'metadata.google.internal') return true;
-  if (h.includes(':')) {                              // IPv6 literal
-    if (h === '::1') return true;
-    if (h.startsWith('fc') || h.startsWith('fd')) return true;  // ULA fc00::/7
-    if (h.startsWith('fe80')) return true;            // link-local
-    if (h.startsWith('::ffff:')) return isPrivateIpv4(h.slice(7));
-    return false;
-  }
-  if (/^\d+\.\d+\.\d+\.\d+$/.test(h)) return isPrivateIpv4(h);
-  return false;
-};
-
-const assertSafeHost = async (host: string): Promise<void> => {
-  if (isBlockedHost(host)) throw new Error(`Blocked host: ${host}`);
-  let ips: string[] = [];
-  try {
-    ips = await Deno.resolveDns(host, 'A');
-  } catch {
-    return; // resolveDns unavailable/failed: rely on literal + redirect guard
-  }
-  if (ips.some(isPrivateIpv4)) throw new Error(`Host resolves to private IP: ${host}`);
-};
+// server-side fetch is an SSRF vector: every connection goes through
+// safeFetch, which resolves A+AAAA, blocks private ranges, and pins the
+// validated IP at socket-open time so a TTL=0 DNS-rebinding race between
+// check and connect can't redirect the bytes into the internal network.
+// Cert chain still binds to the original hostname via TLS serverName.
 
 const htmlToText = (html: string): { title?: string; text: string } => {
   const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
@@ -121,22 +84,6 @@ const htmlToText = (html: string): { title?: string; text: string } => {
   return { title: titleMatch?.[1]?.trim() || undefined, text };
 };
 
-const readCapped = async (res: Response, maxBytes: number): Promise<string> => {
-  const reader = res.body?.getReader();
-  if (!reader) return '';
-  const decoder = new TextDecoder();
-  let out = '';
-  let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.length;
-    out += decoder.decode(value, { stream: true });
-    if (total >= maxBytes) { await reader.cancel(); break; }
-  }
-  return out;
-};
-
 const MAX_REDIRECTS = 3;
 const FETCH_TIMEOUT_MS = 8000;
 const MAX_BYTES = 2_000_000;
@@ -144,41 +91,18 @@ const MAX_BYTES = 2_000_000;
 const directProvider: FetchProvider = {
   name: 'direct',
   extract: async (url) => {
-    let current = url;
-    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-      const u = new URL(current);
-      if (u.protocol !== 'http:' && u.protocol !== 'https:') {
-        throw new Error(`Unsupported protocol: ${u.protocol}`);
-      }
-      await assertSafeHost(u.hostname);
-
-      const res = await fetch(current, {
-        redirect: 'manual',
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-        headers: { 'User-Agent': 'fermi-web-fetch/1.0', 'Accept': 'text/html,text/plain' },
-      });
-
-      if (res.status >= 300 && res.status < 400) {
-        const loc = res.headers.get('location');
-        await res.body?.cancel();
-        if (!loc) return null;
-        current = new URL(loc, current).toString(); // re-validated at loop top
-        continue;
-      }
-
-      if (!res.ok) { await res.body?.cancel(); return null; }
-
-      const ct = res.headers.get('content-type') ?? '';
-      if (ct && !/(text\/|html|xml|json)/i.test(ct)) {
-        await res.body?.cancel();
-        throw new Error(`Unsupported content type: ${ct}`);
-      }
-
-      const { title, text } = htmlToText(await readCapped(res, MAX_BYTES));
-      if (!text) return null;
-      return { title, text: text.slice(0, MAX_CHARS) };
+    const result = await safeFetch(url, {
+      maxBytes:     MAX_BYTES,
+      timeoutMs:    FETCH_TIMEOUT_MS,
+      maxRedirects: MAX_REDIRECTS,
+    });
+    if (result.status < 200 || result.status >= 300) return null;
+    if (result.contentType && !/(text\/|html|xml|json)/i.test(result.contentType)) {
+      throw new Error(`Unsupported content type: ${result.contentType}`);
     }
-    throw new Error('Too many redirects');
+    const { title, text } = htmlToText(result.body);
+    if (!text) return null;
+    return { title, text: text.slice(0, MAX_CHARS) };
   },
 };
 

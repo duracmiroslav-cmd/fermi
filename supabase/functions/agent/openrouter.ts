@@ -106,7 +106,7 @@ interface RawCompletionResponse {
 // balances even though no real reply ever needs that much).
 const MAX_REPLY_TOKENS = 4096;
 
-export const chatCompletion = async (params: {
+export const completeChat = async (params: {
   apiKey: string;
   model: string;
   messages: ChatMessage[];

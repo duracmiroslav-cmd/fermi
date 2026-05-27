@@ -23,6 +23,11 @@
         icon="i-lucide-cable"
         label="Connections"
       />
+      <DashboardNavItem
+        to="/dashboard/usage"
+        icon="i-lucide-gauge"
+        label="Usage"
+      />
     </nav>
 
     <div class="p-3">

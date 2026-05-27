@@ -1,6 +1,7 @@
 import { validateSignature } from '@line/bot-sdk';
 import { z } from 'zod';
 import { showLineLoadingAnimation } from '~~/server/utils/bots/line';
+import { checkBotUserRateLimit } from '~~/server/utils/rate-limit';
 import { findBotByExternalId } from '~~/shared/bots';
 import { loadCredential } from '~~/shared/credentials';
 import { getKek } from '~~/shared/kek';
@@ -77,7 +78,7 @@ export default defineEventHandler(async (event) => {
     return { ok: true };
   }
 
-  const { fermiKek, supabaseUrl, supabaseServiceRoleKey } = useRuntimeConfig(event);
+  const { fermiKek, supabaseUrl, supabaseServiceRoleKey, upstashUrl, upstashToken } = useRuntimeConfig(event);
   const kek = await getKek(fermiKek);
   const { plaintext: channelSecret } = await loadCredential(admin, kek, {
     userId: bot.ownerId,
@@ -103,12 +104,46 @@ export default defineEventHandler(async (event) => {
       if (touchErr) console.error('webhook_verified_at touch failed', touchErr);
     });
 
+  // Rate-limit per (bot, external user) before enqueue. Block →
+  // silent drop (no loading animation, no enqueue): showing "..."
+  // would tell an abuser their request was accepted, and enqueueing
+  // would still burn worker capacity. If *any* user in this webhook
+  // is blocked, drop the whole webhook — multi-user webhooks are
+  // vanishingly rare on the platform we support, so partitioning
+  // events would add complexity without protecting real users.
+  const userIds = collectUserSourceIds(payload.events);
+  const counterEnv = {
+    upstashUrl:   upstashUrl   || null,
+    upstashToken: upstashToken || null,
+  };
+  const rateLimitResults = await Promise.all(
+    userIds.map(async (uid) => {
+      const outcome = await checkBotUserRateLimit(admin, counterEnv, {
+        botId:          bot.id,
+        externalUserId: uid,
+      });
+      return { uid, outcome };
+    }),
+  );
+  const blocked = rateLimitResults.filter(r => !r.outcome.allowed);
+  if (blocked.length > 0) {
+    for (const b of blocked) {
+      console.warn('rate_limited', {
+        event:          'rate_limited',
+        botId:          bot.id,
+        externalUserId: b.uid,
+        scope:          b.outcome.blockingScope,
+        counts:         b.outcome.counts,
+      });
+    }
+    return { ok: true };
+  }
+
   // Prime the LINE typing indicator before the agent loop even starts.
   // pg_cron drain can lag the worker by up to its tick interval (~8s);
   // firing here makes the "..." appear within tens of ms of the user
   // pressing send. Best-effort: a missing access-token row or LINE 5xx
   // must never block the 200 we owe LINE inside their 1-second window.
-  const userIds = collectUserSourceIds(payload.events);
   if (userIds.length > 0) {
     try {
       const { plaintext: accessToken } = await loadCredential(admin, kek, {
