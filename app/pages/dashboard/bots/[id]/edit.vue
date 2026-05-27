@@ -9,13 +9,12 @@ interface BotDetail {
   avatarUrl: string | null;
   agentId: string;
   disabledAt: string | null;
+  webhookVerifiedAt: string | null;
   createdAt: string;
   updatedAt: string;
   webhookUrl: string;
   agent: { id: string; name: string };
 }
-
-type BotStatus = 'active' | 'paused';
 
 const route = useRoute();
 const notify = useNotify();
@@ -23,24 +22,11 @@ const notify = useNotify();
 const { data: bot, error, pending } = useApiFetch<BotDetail>(
   () => `/api/bots/${route.params.id}`,
 );
-
-const STATUS_DOT: Record<BotStatus, string> = {
-  active: 'bg-success',
-  paused: 'bg-zinc-400',
-};
-const STATUS_LABEL: Record<BotStatus, string> = {
-  active: 'Active',
-  paused: 'Paused',
-};
+const { status } = useBotStatus(bot);
 
 const saving = ref(false);
 const deleting = ref(false);
 const deleteDialogOpen = ref(false);
-
-const status = computed<BotStatus>(() => {
-  if (!bot.value || bot.value.disabledAt) return 'paused';
-  return 'active';
-});
 
 const onSubmit = async (value: { agentId: string; disabledAt: string | null }) => {
   saving.value = true;
@@ -118,8 +104,8 @@ const onDelete = async () => {
             </div>
             <span
               class="absolute bottom-0 right-0 size-3 rounded-full ring-2 ring-default"
-              :class="STATUS_DOT[status]"
-              :aria-label="STATUS_LABEL[status]"
+              :class="status ? BOT_STATUS_DOT[status] : 'bg-muted animate-pulse'"
+              :aria-label="status ? BOT_STATUS_LABEL[status] : 'Loading status'"
             />
           </div>
           <div class="min-w-0">
@@ -127,7 +113,7 @@ const onDelete = async () => {
               {{ bot.displayName || '(unnamed)' }}
             </h1>
             <p class="text-sm text-toned mt-1">
-              {{ STATUS_LABEL[status] }}
+              {{ status ? BOT_STATUS_LABEL[status] : '' }}
             </p>
           </div>
         </div>

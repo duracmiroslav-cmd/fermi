@@ -25,11 +25,6 @@ interface BotDetail {
   };
 }
 
-interface OpenRouterStatus {
-  connected: boolean;
-}
-
-type BotStatus = 'ready' | 'paused' | 'unconfigured';
 type CelebrationStage = 'idle' | 'flash' | 'success' | 'done';
 
 const route = useRoute();
@@ -38,18 +33,7 @@ const notify = useNotify();
 const { data: bot, error, refresh, pending } = useApiFetch<BotDetail>(
   () => `/api/bots/${route.params.id}`,
 );
-const { data: openrouter, pending: openrouterPending } = useApiFetch<OpenRouterStatus>('/api/oauth/openrouter');
-
-const STATUS_DOT: Record<BotStatus, string> = {
-  ready: 'bg-success',
-  paused: 'bg-zinc-400',
-  unconfigured: 'bg-warning',
-};
-const STATUS_LABEL: Record<BotStatus, string> = {
-  ready: 'Ready',
-  paused: 'Paused',
-  unconfigured: 'Needs setup',
-};
+const { status, openrouterPending, isOpenrouterConnected } = useBotStatus(bot);
 
 const { syncingId, sync: syncFromLine } = useBotAvatar(refresh);
 
@@ -60,7 +44,6 @@ const celebrationTimeouts: ReturnType<typeof setTimeout>[] = [];
 
 const syncing = computed(() => syncingId.value !== null);
 
-const isOpenrouterConnected = computed(() => !!openrouter.value?.connected);
 const isWebhookVerified = computed(() => !!bot.value?.webhookVerifiedAt);
 const isSetupComplete = computed(() => isOpenrouterConnected.value && isWebhookVerified.value);
 const hasFirstReplied = computed(() => !!bot.value?.firstRepliedAt);
@@ -98,13 +81,6 @@ watch(bot, (loaded) => {
 
 watch(hasFirstReplied, (now, prev) => {
   if (now && !prev && wasPendingOnLoad.value === true) celebrate();
-});
-
-const status = computed<BotStatus>(() => {
-  if (!bot.value) return 'unconfigured';
-  if (bot.value.disabledAt) return 'paused';
-  if (!isSetupComplete.value) return 'unconfigured';
-  return 'ready';
 });
 
 const copyWebhook = async () => {
@@ -230,8 +206,8 @@ onBeforeUnmount(() => {
             </UTooltip>
             <span
               class="absolute bottom-0 right-0 size-3 rounded-full ring-2 ring-default"
-              :class="STATUS_DOT[status]"
-              :aria-label="STATUS_LABEL[status]"
+              :class="status ? BOT_STATUS_DOT[status] : 'bg-muted animate-pulse'"
+              :aria-label="status ? BOT_STATUS_LABEL[status] : 'Loading status'"
             />
           </div>
           <div class="min-w-0">
@@ -239,7 +215,7 @@ onBeforeUnmount(() => {
               {{ bot.displayName || '(unnamed)' }}
             </h1>
             <p class="text-sm text-toned mt-1">
-              {{ STATUS_LABEL[status] }}
+              {{ status ? BOT_STATUS_LABEL[status] : '' }}
             </p>
           </div>
         </div>

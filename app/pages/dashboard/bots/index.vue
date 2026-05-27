@@ -9,38 +9,33 @@ interface BotRow {
   avatarUrl: string | null;
   agentId: string | null;
   disabledAt: string | null;
+  webhookVerifiedAt: string | null;
   createdAt: string;
   webhookUrl: string;
 }
 
-interface OpenRouterStatus {
-  connected: boolean;
-}
-
-type BotStatus = 'ready' | 'paused' | 'unconfigured';
-
 const { items: bots, used, atLimit, pending, refresh, limitMessage } = useTierLimit<BotRow>('bots');
 const { syncingId, sync: syncAvatar } = useBotAvatar(refresh);
-const { data: openrouter } = useApiFetch<OpenRouterStatus>('/api/oauth/openrouter');
+const { data: openrouter, pending: openrouterPending } = useApiFetch<{ connected: boolean }>('/api/oauth/openrouter');
 
 const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
 
-const statusOf = (bot: BotRow): BotStatus => {
-  if (bot.disabledAt) return 'paused';
-  if (!bot.agentId || !openrouter.value?.connected) return 'unconfigured';
-  return 'ready';
+const statusOf = (bot: BotRow) => deriveBotStatus(
+  bot,
+  !!openrouter.value?.connected,
+  openrouterPending.value && openrouter.value === undefined,
+);
+const statusDot = (bot: BotRow) => {
+  const s = statusOf(bot);
+  return s ? BOT_STATUS_DOT[s] : 'bg-muted animate-pulse';
 };
-
-const STATUS_DOT: Record<BotStatus, string> = {
-  ready: 'bg-success',
-  paused: 'bg-zinc-400',
-  unconfigured: 'bg-warning',
+const statusAria = (bot: BotRow) => {
+  const s = statusOf(bot);
+  return s ? BOT_STATUS_LABEL[s] : 'Loading status';
 };
-
-const STATUS_LABEL: Record<BotStatus, string> = {
-  ready: 'ready',
-  paused: 'paused',
-  unconfigured: 'needs setup',
+const statusMeta = (bot: BotRow) => {
+  const s = statusOf(bot);
+  return s ? `${bot.platform} · ${BOT_STATUS_LABEL[s].toLowerCase()}` : bot.platform;
 };
 
 const search = ref('');
@@ -163,8 +158,8 @@ const filteredBots = computed(() => {
                     </UTooltip>
                     <span
                       class="absolute bottom-0 right-0 size-3 rounded-full ring-2 ring-default"
-                      :class="STATUS_DOT[statusOf(bot)]"
-                      :aria-label="STATUS_LABEL[statusOf(bot)]"
+                      :class="statusDot(bot)"
+                      :aria-label="statusAria(bot)"
                     />
                   </div>
                   <div class="flex-1 min-w-0">
@@ -172,7 +167,7 @@ const filteredBots = computed(() => {
                       {{ bot.displayName || '(unnamed)' }}
                     </p>
                     <p class="text-sm text-toned truncate mt-0.5">
-                      {{ bot.platform }} · {{ STATUS_LABEL[statusOf(bot)] }}
+                      {{ statusMeta(bot) }}
                     </p>
                   </div>
                   <span class="text-sm text-toned shrink-0">
