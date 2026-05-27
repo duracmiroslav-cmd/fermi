@@ -191,6 +191,7 @@ const onDelete = async () => {
                 <UButton
                   color="error"
                   variant="outline"
+                  size="sm"
                   disabled
                 >
                   Delete agent
@@ -200,6 +201,7 @@ const onDelete = async () => {
                 v-else
                 color="error"
                 variant="outline"
+                size="sm"
                 @click="deleteDialogOpen = true"
               >
                 Delete agent

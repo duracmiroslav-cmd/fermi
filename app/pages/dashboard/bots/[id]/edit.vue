@@ -172,6 +172,7 @@ const onDelete = async () => {
             <UButton
               color="error"
               variant="outline"
+              size="sm"
               class="col-span-12 md:col-span-3 justify-self-end"
               @click="deleteDialogOpen = true"
             >
