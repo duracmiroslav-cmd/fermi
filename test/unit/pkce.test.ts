@@ -40,9 +40,9 @@ describe('PKCE helpers', () => {
   describe('buildAuthorizeUrl', () => {
     it('URL-encodes callback and includes all params', () => {
       const url = buildAuthorizeUrl({
-        callbackUrl: 'https://fermi.tw/api/oauth/openrouter/callback',
+        callbackUrl:   'https://fermi.tw/api/oauth/openrouter/callback',
         codeChallenge: 'CHAL',
-        state: 'STATE',
+        state:         'STATE',
       });
       expect(url.startsWith('https://openrouter.ai/auth?')).toBe(true);
       expect(url).toContain('callback_url=https%3A%2F%2Ffermi.tw%2Fapi%2Foauth%2Fopenrouter%2Fcallback');

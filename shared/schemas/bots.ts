@@ -4,8 +4,8 @@ import { z } from 'zod';
 // are kept on the input shape, they describe LINE's API, not fermi's
 // `bots` domain.
 const lineBotInputSchema = z.object({
-  platform: z.literal('line'),
-  channelSecret: z.string().min(1, 'channelSecret is required'),
+  platform:           z.literal('line'),
+  channelSecret:      z.string().min(1, 'channelSecret is required'),
   channelAccessToken: z.string().min(1, 'channelAccessToken is required'),
 });
 
@@ -17,7 +17,7 @@ export const updateBotInputSchema = z.object({
   // Required: every bot must point at an agent. Default agents (seeded
   // by the signup trigger, undeletable) guarantee there's always at
   // least one valid choice. Pause is handled solely by `disabledAt`.
-  agentId: z.string().uuid().optional(),
+  agentId:    z.string().uuid().optional(),
   // `null` re-enables the bot; an ISO-8601 timestamp marks it disabled.
   // The form sends `new Date().toISOString()` on disable.
   disabledAt: z.string().datetime().nullable().optional(),

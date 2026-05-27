@@ -9,17 +9,17 @@ const COOKIE_PATH = '/api/oauth/openrouter';
 const COOKIE_MAX_AGE_SECONDS = 300;
 
 export interface PkceCookiePayload {
-  state: string;
+  state:        string;
   codeVerifier: string;
 }
 
 export const setPkceCookie = (event: H3Event, payload: PkceCookiePayload): void => {
   setCookie(event, COOKIE_NAME, JSON.stringify(payload), {
     httpOnly: true,
-    secure: !import.meta.dev,
+    secure:   !import.meta.dev,
     sameSite: 'lax',
-    path: COOKIE_PATH,
-    maxAge: COOKIE_MAX_AGE_SECONDS,
+    path:     COOKIE_PATH,
+    maxAge:   COOKIE_MAX_AGE_SECONDS,
   });
 };
 

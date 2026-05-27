@@ -12,7 +12,7 @@
 import type { H3Event } from 'h3';
 import { z } from 'zod';
 import { getCurrentUser } from '~~/server/utils/auth';
-import { storeCredential, type KeyType } from '~~/shared/credentials';
+import { type KeyType, storeCredential } from '~~/shared/credentials';
 import { getKek } from '~~/shared/kek';
 
 export type ByokKeyType = Extract<KeyType, 'openai' | 'anthropic' | 'gemini'>;
@@ -25,21 +25,21 @@ type VerifyFn = (apiKey: string) => Promise<void>;
 
 const badKeyError = (vendor: string): never => {
   throw createError({
-    statusCode: 401,
+    statusCode:    401,
     statusMessage: `Invalid ${vendor} API key`,
   });
 };
 
 const upstreamError = (vendor: string, status: number): never => {
   throw createError({
-    statusCode: 400,
+    statusCode:    400,
     statusMessage: `${vendor} verification failed (${status})`,
   });
 };
 
 const verifyOpenaiKey: VerifyFn = async (apiKey) => {
   const res = await fetch('https://api.openai.com/v1/models', {
-    headers: { 'Authorization': `Bearer ${apiKey}` },
+    headers: { Authorization: `Bearer ${apiKey}` },
   });
   if (res.ok) return;
   if (res.status === 401 || res.status === 403) badKeyError('OpenAI');
@@ -52,7 +52,7 @@ const verifyAnthropicKey: VerifyFn = async (apiKey) => {
   // surface as "verification failed" instead of "bad key".
   const res = await fetch('https://api.anthropic.com/v1/models', {
     headers: {
-      'x-api-key': apiKey,
+      'x-api-key':         apiKey,
       'anthropic-version': '2023-06-01',
     },
   });
@@ -74,9 +74,9 @@ const verifyGeminiKey: VerifyFn = async (apiKey) => {
 };
 
 const VERIFY_BY_KEY_TYPE: Record<ByokKeyType, VerifyFn> = {
-  openai: verifyOpenaiKey,
+  openai:    verifyOpenaiKey,
   anthropic: verifyAnthropicKey,
-  gemini: verifyGeminiKey,
+  gemini:    verifyGeminiKey,
 };
 
 // Stripe-style masked preview so the UI can echo which key fermi is
@@ -115,19 +115,19 @@ export const handleByokConnect = async (
   if (removeErr) throw removeErr;
 
   await storeCredential(admin, kek, {
-    userId: user.id,
-    botId: null,
+    userId:    user.id,
+    botId:     null,
     keyType,
     plaintext: apiKey,
-    metadata: { masked_key: maskApiKey(apiKey) },
+    metadata:  { masked_key: maskApiKey(apiKey) },
   });
 
   return { ok: true as const };
 };
 
 export interface ByokStatus {
-  connected: boolean;
-  maskedKey?: string | null;
+  connected:    boolean;
+  maskedKey?:   string | null;
   connectedAt?: string;
 }
 
@@ -151,8 +151,8 @@ export const handleByokStatus = async (
 
   const meta = (cred.metadata ?? {}) as { masked_key?: string };
   return {
-    connected: true,
-    maskedKey: meta.masked_key ?? null,
+    connected:   true,
+    maskedKey:   meta.masked_key ?? null,
     connectedAt: cred.created_at,
   };
 };

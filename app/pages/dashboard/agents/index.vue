@@ -2,14 +2,14 @@
 definePageMeta({ layout: false });
 
 interface AgentRow {
-  id: string;
-  name: string;
-  systemPrompt: string | null;
+  id:               string;
+  name:             string;
+  systemPrompt:     string | null;
   defaultTextModel: string | null;
-  avatarUrl: string | null;
-  isDefault: boolean;
-  createdAt: string;
-  updatedAt: string;
+  avatarUrl:        string | null;
+  isDefault:        boolean;
+  createdAt:        string;
+  updatedAt:        string;
 }
 
 const { items: agents, used, atLimit, pending, limitMessage } = useTierLimit<AgentRow>('agents');

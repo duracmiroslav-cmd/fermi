@@ -1,8 +1,8 @@
 <script setup lang="ts">
 const props = defineProps<{
-  agentId: string;
+  agentId:    string;
   currentUrl: string | null;
-  fallback?: string;
+  fallback?:  string;
 }>();
 
 const emit = defineEmits<{
@@ -55,7 +55,7 @@ const onFileChange = async (event: Event) => {
     const path = `${user.value.id}/${props.agentId}.${ext}`;
     const { error: uploadErr } = await supabase.storage.from(BUCKET).upload(path, file, {
       contentType: file.type,
-      upsert: true,
+      upsert:      true,
     });
     if (uploadErr) throw uploadErr;
     const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);

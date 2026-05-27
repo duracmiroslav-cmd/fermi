@@ -14,14 +14,14 @@ export interface RateLimitCheckInput {
 }
 
 export interface RateLimitCheckResult {
-  blocked: boolean;
+  blocked:         boolean;
   // First window that crossed its cap, if any. Same shape as the input
   // window plus the observed count, useful for the structured warn log.
   blockingWindow?: { key: string; cap: number; count: number };
   // All window counts after INCR, keyed by the window's `key`. Lets
   // the observation log surface "user is at 28/30 minute, 195/200
   // hour" even when blocking was avoided.
-  counts: Record<string, number>;
+  counts:          Record<string, number>;
 }
 
 export interface RateLimiter {
@@ -29,8 +29,8 @@ export interface RateLimiter {
 }
 
 export interface ConsumeQuotaInput {
-  key: string;
-  cap: number;
+  key:    string;
+  cap:    number;
   // TTL on first write. Subsequent INCRs don't extend; the key dies
   // naturally at the period boundary. 35 days for monthly keys covers
   // any timezone-vs-UTC slippage at the boundary.
@@ -40,10 +40,10 @@ export interface ConsumeQuotaInput {
 export interface ConsumeQuotaResult {
   // True iff post-INCR count <= cap. count keeps climbing past cap so
   // the observability log can report "how far over they went".
-  allowed: boolean;
-  count: number;
+  allowed:   boolean;
+  count:     number;
   remaining: number;
-  cap: number;
+  cap:       number;
 }
 
 export interface UsageCounter {

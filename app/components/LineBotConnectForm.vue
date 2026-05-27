@@ -2,7 +2,7 @@
 import { z } from 'zod';
 
 interface LineBotConnectFormValue {
-  channelSecret: string;
+  channelSecret:      string;
   channelAccessToken: string;
 }
 
@@ -15,12 +15,12 @@ const emit = defineEmits<{
 }>();
 
 const schema = z.object({
-  channelSecret: z.string().min(1, 'Channel secret is required'),
+  channelSecret:      z.string().min(1, 'Channel secret is required'),
   channelAccessToken: z.string().min(1, 'Channel access token is required'),
 }).strict();
 
 const state = reactive<LineBotConnectFormValue>({
-  channelSecret: '',
+  channelSecret:      '',
   channelAccessToken: '',
 });
 

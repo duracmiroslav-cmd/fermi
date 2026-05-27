@@ -41,12 +41,12 @@ export default defineEventHandler(async (event) => {
   }
 
   return {
-    id: data.id,
-    name: data.name,
-    systemPrompt: data.system_prompt,
+    id:               data.id,
+    name:             data.name,
+    systemPrompt:     data.system_prompt,
     defaultTextModel: data.default_text_model,
-    modelProviderId: data.model_provider_id,
-    avatarUrl: data.avatar_url,
-    updatedAt: data.updated_at,
+    modelProviderId:  data.model_provider_id,
+    avatarUrl:        data.avatar_url,
+    updatedAt:        data.updated_at,
   };
 });

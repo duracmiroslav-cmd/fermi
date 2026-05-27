@@ -35,18 +35,18 @@ export default defineEventHandler(async (event) => {
   }
 
   const { data: rows, error: insertErr } = await admin.rpc('insert_agent_if_under_limit', {
-    p_owner_id: user.id,
-    p_name: input.name,
-    p_system_prompt: input.systemPrompt ?? null,
+    p_owner_id:           user.id,
+    p_name:               input.name,
+    p_system_prompt:      input.systemPrompt ?? null,
     p_default_text_model: input.defaultTextModel ?? null,
-    p_model_provider_id: modelProviderId,
-    p_avatar_url: input.avatarUrl ?? null,
-    p_limit: limit,
+    p_model_provider_id:  modelProviderId,
+    p_avatar_url:         input.avatarUrl ?? null,
+    p_limit:              limit,
   });
   if (insertErr) {
     if (insertErr.message?.includes('agent_limit_reached')) {
       throw createError({
-        statusCode: 403,
+        statusCode:    403,
         statusMessage: `Agent limit reached (max ${limit})`,
       });
     }
@@ -58,11 +58,11 @@ export default defineEventHandler(async (event) => {
   }
 
   return {
-    id: agent.id,
-    name: input.name,
-    systemPrompt: input.systemPrompt ?? null,
+    id:               agent.id,
+    name:             input.name,
+    systemPrompt:     input.systemPrompt ?? null,
     defaultTextModel: input.defaultTextModel ?? null,
     modelProviderId,
-    avatarUrl: input.avatarUrl ?? null,
+    avatarUrl:        input.avatarUrl ?? null,
   };
 });

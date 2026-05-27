@@ -1,15 +1,15 @@
 <script setup lang="ts">
 const props = defineProps<{
-  open: boolean;
-  title: string;
-  itemName: string;
+  open:         boolean;
+  title:        string;
+  itemName:     string;
   confirmLabel: string;
-  loading?: boolean;
+  loading?:     boolean;
 }>();
 
 const emit = defineEmits<{
   'update:open': [value: boolean];
-  'confirm': [];
+  'confirm':     [];
 }>();
 
 const confirmInput = ref('');

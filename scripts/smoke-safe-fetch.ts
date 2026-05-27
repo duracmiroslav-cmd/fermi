@@ -6,29 +6,30 @@
 //   2. Literal private hosts blocked (IPv4 and IPv6)
 //   3. Hostname → private DNS gets blocked at resolve time
 
+/* eslint-disable no-console -- CLI smoke script; stdout is its output */
 import { safeFetch } from '../supabase/functions/agent/tools/safe-http.ts';
 
 interface Case {
-  name:           string;
-  url:            string;
-  expectSuccess:  boolean;
+  name:          string;
+  url:           string;
+  expectSuccess: boolean;
   // If success: status code we expect (200, 301, etc.)
   // If failure: substring expected in the error message
-  expectMatch:    number | string;
+  expectMatch:   number | string;
 }
 
 const cases: Case[] = [
-  { name: 'happy path HTTPS',           url: 'https://example.com/',           expectSuccess: true,  expectMatch: 200 },
-  { name: 'redirect (google → www)',    url: 'https://google.com/',            expectSuccess: true,  expectMatch: 200 },
-  { name: 'chunked transfer (Cloudflare)', url: 'https://www.cloudflare.com/', expectSuccess: true,  expectMatch: 200 },
-  { name: 'block literal IPv4 loopback',   url: 'http://127.0.0.1/',           expectSuccess: false, expectMatch: 'Blocked host' },
-  { name: 'block literal IPv6 loopback',   url: 'http://[::1]/',                expectSuccess: false, expectMatch: 'Blocked host' },
-  { name: 'block literal localhost',       url: 'http://localhost/',            expectSuccess: false, expectMatch: 'Blocked host' },
-  { name: 'block link-local IPv4',         url: 'http://169.254.169.254/',      expectSuccess: false, expectMatch: 'Blocked host' },
+  { name: 'happy path HTTPS', url: 'https://example.com/', expectSuccess: true, expectMatch: 200 },
+  { name: 'redirect (google → www)', url: 'https://google.com/', expectSuccess: true, expectMatch: 200 },
+  { name: 'chunked transfer (Cloudflare)', url: 'https://www.cloudflare.com/', expectSuccess: true, expectMatch: 200 },
+  { name: 'block literal IPv4 loopback', url: 'http://127.0.0.1/', expectSuccess: false, expectMatch: 'Blocked host' },
+  { name: 'block literal IPv6 loopback', url: 'http://[::1]/', expectSuccess: false, expectMatch: 'Blocked host' },
+  { name: 'block literal localhost', url: 'http://localhost/', expectSuccess: false, expectMatch: 'Blocked host' },
+  { name: 'block link-local IPv4', url: 'http://169.254.169.254/', expectSuccess: false, expectMatch: 'Blocked host' },
   // localtest.me resolves to 127.0.0.1 in public DNS — exercises the
   // post-resolve private-range check, not the literal block.
   { name: 'block via DNS (localtest.me → 127.0.0.1)', url: 'http://localtest.me/', expectSuccess: false, expectMatch: 'private IPv4' },
-  { name: 'reject unsupported scheme',     url: 'ftp://example.com/',           expectSuccess: false, expectMatch: 'Unsupported protocol' },
+  { name: 'reject unsupported scheme', url: 'ftp://example.com/', expectSuccess: false, expectMatch: 'Unsupported protocol' },
 ];
 
 const fmt = (ms: number): string => `${ms.toString().padStart(4)}ms`;

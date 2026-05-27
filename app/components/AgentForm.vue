@@ -2,24 +2,24 @@
 import { createAgentInputSchema } from '~~/shared/schemas/agents';
 
 interface AgentFormValue {
-  name: string;
-  systemPrompt: string;
+  name:             string;
+  systemPrompt:     string;
   defaultTextModel: string;
 }
 
 interface ProviderModel {
-  id: string;
-  name: string;
-  contextLength: number;
-  isFree: boolean;
-  promptCost: number;
+  id:             string;
+  name:           string;
+  contextLength:  number;
+  isFree:         boolean;
+  promptCost:     number;
   completionCost: number;
-  modality: string;
-  avatar: { icon?: string; text?: string };
+  modality:       string;
+  avatar:         { icon?: string; text?: string };
 }
 
 const props = defineProps<{
-  formId: string;
+  formId:        string;
   initialValue?: Partial<AgentFormValue>;
 }>();
 
@@ -33,8 +33,8 @@ const formatContext = (n: number) =>
   n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M context` : `${Math.round(n / 1000)}k context`;
 
 const state = reactive<AgentFormValue>({
-  name: props.initialValue?.name ?? '',
-  systemPrompt: props.initialValue?.systemPrompt ?? '',
+  name:             props.initialValue?.name ?? '',
+  systemPrompt:     props.initialValue?.systemPrompt ?? '',
   defaultTextModel: props.initialValue?.defaultTextModel ?? '',
 });
 
@@ -48,11 +48,11 @@ const displayModelId = computed<string | undefined>({
 
 const modelItems = computed(() =>
   (models.value ?? []).map(m => ({
-    label: m.name,
-    value: m.id,
+    label:       m.name,
+    value:       m.id,
     description: formatContext(m.contextLength),
-    isFree: m.isFree,
-    avatar: { ...m.avatar, color: 'primary' as const },
+    isFree:      m.isFree,
+    avatar:      { ...m.avatar, color: 'primary' as const },
   })),
 );
 

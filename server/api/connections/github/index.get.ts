@@ -17,9 +17,9 @@ export default defineEventHandler(async (event) => {
 
   const meta = (cred.metadata ?? {}) as { masked_key?: string; github_login?: string };
   return {
-    connected: true as const,
-    maskedKey: meta.masked_key ?? null,
-    login: meta.github_login ?? null,
+    connected:   true as const,
+    maskedKey:   meta.masked_key ?? null,
+    login:       meta.github_login ?? null,
     connectedAt: cred.created_at,
   };
 });

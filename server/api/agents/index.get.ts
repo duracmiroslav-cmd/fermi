@@ -14,14 +14,14 @@ export default defineEventHandler(async (event) => {
   if (error) throw error;
 
   return data.map(row => ({
-    id: row.id,
-    name: row.name,
-    systemPrompt: row.system_prompt,
+    id:               row.id,
+    name:             row.name,
+    systemPrompt:     row.system_prompt,
     defaultTextModel: row.default_text_model,
-    modelProviderId: row.model_provider_id,
-    avatarUrl: row.avatar_url,
-    isDefault: row.is_default,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    modelProviderId:  row.model_provider_id,
+    avatarUrl:        row.avatar_url,
+    isDefault:        row.is_default,
+    createdAt:        row.created_at,
+    updatedAt:        row.updated_at,
   }));
 });

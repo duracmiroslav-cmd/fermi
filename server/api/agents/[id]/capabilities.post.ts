@@ -25,8 +25,8 @@ export default defineEventHandler(async (event) => {
 
   const admin = useSupabaseAdmin();
   const { error: attachErr } = await admin.rpc('attach_capability', {
-    p_agent_id: agentId,
-    p_owner_id: user.id,
+    p_agent_id:      agentId,
+    p_owner_id:      user.id,
     p_capability_id: parsed.data.capabilityId,
   });
   if (attachErr) {

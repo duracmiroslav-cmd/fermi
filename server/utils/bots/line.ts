@@ -28,7 +28,7 @@ export const verifyLineBot = async (channelAccessToken: string): Promise<messagi
     return await client.getBotInfo();
   } catch {
     throw createError({
-      statusCode: 400,
+      statusCode:    400,
       statusMessage: 'Invalid LINE Channel Access Token',
     });
   }
@@ -46,7 +46,7 @@ export const setLineWebhookEndpoint = async (
     await client.setWebhookEndpoint({ endpoint });
   } catch (err) {
     throw createError({
-      statusCode: 502,
+      statusCode:    502,
       statusMessage: (err as { message?: string }).message ?? 'Failed to push webhook URL to LINE',
     });
   }
@@ -64,17 +64,17 @@ export const testLineWebhookEndpoint = async (
     return await client.testWebhookEndpoint();
   } catch (err) {
     throw createError({
-      statusCode: 502,
+      statusCode:    502,
       statusMessage: (err as { message?: string }).message ?? 'LINE webhook test failed',
     });
   }
 };
 
 export interface ConnectedBot {
-  id: string;
-  platform: 'line';
+  id:          string;
+  platform:    'line';
   displayName: string;
-  webhookUrl: string;
+  webhookUrl:  string;
 }
 
 export const connectLineBot = async (
@@ -99,7 +99,7 @@ export const connectLineBot = async (
   if (existingErr) throw existingErr;
   if (existing) {
     throw createError({
-      statusCode: 409,
+      statusCode:    409,
       statusMessage: existing.owner_id === userId
         ? `This LINE Channel is already connected to your account as "${existing.display_name ?? 'unnamed'}".`
         : 'This LINE Channel is already connected to another fermi account.',
@@ -120,23 +120,23 @@ export const connectLineBot = async (
   if (agentErr) throw agentErr;
   if (!defaultAgent) {
     throw createError({
-      statusCode: 500,
+      statusCode:    500,
       statusMessage: 'No default agent for user, signup trigger may have failed',
     });
   }
 
   const { data: rows, error: insertErr } = await admin.rpc('insert_bot_if_under_limit', {
-    p_owner_id: userId,
-    p_platform: 'line',
-    p_external_id: botInfo.userId,
+    p_owner_id:     userId,
+    p_platform:     'line',
+    p_external_id:  botInfo.userId,
     p_display_name: botInfo.displayName,
-    p_agent_id: defaultAgent.id,
-    p_limit: limit,
+    p_agent_id:     defaultAgent.id,
+    p_limit:        limit,
   });
   if (insertErr) {
     if (insertErr.message?.includes('bot_limit_reached')) {
       throw createError({
-        statusCode: 403,
+        statusCode:    403,
         statusMessage: `Bot limit reached (max ${limit})`,
       });
     }
@@ -146,7 +146,7 @@ export const connectLineBot = async (
     // disambiguation since we don't have the colliding row in hand.
     if ((insertErr as { code?: string }).code === '23505') {
       throw createError({
-        statusCode: 409,
+        statusCode:    409,
         statusMessage: 'This LINE Channel is already connected.',
       });
     }
@@ -165,14 +165,14 @@ export const connectLineBot = async (
   try {
     await storeCredential(admin, kek, {
       userId,
-      botId: bot.id,
-      keyType: 'line_channel_secret',
+      botId:     bot.id,
+      keyType:   'line_channel_secret',
       plaintext: input.channelSecret,
     });
     await storeCredential(admin, kek, {
       userId,
-      botId: bot.id,
-      keyType: 'line_channel_access_token',
+      botId:     bot.id,
+      keyType:   'line_channel_access_token',
       plaintext: input.channelAccessToken,
     });
   } catch (err) {
@@ -187,16 +187,16 @@ export const connectLineBot = async (
   await admin
     .from('bots')
     .update({
-      handle: botInfo.basicId ?? null,
+      handle:     botInfo.basicId ?? null,
       avatar_url: botInfo.pictureUrl ?? null,
     })
     .eq('id', bot.id);
 
   const url = getRequestURL(event);
   return {
-    id: bot.id,
-    platform: 'line',
+    id:          bot.id,
+    platform:    'line',
     displayName: bot.display_name ?? botInfo.displayName,
-    webhookUrl: `${url.origin}/api/webhook/line`,
+    webhookUrl:  `${url.origin}/api/webhook/line`,
   };
 };

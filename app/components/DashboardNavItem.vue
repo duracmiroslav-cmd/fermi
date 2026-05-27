@@ -1,8 +1,8 @@
 <script setup lang="ts">
 const route = useRoute();
 const props = defineProps<{
-  to: string;
-  icon: string;
+  to:    string;
+  icon:  string;
   label: string;
 }>();
 

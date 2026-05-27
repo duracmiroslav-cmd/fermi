@@ -10,8 +10,8 @@ const SIGNED_URL_TTL_SECONDS = 3600;
 const extFromMime = (mime: string): string => {
   switch (mime) {
     case 'image/jpeg': return 'jpg';
-    case 'image/png':  return 'png';
-    case 'image/gif':  return 'gif';
+    case 'image/png': return 'png';
+    case 'image/gif': return 'gif';
     case 'image/webp': return 'webp';
     default: throw new Error(`Unsupported image mime: ${mime}`);
   }
@@ -32,18 +32,18 @@ const extFromMime = (mime: string): string => {
 export const uploadUserImage = async (
   admin: SupabaseClient,
   params: {
-    ownerId: string;
-    threadId: string;
+    ownerId:       string;
+    threadId:      string;
     lineMessageId: string;
-    mime: string;
-    bytes: Uint8Array;
+    mime:          string;
+    bytes:         Uint8Array;
   },
 ): Promise<{ storagePath: string }> => {
   const { ownerId, threadId, lineMessageId, mime, bytes } = params;
   const storagePath = `${ownerId}/${threadId}/in/${lineMessageId}.${extFromMime(mime)}`;
   const { error: uploadErr } = await admin.storage.from(BUCKET).upload(storagePath, bytes, {
     contentType: mime,
-    upsert: true,
+    upsert:      true,
   });
   if (uploadErr) throw uploadErr;
   return { storagePath };
@@ -57,18 +57,18 @@ export const uploadUserImage = async (
 export const uploadGeneratedImage = async (
   admin: SupabaseClient,
   params: {
-    ownerId: string;
+    ownerId:  string;
     threadId: string;
-    imageId: string;
-    mime: string;
-    bytes: Uint8Array;
+    imageId:  string;
+    mime:     string;
+    bytes:    Uint8Array;
   },
 ): Promise<{ storagePath: string }> => {
   const { ownerId, threadId, imageId, mime, bytes } = params;
   const storagePath = `${ownerId}/${threadId}/out/${imageId}.${extFromMime(mime)}`;
   const { error: uploadErr } = await admin.storage.from(BUCKET).upload(storagePath, bytes, {
     contentType: mime,
-    upsert: true,
+    upsert:      true,
   });
   if (uploadErr) throw uploadErr;
   return { storagePath };

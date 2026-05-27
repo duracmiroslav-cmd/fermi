@@ -12,12 +12,12 @@ export default defineEventHandler(async (event) => {
   if (error) throw error;
 
   return {
-    id: data.id,
-    email: data.email,
+    id:          data.id,
+    email:       data.email,
     displayName: data.display_name,
-    avatarUrl: data.avatar_url,
-    locale: data.locale,
-    timezone: data.timezone,
-    tier: data.tier,
+    avatarUrl:   data.avatar_url,
+    locale:      data.locale,
+    timezone:    data.timezone,
+    tier:        data.tier,
   };
 });

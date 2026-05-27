@@ -20,9 +20,9 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
   try {
     const created = await $fetch<{ id: string }>('/api/bots', {
       method: 'POST',
-      body: {
-        platform: 'line',
-        channelSecret: value.channelSecret,
+      body:   {
+        platform:           'line',
+        channelSecret:      value.channelSecret,
         channelAccessToken: value.channelAccessToken,
       },
     });

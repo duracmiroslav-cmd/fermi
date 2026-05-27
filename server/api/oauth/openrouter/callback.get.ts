@@ -53,11 +53,11 @@ export default defineEventHandler(async (event) => {
 
   try {
     await storeCredential(admin, kek, {
-      userId: user.id,
-      botId: null,
-      keyType: 'openrouter',
+      userId:    user.id,
+      botId:     null,
+      keyType:   'openrouter',
       plaintext: exchange.key,
-      metadata: {
+      metadata:  {
         masked_key: maskedKey,
         ...(exchange.userId ? { openrouter_user_id: exchange.userId } : {}),
       },

@@ -14,14 +14,14 @@ export default defineEventHandler(async (event) => {
 
   const url = getRequestURL(event);
   return data.map(row => ({
-    id: row.id,
-    platform: row.platform,
-    externalId: row.external_id,
+    id:          row.id,
+    platform:    row.platform,
+    externalId:  row.external_id,
     displayName: row.display_name,
-    avatarUrl: row.avatar_url,
-    agentId: row.agent_id,
-    disabledAt: row.disabled_at,
-    createdAt: row.created_at,
-    webhookUrl: `${url.origin}/api/webhook/${row.platform}`,
+    avatarUrl:   row.avatar_url,
+    agentId:     row.agent_id,
+    disabledAt:  row.disabled_at,
+    createdAt:   row.created_at,
+    webhookUrl:  `${url.origin}/api/webhook/${row.platform}`,
   }));
 });

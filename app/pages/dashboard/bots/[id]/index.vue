@@ -2,26 +2,26 @@
 definePageMeta({ layout: false });
 
 interface BotDetail {
-  id: string;
-  platform: string;
-  externalId: string;
-  handle: string | null;
-  displayName: string | null;
-  avatarUrl: string | null;
-  agentId: string;
-  disabledAt: string | null;
+  id:                string;
+  platform:          string;
+  externalId:        string;
+  handle:            string | null;
+  displayName:       string | null;
+  avatarUrl:         string | null;
+  agentId:           string;
+  disabledAt:        string | null;
   webhookVerifiedAt: string | null;
-  firstRepliedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  webhookUrl: string;
+  firstRepliedAt:    string | null;
+  createdAt:         string;
+  updatedAt:         string;
+  webhookUrl:        string;
   agent: {
-    id: string;
-    name: string;
-    avatarUrl: string | null;
+    id:               string;
+    name:             string;
+    avatarUrl:        string | null;
     defaultTextModel: string | null;
-    isDefault: boolean;
-    updatedAt: string;
+    isDefault:        boolean;
+    updatedAt:        string;
   };
 }
 
@@ -41,13 +41,13 @@ const { data: bot, error, refresh, pending } = useApiFetch<BotDetail>(
 const { data: openrouter } = useApiFetch<OpenRouterStatus>('/api/oauth/openrouter');
 
 const STATUS_DOT: Record<BotStatus, string> = {
-  ready: 'bg-success',
-  paused: 'bg-zinc-400',
+  ready:        'bg-success',
+  paused:       'bg-zinc-400',
   unconfigured: 'bg-warning',
 };
 const STATUS_LABEL: Record<BotStatus, string> = {
-  ready: 'Ready',
-  paused: 'Paused',
+  ready:        'Ready',
+  paused:       'Paused',
   unconfigured: 'Needs setup',
 };
 
@@ -122,10 +122,10 @@ const setupWebhook = async () => {
   try {
     await $fetch(`/api/bots/${bot.value.id}/webhook/endpoint`, { method: 'PUT' });
     const result = await $fetch<{
-      success: boolean;
+      success:     boolean;
       statusCode?: number;
-      reason?: string;
-      detail?: string;
+      reason?:     string;
+      detail?:     string;
     }>(`/api/bots/${bot.value.id}/webhook/test`, { method: 'POST' });
     if (!result.success) {
       notify.error('Webhook test failed', new Error(result.detail ?? result.reason ?? 'Unknown error'));
@@ -148,9 +148,9 @@ const celebrate = async () => {
   celebrationTimeouts.push(setTimeout(() => {
     confetti({
       particleCount: 80,
-      spread: 70,
-      origin: { y: 0.4 },
-      colors: ['#10b981', '#3b82f6', '#f59e0b', '#ec4899'],
+      spread:        70,
+      origin:        { y: 0.4 },
+      colors:        ['#10b981', '#3b82f6', '#f59e0b', '#ec4899'],
     });
     celebrationStage.value = 'success';
   }, 400));

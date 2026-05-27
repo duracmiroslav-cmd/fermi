@@ -1,16 +1,16 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { RATE_WINDOWS, rateLimitKey, type RateWindow } from '~~/shared/constants/limits';
-import { createRateLimiter, type CounterEnv } from '~~/shared/counters/factory';
+import { RATE_WINDOWS, type RateWindow, rateLimitKey } from '~~/shared/constants/limits';
+import { type CounterEnv, createRateLimiter } from '~~/shared/counters/factory';
 
 export interface RateLimitOutcome {
-  allowed: boolean;
+  allowed:        boolean;
   // Which window first crossed its cap, if any. Surfaced into the
   // structured log line so we can tell whether bursts (minute), pace
   // evasion (hour), or volume (day) is the dominant block reason.
   blockingScope?: RateWindow['scope'];
   // All windows' post-INCR counts, useful for "close to cap" trend
   // observation even when no block fired.
-  counts: Record<string, number>;
+  counts:         Record<string, number>;
 }
 
 // Checks all RATE_WINDOWS in parallel for a (bot, external user) pair.

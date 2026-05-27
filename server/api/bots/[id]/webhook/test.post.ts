@@ -31,18 +31,18 @@ export default defineEventHandler(async (event) => {
   const { fermiKek } = useRuntimeConfig(event);
   const kek = await getKek(fermiKek);
   const { plaintext: accessToken } = await loadCredential(admin, kek, {
-    userId: user.id,
-    botId: bot.id,
+    userId:  user.id,
+    botId:   bot.id,
     keyType: 'line_channel_access_token',
   });
 
   const result = await testLineWebhookEndpoint(accessToken);
 
   return {
-    success: result.success ?? false,
+    success:    result.success ?? false,
     statusCode: result.statusCode,
-    reason: result.reason,
-    detail: result.detail,
-    timestamp: result.timestamp,
+    reason:     result.reason,
+    detail:     result.detail,
+    timestamp:  result.timestamp,
   };
 });

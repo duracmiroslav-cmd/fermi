@@ -2,20 +2,20 @@
 import { updateBotInputSchema } from '~~/shared/schemas/bots';
 
 interface BotEditFormValue {
-  agentId: string;
+  agentId:    string;
   disabledAt: string | null;
 }
 
 interface AgentOption {
-  id: string;
-  name: string;
-  avatarUrl: string | null;
+  id:               string;
+  name:             string;
+  avatarUrl:        string | null;
   defaultTextModel: string | null;
-  isDefault: boolean;
+  isDefault:        boolean;
 }
 
 const props = defineProps<{
-  formId: string;
+  formId:       string;
   initialValue: BotEditFormValue;
 }>();
 
@@ -26,7 +26,7 @@ const emit = defineEmits<{
 const { data: agents, pending: agentsPending } = useApiFetch<AgentOption[]>('/api/agents');
 
 const state = reactive<BotEditFormValue>({
-  agentId: props.initialValue.agentId,
+  agentId:    props.initialValue.agentId,
   disabledAt: props.initialValue.disabledAt,
 });
 
@@ -41,12 +41,12 @@ const displayAgentId = computed<string | undefined>({
 
 const agentItems = computed(() =>
   (agents.value ?? []).map(a => ({
-    label: a.name,
-    value: a.id,
+    label:       a.name,
+    value:       a.id,
     description: a.defaultTextModel ?? ', ',
-    avatar: {
-      src: a.avatarUrl ?? undefined,
-      text: a.name.charAt(0).toUpperCase(),
+    avatar:      {
+      src:   a.avatarUrl ?? undefined,
+      text:  a.name.charAt(0).toUpperCase(),
       color: 'primary' as const,
     },
     isDefault: a.isDefault,

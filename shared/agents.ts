@@ -14,34 +14,34 @@ const parseVoiceReplyMode = (raw: string): VoiceReplyMode => (
 );
 
 export interface AgentConfig {
-  id: string;
-  ownerId: string;
-  name: string;
-  systemPrompt: string | null;
-  defaultTextModel: string | null;
+  id:                string;
+  ownerId:           string;
+  name:              string;
+  systemPrompt:      string | null;
+  defaultTextModel:  string | null;
   defaultImageModel: string | null;
-  avatarUrl: string | null;
-  voiceReplyMode: VoiceReplyMode;
+  avatarUrl:         string | null;
+  voiceReplyMode:    VoiceReplyMode;
 }
 
 const mapRow = (data: {
-  id: string;
-  owner_id: string;
-  name: string;
-  system_prompt: string | null;
-  default_text_model: string | null;
+  id:                  string;
+  owner_id:            string;
+  name:                string;
+  system_prompt:       string | null;
+  default_text_model:  string | null;
   default_image_model: string | null;
-  avatar_url: string | null;
-  voice_reply_mode: string;
+  avatar_url:          string | null;
+  voice_reply_mode:    string;
 }): AgentConfig => ({
-  id: data.id,
-  ownerId: data.owner_id,
-  name: data.name,
-  systemPrompt: data.system_prompt,
-  defaultTextModel: data.default_text_model,
+  id:                data.id,
+  ownerId:           data.owner_id,
+  name:              data.name,
+  systemPrompt:      data.system_prompt,
+  defaultTextModel:  data.default_text_model,
   defaultImageModel: data.default_image_model,
-  avatarUrl: data.avatar_url,
-  voiceReplyMode: parseVoiceReplyMode(data.voice_reply_mode),
+  avatarUrl:         data.avatar_url,
+  voiceReplyMode:    parseVoiceReplyMode(data.voice_reply_mode),
 });
 
 // Filters trashed agents so callers can treat a non-null return as

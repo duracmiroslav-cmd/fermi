@@ -17,8 +17,8 @@ export default defineEventHandler(async (event) => {
 
   const meta = (cred.metadata ?? {}) as { masked_key?: string };
   return {
-    connected: true as const,
-    maskedKey: meta.masked_key ?? null,
+    connected:   true as const,
+    maskedKey:   meta.masked_key ?? null,
     connectedAt: cred.created_at,
   };
 });

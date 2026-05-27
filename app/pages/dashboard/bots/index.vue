@@ -2,15 +2,15 @@
 definePageMeta({ layout: false });
 
 interface BotRow {
-  id: string;
-  platform: string;
-  externalId: string;
+  id:          string;
+  platform:    string;
+  externalId:  string;
   displayName: string | null;
-  avatarUrl: string | null;
-  agentId: string | null;
-  disabledAt: string | null;
-  createdAt: string;
-  webhookUrl: string;
+  avatarUrl:   string | null;
+  agentId:     string | null;
+  disabledAt:  string | null;
+  createdAt:   string;
+  webhookUrl:  string;
 }
 
 interface OpenRouterStatus {
@@ -32,14 +32,14 @@ const statusOf = (bot: BotRow): BotStatus => {
 };
 
 const STATUS_DOT: Record<BotStatus, string> = {
-  ready: 'bg-success',
-  paused: 'bg-zinc-400',
+  ready:        'bg-success',
+  paused:       'bg-zinc-400',
   unconfigured: 'bg-warning',
 };
 
 const STATUS_LABEL: Record<BotStatus, string> = {
-  ready: 'ready',
-  paused: 'paused',
+  ready:        'ready',
+  paused:       'paused',
   unconfigured: 'needs setup',
 };
 

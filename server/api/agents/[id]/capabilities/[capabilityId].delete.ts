@@ -17,8 +17,8 @@ export default defineEventHandler(async (event) => {
 
   const admin = useSupabaseAdmin();
   const { error: detachErr } = await admin.rpc('detach_capability', {
-    p_agent_id: agentId,
-    p_owner_id: user.id,
+    p_agent_id:      agentId,
+    p_owner_id:      user.id,
     p_capability_id: capabilityId,
   });
   if (detachErr) {

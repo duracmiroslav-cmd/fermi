@@ -31,11 +31,11 @@ export const PURPOSE_LABEL: Record<Purpose, string> = {
 // limits — Pro user hitting an image_gen / tts / stt cap can BYO key
 // for true unlimited (CTA copy reflects this).
 export const MONTHLY_QUOTA: Record<Purpose, Record<Tier, number>> = {
-  image_gen:    { free: 10,   pro: 200 },
-  tts:          { free: 30,   pro: 500 },
-  stt:          { free: 30,   pro: 500 },
-  extended_run: { free: 10,   pro: 100 },
-  line_push:    { free: 200,  pro: 2000 },
+  image_gen:    { free: 10, pro: 200 },
+  tts:          { free: 30, pro: 500 },
+  stt:          { free: 30, pro: 500 },
+  extended_run: { free: 10, pro: 100 },
+  line_push:    { free: 200, pro: 2000 },
 };
 
 // Rate-limit windows: 3 concentric fixed windows per (bot, external
@@ -45,15 +45,15 @@ export const MONTHLY_QUOTA: Record<Purpose, Record<Tier, number>> = {
 // blocks. Numbers are baseline heuristics — re-tune from observed
 // `'rate_limited'` log distribution after Phase A ships.
 export interface RateWindow {
-  scope: 'minute' | 'hour' | 'day';
+  scope:  'minute' | 'hour' | 'day';
   ttlSec: number;
-  cap: number;
+  cap:    number;
 }
 
 export const RATE_WINDOWS: readonly RateWindow[] = [
-  { scope: 'minute', ttlSec: 60,     cap: 30   },
-  { scope: 'hour',   ttlSec: 3600,   cap: 200  },
-  { scope: 'day',    ttlSec: 86400,  cap: 1000 },
+  { scope: 'minute', ttlSec: 60, cap: 30 },
+  { scope: 'hour', ttlSec: 3600, cap: 200 },
+  { scope: 'day', ttlSec: 86400, cap: 1000 },
 ] as const;
 
 // Builds the Upstash / Postgres key for a (bot, external user, window)
@@ -65,10 +65,10 @@ export const RATE_WINDOWS: readonly RateWindow[] = [
 // formatted as a 0-padded ISO-like string for readability when grepping
 // Redis / Postgres.
 export const rateLimitKey = (input: {
-  botId: string;
+  botId:          string;
   externalUserId: string;
-  window: RateWindow;
-  now?: Date;
+  window:         RateWindow;
+  now?:           Date;
 }): string => {
   const now = input.now ?? new Date();
   const bucket = formatBucket(input.window.scope, now);
@@ -82,7 +82,7 @@ export const rateLimitKey = (input: {
 export const usageQuotaKey = (input: {
   ownerId: string;
   purpose: Purpose;
-  now?: Date;
+  now?:    Date;
 }): string => {
   const now = input.now ?? new Date();
   const period = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;

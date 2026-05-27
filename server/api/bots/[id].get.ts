@@ -19,12 +19,12 @@ export default defineEventHandler(async (event) => {
   }
 
   let agent: {
-    id: string;
-    name: string;
-    avatarUrl: string | null;
+    id:               string;
+    name:             string;
+    avatarUrl:        string | null;
     defaultTextModel: string | null;
-    isDefault: boolean;
-    updatedAt: string;
+    isDefault:        boolean;
+    updatedAt:        string;
   } | null = null;
   if (data.agent_id) {
     const { data: agentRow, error: agentErr } = await admin
@@ -37,12 +37,12 @@ export default defineEventHandler(async (event) => {
     if (agentErr) throw agentErr;
     if (agentRow) {
       agent = {
-        id: agentRow.id,
-        name: agentRow.name,
-        avatarUrl: agentRow.avatar_url,
+        id:               agentRow.id,
+        name:             agentRow.name,
+        avatarUrl:        agentRow.avatar_url,
         defaultTextModel: agentRow.default_text_model,
-        isDefault: agentRow.is_default,
-        updatedAt: agentRow.updated_at,
+        isDefault:        agentRow.is_default,
+        updatedAt:        agentRow.updated_at,
       };
     }
   }
@@ -51,19 +51,19 @@ export default defineEventHandler(async (event) => {
   const origin = appUrl || getRequestURL(event).origin;
 
   return {
-    id: data.id,
-    platform: data.platform,
-    externalId: data.external_id,
-    handle: data.handle,
-    displayName: data.display_name,
-    avatarUrl: data.avatar_url,
-    agentId: data.agent_id,
-    disabledAt: data.disabled_at,
+    id:                data.id,
+    platform:          data.platform,
+    externalId:        data.external_id,
+    handle:            data.handle,
+    displayName:       data.display_name,
+    avatarUrl:         data.avatar_url,
+    agentId:           data.agent_id,
+    disabledAt:        data.disabled_at,
     webhookVerifiedAt: data.webhook_verified_at,
-    firstRepliedAt: data.first_replied_at,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-    webhookUrl: `${origin}/api/webhook/${data.platform}`,
+    firstRepliedAt:    data.first_replied_at,
+    createdAt:         data.created_at,
+    updatedAt:         data.updated_at,
+    webhookUrl:        `${origin}/api/webhook/${data.platform}`,
     agent,
   };
 });

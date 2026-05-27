@@ -14,10 +14,10 @@ const bodySchema = z.object({
 const verifyGithubToken = async (token: string): Promise<string> => {
   const res = await fetch('https://api.github.com/user', {
     headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github+json',
+      'Authorization':        `Bearer ${token}`,
+      'Accept':               'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'fermi',
+      'User-Agent':           'fermi',
     },
   });
   if (res.status === 401 || res.status === 403) {
@@ -58,11 +58,11 @@ export default defineEventHandler(async (event) => {
   const maskedKey = `${token.slice(0, 8)}...${token.slice(-4)}`;
 
   await storeCredential(admin, kek, {
-    userId: user.id,
-    botId: null,
-    keyType: 'github',
+    userId:    user.id,
+    botId:     null,
+    keyType:   'github',
     plaintext: token,
-    metadata: { masked_key: maskedKey, github_login: login },
+    metadata:  { masked_key: maskedKey, github_login: login },
   });
 
   return { ok: true as const, login };

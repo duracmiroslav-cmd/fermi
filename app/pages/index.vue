@@ -2,7 +2,7 @@
 definePageMeta({ auth: false });
 
 useSeoMeta({
-  title: 'fermi · agentic AI in your LINE',
+  title:       'fermi · agentic AI in your LINE',
   description: 'fermi puts MCP-connected agents inside LINE. No deploy, no new app, five-minute onboarding. Join the wait-list.',
 });
 

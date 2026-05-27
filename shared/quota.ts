@@ -40,7 +40,7 @@ export const consumeQuota = async (
   env:   CounterEnv,
   input: { ownerId: string; purpose: Purpose },
 ): Promise<QuotaResult> => {
-  const cap     = await resolveCap(admin, input.ownerId, input.purpose);
+  const cap = await resolveCap(admin, input.ownerId, input.purpose);
   const counter = createUsageCounter(admin, env);
   return await counter.consume({
     key:    usageQuotaKey({ ownerId: input.ownerId, purpose: input.purpose }),
@@ -55,9 +55,9 @@ export const peekQuota = async (
   env:   CounterEnv,
   input: { ownerId: string; purpose: Purpose },
 ): Promise<QuotaResult> => {
-  const cap     = await resolveCap(admin, input.ownerId, input.purpose);
+  const cap = await resolveCap(admin, input.ownerId, input.purpose);
   const counter = createUsageCounter(admin, env);
-  const count   = await counter.peek({
+  const count = await counter.peek({
     key: usageQuotaKey({ ownerId: input.ownerId, purpose: input.purpose }),
   });
   return {
