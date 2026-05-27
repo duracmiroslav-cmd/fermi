@@ -1,6 +1,18 @@
 -- Creates the `agents` table, the persona layer (system prompt,
 -- default model, avatar). Bots reference an agent via
 -- `bots.agent_id` (NOT NULL, ON DELETE RESTRICT, see `bots`).
+--
+-- `model_provider_id` (NOT NULL FK → model_providers) is the pivot
+-- that lets the runtime route per-agent to OpenRouter / OpenAI /
+-- Anthropic / Gemini direct without hardcoding a provider.
+--
+-- `voice_reply_mode` is a 3-valued enum (off / auto / always); the
+-- "auto" middle case mirrors the user's input modality and is
+-- meaningfully different from both off and always, so this is a text
+-- enum rather than a boolean.
+--
+-- `default_image_model` (nullable) overrides the worker's hardcoded
+-- image-gen default (`fal-ai/nano-banana`); null = fall back to it.
 
 create table public.agents (
   id                    uuid primary key default gen_random_uuid(),
@@ -8,6 +20,10 @@ create table public.agents (
   name                  text not null,
   system_prompt         text,
   default_text_model    text,
+  default_image_model   text,
+  model_provider_id     uuid not null references public.model_providers(id),
+  voice_reply_mode      text not null default 'off'
+                          check (voice_reply_mode in ('off', 'auto', 'always')),
   avatar_url            text,
   is_default            boolean not null default false,
   created_at            timestamptz not null default now(),
@@ -55,6 +71,7 @@ create function public.insert_agent_if_under_limit(
   p_name                text,
   p_system_prompt       text,
   p_default_text_model  text,
+  p_model_provider_id   uuid,
   p_avatar_url          text,
   p_limit               int
 ) returns table (id uuid)
@@ -76,11 +93,11 @@ begin
   end if;
 
   return query
-    insert into public.agents (owner_id, name, system_prompt, default_text_model, avatar_url)
-    values (p_owner_id, p_name, p_system_prompt, p_default_text_model, p_avatar_url)
+    insert into public.agents (owner_id, name, system_prompt, default_text_model, model_provider_id, avatar_url)
+    values (p_owner_id, p_name, p_system_prompt, p_default_text_model, p_model_provider_id, p_avatar_url)
     returning agents.id;
 end;
 $$;
 
-revoke execute on function public.insert_agent_if_under_limit(uuid, text, text, text, text, int) from public;
-grant execute on function public.insert_agent_if_under_limit(uuid, text, text, text, text, int) to service_role;
+revoke execute on function public.insert_agent_if_under_limit(uuid, text, text, text, uuid, text, int) from public;
+grant  execute on function public.insert_agent_if_under_limit(uuid, text, text, text, uuid, text, int) to service_role;
