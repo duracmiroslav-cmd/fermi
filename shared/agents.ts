@@ -19,7 +19,6 @@ export interface AgentConfig {
   name: string;
   systemPrompt: string | null;
   defaultTextModel: string | null;
-  defaultImageModel: string | null;
   avatarUrl: string | null;
   voiceReplyMode: VoiceReplyMode;
 }
@@ -30,7 +29,6 @@ const mapRow = (data: {
   name: string;
   system_prompt: string | null;
   default_text_model: string | null;
-  default_image_model: string | null;
   avatar_url: string | null;
   voice_reply_mode: string;
 }): AgentConfig => ({
@@ -39,7 +37,6 @@ const mapRow = (data: {
   name: data.name,
   systemPrompt: data.system_prompt,
   defaultTextModel: data.default_text_model,
-  defaultImageModel: data.default_image_model,
   avatarUrl: data.avatar_url,
   voiceReplyMode: parseVoiceReplyMode(data.voice_reply_mode),
 });
@@ -53,7 +50,7 @@ export const findAgentById = async (
 ): Promise<AgentConfig | null> => {
   const { data, error } = await admin
     .from('agents')
-    .select('id, owner_id, name, system_prompt, default_text_model, default_image_model, avatar_url, voice_reply_mode')
+    .select('id, owner_id, name, system_prompt, default_text_model, avatar_url, voice_reply_mode')
     .eq('id', agentId)
     .is('deleted_at', null)
     .maybeSingle();
