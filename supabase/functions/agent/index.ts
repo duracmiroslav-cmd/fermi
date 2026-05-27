@@ -20,6 +20,7 @@ import { uploadUserImage } from '../../../shared/messageImages.ts';
 import { tryClaimIdempotencyKey } from './dedup.ts';
 import { LineContentError, fetchLineMessageContent } from './line-content.ts';
 import { OpenRouterError, chatCompletion, type ChatMessage } from './openrouter.ts';
+import { COUNTER_ENV, consumeQuota } from './quota.ts';
 import { errorCodeFromStatus, finishRun, logStep, startRun } from './runs.ts';
 import { STTError, transcribeAudio } from './stt.ts';
 import { synthesizeSpeech } from './tts.ts';
@@ -222,6 +223,16 @@ const FREE_BYOK_NOTICE_OPENROUTER
 const PLATFORM_KEY_OPS_NOTICE = '⚠️ Pro 服務暫時不可用，已通知 fermi 處理，請稍後再試。';
 const FREE_BYOK_NOTICE_OPENAI
   = '🎙️ 語音功能需要 OpenAI key。Free 方案請到 https://fermi.tw/dashboard/connections 連接，或升級 Pro 由 fermi 代管。';
+// Quota-exhausted notices. STT replies via safeReply; TTS suffix gets
+// appended to the LLM's text reply when audio fallback fires; the
+// extended_run notice fully replaces `finalText` when the agent loop
+// must abort mid-flight.
+const QUOTA_EXHAUSTED_STT
+  = '⚠️ 這個月語音輸入額度已用完。可改傳文字訊息，或請 bot 主人升 Pro 解鎖：https://fermi.tw/dashboard/billing';
+const QUOTA_EXHAUSTED_TTS_SUFFIX
+  = '\n\n（本次語音回覆額度已用完，改用文字。升 Pro 解鎖：https://fermi.tw/dashboard/billing）';
+const QUOTA_EXHAUSTED_EXTENDED_RUN
+  = '⚠️ 這個月長對話額度已用完。可換更具體的問法，或請 bot 主人升 Pro 解鎖：https://fermi.tw/dashboard/billing';
 
 const PLATFORM_OPENROUTER_KEY = Deno.env.get('OPENROUTER_API_KEY') ?? null;
 const PLATFORM_OPENAI_KEY = Deno.env.get('OPENAI_API_KEY') ?? null;
@@ -380,8 +391,25 @@ const runAgentLoop = async (params: {
 
     let finalText: string | null = null;
     let iteration = 0;
+    // INCR extended_run quota at most once per run, the first time
+    // wall time crosses the reply-token budget. Block → abort loop
+    // with a CTA. Already-paid LLM cost up to this point is sunk;
+    // the gate prevents further iterations on the same run.
+    let extendedRunConsumed = false;
     while (iteration < MAX_AGENT_STEPS) {
       iteration++;
+
+      if (!extendedRunConsumed && (Date.now() - eventTimestamp) >= REPLY_BUDGET_MS) {
+        const exQuota = await consumeQuota(admin, COUNTER_ENV, {
+          ownerId: bot.ownerId,
+          purpose: 'extended_run',
+        });
+        extendedRunConsumed = true;
+        if (!exQuota.allowed) {
+          finalText = QUOTA_EXHAUSTED_EXTENDED_RUN;
+          break;
+        }
+      }
 
       await logStep(admin, {
         runId,
@@ -503,35 +531,47 @@ const runAgentLoop = async (params: {
     // plain text. Mirrors the user-side STT shape: a voice turn is
     // stored as a single audio row with transcript embedded.
     let ttsAudio: { storagePath: string; signedUrl: string; mime: string; sizeBytes: number; durationMs: number } | null = null;
+    // Distinguishes quota block (suffix CTA on text fallback) from
+    // generic TTS failure (silent text fallback). Both end up as text;
+    // only the quota path warrants the user-facing CTA.
+    let ttsQuotaExhausted = false;
     if (wantsVoiceReply) {
-      try {
-        const resolved = await resolveKey(admin, kek, {
-          ownerId: bot.ownerId,
-          purpose: 'openai',
-          platformKey: PLATFORM_OPENAI_KEY,
-        });
-        const speech = await synthesizeSpeech({ apiKey: resolved.key, text: finalText });
-        const { storagePath } = await uploadGeneratedAudio(admin, {
-          ownerId: bot.ownerId,
-          threadId,
-          runId,
-          mime: speech.mime,
-          bytes: speech.bytes,
-        });
-        const signedUrl = await signMessageAudioUrl(admin, storagePath);
-        ttsAudio = {
-          storagePath,
-          signedUrl,
-          mime: speech.mime,
-          sizeBytes: speech.bytes.byteLength,
-          durationMs: speech.durationMs,
-        };
-      } catch (ttsErr) {
-        console.warn('TTS failed; falling back to text', {
-          agentId: agent.id,
-          ownerId: bot.ownerId,
-          err: String(ttsErr),
-        });
+      const ttsQuota = await consumeQuota(admin, COUNTER_ENV, {
+        ownerId: bot.ownerId,
+        purpose: 'tts',
+      });
+      if (!ttsQuota.allowed) {
+        ttsQuotaExhausted = true;
+      } else {
+        try {
+          const resolved = await resolveKey(admin, kek, {
+            ownerId: bot.ownerId,
+            purpose: 'openai',
+            platformKey: PLATFORM_OPENAI_KEY,
+          });
+          const speech = await synthesizeSpeech({ apiKey: resolved.key, text: finalText });
+          const { storagePath } = await uploadGeneratedAudio(admin, {
+            ownerId: bot.ownerId,
+            threadId,
+            runId,
+            mime: speech.mime,
+            bytes: speech.bytes,
+          });
+          const signedUrl = await signMessageAudioUrl(admin, storagePath);
+          ttsAudio = {
+            storagePath,
+            signedUrl,
+            mime: speech.mime,
+            sizeBytes: speech.bytes.byteLength,
+            durationMs: speech.durationMs,
+          };
+        } catch (ttsErr) {
+          console.warn('TTS failed; falling back to text', {
+            agentId: agent.id,
+            ownerId: bot.ownerId,
+            err: String(ttsErr),
+          });
+        }
       }
     }
 
@@ -573,9 +613,12 @@ const runAgentLoop = async (params: {
     // discouraged from generating that many images per turn in the
     // tool description), and the truncation layer (replyMessages /
     // pushMessages) caps at LINE_MESSAGES_PER_CALL anyway.
+    const textWithSuffix = ttsQuotaExhausted
+      ? `${finalText}${QUOTA_EXHAUSTED_TTS_SUFFIX}`
+      : finalText;
     const outbound: LineMessage[] = ttsAudio
       ? [{ type: 'audio', originalContentUrl: ttsAudio.signedUrl, duration: ttsAudio.durationMs }]
-      : [{ type: 'text', text: `🤖 ${finalText}` }];
+      : [{ type: 'text', text: `🤖 ${textWithSuffix}` }];
     for (const att of attachments) {
       if (att.type === 'image') {
         outbound.push({
@@ -595,6 +638,18 @@ const runAgentLoop = async (params: {
         messages: outbound,
         elapsedMs,
       });
+      // Observe-only: count successful pushes toward the LINE-side
+      // monthly cap so dashboard /usage can surface usage. Doesn't
+      // block — push is what gets the reply to the user and dropping
+      // it harms UX more than enforcing a cap helps. Fail-open: a
+      // counter outage here must not error the run that already
+      // delivered successfully.
+      if (method === 'push') {
+        await consumeQuota(admin, COUNTER_ENV, {
+          ownerId: bot.ownerId,
+          purpose: 'line_push',
+        }).catch((quotaErr) => console.error('line_push quota INCR failed', quotaErr));
+      }
       await logStep(admin, {
         runId,
         step: step++,
@@ -854,6 +909,18 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
           continue;
         }
         throw err;
+      }
+
+      // Quota gate before resolving the OpenAI key: cheap fast-fail
+      // and stops a quota-exhausted user from being told "set up your
+      // key" when the real issue is the cap.
+      const sttQuota = await consumeQuota(admin, COUNTER_ENV, {
+        ownerId: bot.ownerId,
+        purpose: 'stt',
+      });
+      if (!sttQuota.allowed) {
+        await safeReply(lineAccessToken, event.replyToken, QUOTA_EXHAUSTED_STT);
+        continue;
       }
 
       // STT runs *before* the agent loop because the rest of the
