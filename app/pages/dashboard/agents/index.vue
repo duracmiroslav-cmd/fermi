@@ -12,14 +12,31 @@ interface AgentRow {
   updatedAt: string;
 }
 
+interface ProviderModel {
+  id: string;
+  name: string;
+  avatar: { icon: string };
+}
+
 const { items: agents, used, atLimit, pending, limitMessage } = useTierLimit<AgentRow>('agents');
+const { data: models } = useApiFetch<ProviderModel[]>('/api/providers/openrouter/models');
 
 const search = ref('');
+
 const filteredAgents = computed(() => {
   const q = search.value.toLowerCase();
   if (!q) return agents.value ?? [];
   return (agents.value ?? []).filter(a => a.name.toLowerCase().includes(q));
 });
+
+const modelsById = computed(
+  () => new Map((models.value ?? []).map(m => [m.id, m])),
+);
+
+// Resolve the stored model slug to its friendly name + provider logo.
+// Falls back to the raw slug while the catalog loads or if it's unlisted.
+const modelFor = (id: string): ProviderModel =>
+  modelsById.value.get(id) ?? { id, name: id, avatar: { icon: 'i-lucide-sparkles' } };
 </script>
 
 <template>
@@ -119,8 +136,23 @@ const filteredAgents = computed(() => {
                         Default
                       </UBadge>
                     </div>
-                    <p class="text-sm text-toned truncate">
-                      {{ agent.defaultTextModel || '—' }}
+                    <div
+                      v-if="agent.defaultTextModel"
+                      class="flex items-center gap-1.5 text-sm text-toned min-w-0"
+                    >
+                      <UIcon
+                        :name="modelFor(agent.defaultTextModel).avatar.icon"
+                        class="size-5 shrink-0"
+                      />
+                      <span class="truncate">
+                        {{ modelFor(agent.defaultTextModel).name }}
+                      </span>
+                    </div>
+                    <p
+                      v-else
+                      class="text-sm text-toned"
+                    >
+                      —
                     </p>
                   </div>
                   <span class="text-sm text-toned shrink-0">
