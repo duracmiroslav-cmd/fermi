@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getCurrentTime } from './time.ts';
 import { webSearch } from './web-search.ts';
+import { webFetch } from './web-fetch.ts';
 
 // Per-call context passed to every tool so they can load the bot
 // owner's credentials (e.g., personal Tavily key) on the fly.
@@ -27,7 +28,7 @@ export interface Tool {
   execute: (args: Record<string, unknown>, ctx: ToolContext) => unknown | Promise<unknown>;
 }
 
-const tools: Tool[] = [getCurrentTime, webSearch];
+const tools: Tool[] = [getCurrentTime, webSearch, webFetch];
 
 const byName = new Map(tools.map(t => [t.name, t]));
 
