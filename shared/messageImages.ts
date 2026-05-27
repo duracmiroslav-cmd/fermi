@@ -2,6 +2,11 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 const BUCKET = 'message-images';
 
+// LLM provider fetches the URL inline during chat completion, well
+// inside 1h. Fresh URL on each call so a queued request finishing
+// late doesn't hand the model a dead link.
+const SIGNED_URL_TTL_SECONDS = 3600;
+
 const extFromMime = (mime: string): string => {
   switch (mime) {
     case 'image/jpeg': return 'jpg';
@@ -13,14 +18,14 @@ const extFromMime = (mime: string): string => {
 };
 
 // Path layout in `message-images`:
-//   <owner>/<thread>/in/<lineMessageId>.<ext>   — user-uploaded (vision)
-//   <owner>/<thread>/out/<imageId>.<ext>        — fermi-generated (image-gen)
+//   <owner>/<thread>/in/<lineMessageId>.<ext>   (user-uploaded vision)
+//   <owner>/<thread>/out/<imageId>.<ext>        (fermi-generated, image-gen)
 // `in/` + `out/` describe direction of flow (user → fermi vs
 // fermi → user). Matches `message-audio` for cross-bucket symmetry;
 // future modalities slot into the same in/out taxonomy.
 
 // Uploads user-uploaded vision bytes. `lineMessageId` is the LINE
-// webhook event ID — using a real entity ID as the storage key means
+// webhook event ID. Using a real entity ID as the storage key means
 // the path doubles as an audit handle back to the source event, and
 // pgmq re-delivery of the same message upserts to the same path
 // (idempotent).
@@ -45,7 +50,7 @@ export const uploadUserImage = async (
 };
 
 // Uploads fermi-generated image bytes. `imageId` is typically the
-// LLM-issued `tool_call_id` — using a real entity ID as the storage
+// LLM-issued `tool_call_id`. Using a real entity ID as the storage
 // key means the path doubles as an audit handle back to the
 // `agent_run_steps` row that recorded the tool call, and a retry of
 // the same call upserts to the same path (idempotent).
@@ -68,11 +73,6 @@ export const uploadGeneratedImage = async (
   if (uploadErr) throw uploadErr;
   return { storagePath };
 };
-
-// LLM provider fetches the URL inline during chat completion, well
-// inside 1h. Fresh URL on each call so a queued request finishing
-// late doesn't hand the model a dead link.
-const SIGNED_URL_TTL_SECONDS = 3600;
 
 export const signMessageImageUrl = async (
   admin: SupabaseClient,

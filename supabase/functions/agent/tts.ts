@@ -1,7 +1,7 @@
 // OpenAI tts-1 client. Direct fetch wrapper for the
 // `/v1/audio/speech` endpoint. Returns raw AAC bytes (ADTS frames)
 // because OpenAI's `response_format=aac` is the closest to LINE's
-// expected m4a — some clients accept it as-is; if LINE rejects we
+// expected m4a. Some clients accept it as-is; if LINE rejects we
 // add an MP4 muxing pass downstream rather than baking it in here.
 
 export class TTSError extends Error {
@@ -18,7 +18,7 @@ const DEFAULT_VOICE = 'alloy';
 // UI. Without decoding the AAC frames (heavy in Edge runtime) we
 // estimate from text length. Typical TTS rate at OpenAI's default
 // speed is ~14 chars/sec for English, slower for CJK (~7 chars/sec).
-// Use a conservative 10 chars/sec — being a bit long is fine; LINE
+// Use a conservative 10 chars/sec. Being a bit long is fine, LINE
 // just trims the player when the underlying file ends.
 const ESTIMATED_CHARS_PER_SECOND = 10;
 

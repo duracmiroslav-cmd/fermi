@@ -1,5 +1,5 @@
 // fal.ai image generation client. Direct fetch wrapper for the
-// synchronous `https://fal.run/{model}` endpoint — fal also exposes
+// synchronous `https://fal.run/{model}` endpoint. fal also exposes
 // a queue API for long-running jobs but nano-banana finishes in
 // well under the worker's 400s wall clock, so we keep it sync and
 // skip the polling complexity.
@@ -24,7 +24,7 @@ const sizeMap: Record<ImageSize, string> = {
 
 // Watermark suffix appended to every prompt. Prompt-based watermarks
 // are unreliable (model may ignore, may draw something other than
-// the exact text), so this is a best-effort MVP — a server-side
+// the exact text), so this is a best-effort MVP. A server-side
 // composite is a follow-up if launch UX demands a guarantee.
 const WATERMARK_SUFFIX = ", with small 'fermi' text watermark in bottom-right corner";
 
@@ -34,7 +34,7 @@ export interface GeneratedImage {
   // retention (fal's hosted URL expires).
   bytes: Uint8Array;
   mime: string;
-  // Hint from fal — width/height of the generated image. Not always
+  // Hint from fal: width/height of the generated image. Not always
   // returned; null when missing.
   width: number | null;
   height: number | null;

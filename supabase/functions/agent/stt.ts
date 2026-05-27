@@ -1,5 +1,5 @@
 // OpenAI Whisper client. Direct fetch wrapper for the
-// `/v1/audio/transcriptions` endpoint — OpenRouter doesn't route
+// `/v1/audio/transcriptions` endpoint. OpenRouter doesn't route
 // audio transcription, so the BYOK / platform-key resolution for
 // this call uses `purpose: 'openai'` (separate from `openrouter`).
 
@@ -15,7 +15,7 @@ const WHISPER_ENDPOINT = 'https://api.openai.com/v1/audio/transcriptions';
 const DEFAULT_STT_MODEL = 'whisper-1';
 
 // Extension Whisper recognizes for each accepted mime. Wrong extension
-// makes OpenAI reject the upload with a 400 — the mime header alone
+// makes OpenAI reject the upload with a 400. The mime header alone
 // isn't enough.
 const extFor = (mime: AudioMime): string => {
   switch (mime) {
@@ -33,7 +33,7 @@ export const transcribeAudio = async (params: {
   form.append('file', new Blob([bytes as unknown as ArrayBuffer], { type: mime }), `audio.${extFor(mime)}`);
   form.append('model', DEFAULT_STT_MODEL);
   // `response_format=text` makes Whisper return raw text rather than a
-  // JSON envelope — saves a parse step and removes one place for the
+  // JSON envelope, saving a parse step and removing one place for the
   // shape to drift.
   form.append('response_format', 'text');
 

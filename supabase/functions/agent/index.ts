@@ -106,9 +106,9 @@ class LinePushError extends Error {
 }
 
 // LINE reply tokens are valid roughly one minute from webhook delivery.
-// Switch to Push API once we've burned ~25s — leaves comfortable
+// Switch to Push API once we've burned ~25s, leaving comfortable
 // headroom for the LLM call still in flight and the LINE round-trip,
-// and avoids a Reply 400 wasting the only delivery attempt.
+// and avoiding a Reply 400 wasting the only delivery attempt.
 const REPLY_BUDGET_MS = 25_000;
 
 // LINE outbound message shapes we emit. Adding a new variant (flex,
@@ -120,7 +120,7 @@ export type LineMessage
     | { type: 'image'; originalContentUrl: string; previewImageUrl: string };
 
 // LINE Reply / Push API both accept up to 5 messages in one call.
-// We cap at the API limit to keep the contract explicit — image-gen
+// We cap at the API limit to keep the contract explicit. Image-gen
 // tool calls that produce >4 images (rare) will be truncated by the
 // caller before reaching this layer.
 const LINE_MESSAGES_PER_CALL = 5;
@@ -294,7 +294,7 @@ const runAgentLoop = async (params: {
   replyToken: string;
   userInput: UserInput;
   // Webhook timestamp from LINE (ms since epoch). Anchors the
-  // reply-token budget — we time elapsed from when LINE delivered
+  // reply-token budget: we time elapsed from when LINE delivered
   // the event, not when our worker dequeued it.
   eventTimestamp: number;
 }): Promise<void> => {
@@ -415,7 +415,7 @@ const runAgentLoop = async (params: {
         openrouterGenId: result.generationId,
       });
 
-      // No tool calls — model's final answer. Exit loop.
+      // No tool calls, model's final answer. Exit loop.
       if (!result.toolCalls) {
         finalText = result.text ?? '';
         break;
@@ -493,7 +493,7 @@ const runAgentLoop = async (params: {
     //   off    → never
     // Any failure along the TTS path (Free without OpenAI BYOK,
     // platform env unset, OpenAI 4xx/5xx, upload error) falls back to
-    // text — better a text reply than no reply.
+    // text. Better a text reply than no reply.
     const wantsVoiceReply
       = agent.voiceReplyMode === 'always'
         || (agent.voiceReplyMode === 'auto' && userInput.type === 'audio');
@@ -569,9 +569,9 @@ const runAgentLoop = async (params: {
     // text otherwise) followed by any image attachments. LINE caps
     // multi-message replies at 5; image attachments take the slots
     // after the primary, so a generation-heavy turn that produces 5+
-    // images would lose the tail. Acceptable for v1 — the LLM is
+    // images would lose the tail. Acceptable for v1 (the LLM is
     // discouraged from generating that many images per turn in the
-    // tool description, and the truncation layer (replyMessages /
+    // tool description), and the truncation layer (replyMessages /
     // pushMessages) caps at LINE_MESSAGES_PER_CALL anyway.
     const outbound: LineMessage[] = ttsAudio
       ? [{ type: 'audio', originalContentUrl: ttsAudio.signedUrl, duration: ttsAudio.durationMs }]
@@ -602,7 +602,7 @@ const runAgentLoop = async (params: {
         payload: { method, elapsed_ms: elapsedMs },
       });
       // Mark the moment this bot first delivered a reply end-to-end.
-      // Drives the "Setup complete" prompt on the info page — only an
+      // Drives the "Setup complete" prompt on the info page. Only an
       // actual reply (not LINE's verify ping) counts. Idempotent via
       // .is(null) so subsequent replies leave the first timestamp.
       await admin
@@ -632,7 +632,7 @@ const runAgentLoop = async (params: {
       });
       await finishRun(admin, runId, 'failed', totalCostUsd, errorCodeFromStatus(pushStatus));
       // Both Reply 400 (fallback to Push already tried) and Push 4xx
-      // are terminal for this event — retrying via pgmq would just
+      // are terminal for this event. Retrying via pgmq would just
       // duplicate the failure or, worse, re-charge a successful Push.
       // Bubble for any other error so pgmq retries the whole payload.
       if (err instanceof LinePushError) return;
@@ -650,7 +650,7 @@ const runAgentLoop = async (params: {
     });
     // Surface the failure to LINE so the user (and dogfooding owner)
     // sees what went wrong instead of staring at a vanished `...`.
-    // Ships the raw error string for fast dogfooding — once non-
+    // Ships the raw error string for fast dogfooding. Once non-
     // trusted users start arriving this needs to switch to a
     // friendly notice plus an admin-only debug link.
     let userNotified = false;
@@ -671,7 +671,7 @@ const runAgentLoop = async (params: {
     // notified, throwing would have pgmq redeliver and we'd spam the
     // chat with a duplicate ⚠️ every visibility-timeout (~30s). If
     // notice itself failed (LINE 5xx), keep the throw so pgmq can
-    // retry — maybe the next attempt lands while LINE is back up.
+    // retry (maybe the next attempt lands while LINE is back up).
     if (userNotified) return;
     throw err;
   }
@@ -693,8 +693,8 @@ const formatErrorForLine = (err: unknown): string => {
 
 // Filters out events whose webhookEventId we've already processed
 // (pgmq re-delivery, LINE webhook retry). Events without a
-// webhookEventId fall through unguarded — defensive only; LINE has
-// set this field on every webhook event since 2021.
+// webhookEventId fall through unguarded (defensive only, LINE has
+// set this field on every webhook event since 2021).
 const claimFreshEvents = async (events: LineEvent[]): Promise<LineEvent[]> => {
   const fresh: LineEvent[] = [];
   for (const event of events) {
@@ -859,7 +859,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       // STT runs *before* the agent loop because the rest of the
       // pipeline only knows text + image. Whisper turns audio into
       // text, then the loop proceeds exactly like a typed message.
-      // Errors here short-circuit with a user-facing notice — no
+      // Errors here short-circuit with a user-facing notice. No
       // agent_run is started for failed transcriptions.
       let openaiKey: string;
       try {
@@ -926,7 +926,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     // sticker / video / file / location / imagemap. Reply once with a
     // clear scope notice so the user knows what to send instead.
     // Non-message events (follow / unfollow / postback / ...) drop
-    // through silently — they have no replyToken to address.
+    // through silently, they have no replyToken to address.
     if (
       event.type === 'message'
       && typeof event.replyToken === 'string'

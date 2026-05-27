@@ -5,7 +5,7 @@
 // blob into the Whisper pipeline and burn quota; cheap to defend.
 //
 // LINE audio messages are always M4A (AAC inside an MP4 container).
-// We only accept that one format — if the LINE API surface ever adds
+// We only accept that one format. If the LINE API surface ever adds
 // raw mp3 / ogg etc. uploads, extend here.
 
 export type AudioMime = 'audio/m4a';
@@ -13,7 +13,7 @@ export type AudioMime = 'audio/m4a';
 // M4A / MP4 container layout:
 //   bytes 0-3: 4-byte box size (big-endian uint32)
 //   bytes 4-7: ASCII 'ftyp' (66 74 79 70)
-//   bytes 8-11: brand — 'M4A ', 'mp42', 'isom', 'M4B ' all valid
+//   bytes 8-11: brand, e.g. 'M4A ', 'mp42', 'isom', 'M4B '
 // Reading the brand isn't necessary for safety: the presence of a
 // well-formed `ftyp` box at offset 4 is the actual signature browsers
 // and ffmpeg key off too.

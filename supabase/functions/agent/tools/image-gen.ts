@@ -32,7 +32,7 @@ export const generateImage: Tool = {
   name: 'generate_image',
   capabilitySlug: 'image-gen',
   description:
-    'Generate an image from a natural-language prompt and deliver it back to the user. Use ONLY when the user explicitly asks to draw / generate / create / make an image — not for fetching existing images from the web (use web_search for that). The image is delivered automatically alongside your text reply; you should still write a short text response describing what you generated.',
+    'Generate an image from a natural-language prompt and deliver it back to the user. Use ONLY when the user explicitly asks to draw / generate / create / make an image, not for fetching existing images from the web (use web_search for that). The image is delivered automatically alongside your text reply; you should still write a short text response describing what you generated.',
   parameters: {
     type: 'object',
     properties: {
@@ -89,8 +89,8 @@ export const generateImage: Tool = {
         prompt: prompt.trim(),
         size: parseSize(size),
       });
-      // Use the LLM-issued tool call ID as the storage object name —
-      // the path becomes an audit handle back to the `tool_called` /
+      // Use the LLM-issued tool call ID as the storage object name.
+      // The path becomes an audit handle back to the `tool_called` /
       // `tool_responded` rows in `agent_run_steps`.
       const { storagePath } = await uploadGeneratedImage(ctx.admin, {
         ownerId: ctx.ownerId,
@@ -115,7 +115,7 @@ export const generateImage: Tool = {
 
       return {
         status: 'success',
-        // Brief result for the LLM — the actual image is delivered
+        // Brief result for the LLM. The actual image is delivered
         // out-of-band via attachments. The model uses this status to
         // know the call succeeded and write a fitting text reply.
         message: 'Image generated and delivered. Write a short text reply describing what you created.',
