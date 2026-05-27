@@ -221,6 +221,7 @@ export type Database = {
           owner_id: string
           system_prompt: string | null
           updated_at: string
+          voice_reply_enabled: boolean
         }
         Insert: {
           avatar_url?: string | null
@@ -234,6 +235,7 @@ export type Database = {
           owner_id: string
           system_prompt?: string | null
           updated_at?: string
+          voice_reply_enabled?: boolean
         }
         Update: {
           avatar_url?: string | null
@@ -247,6 +249,7 @@ export type Database = {
           owner_id?: string
           system_prompt?: string | null
           updated_at?: string
+          voice_reply_enabled?: boolean
         }
         Relationships: [
           {

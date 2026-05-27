@@ -11,12 +11,14 @@ import {
   PlatformKeyNotConfiguredError,
   resolveKey,
 } from '../../../shared/keys.ts';
+import { signMessageAudioUrl, uploadMessageAudio } from '../../../shared/messageAudio.ts';
 import { uploadMessageImage } from '../../../shared/messageImages.ts';
 import { tryClaimIdempotencyKey } from './dedup.ts';
 import { LineContentError, fetchLineMessageContent } from './line-content.ts';
 import { OpenRouterError, chatCompletion, type ChatMessage } from './openrouter.ts';
 import { errorCodeFromStatus, finishRun, logStep, startRun } from './runs.ts';
 import { WhisperError, transcribeAudio } from './stt.ts';
+import { synthesizeSpeech } from './tts.ts';
 import {
   appendMessage,
   loadRecentMessages,
@@ -100,10 +102,17 @@ class LinePushError extends Error {
 // and avoids a Reply 400 wasting the only delivery attempt.
 const REPLY_BUDGET_MS = 25_000;
 
-const replyText = async (
+// LINE outbound message shapes we emit. Adding a new variant (image,
+// flex, sticker) extends the union here, the JSON.stringify body just
+// forwards the discriminated object straight to LINE's API.
+export type LineMessage
+  = | { type: 'text';  text: string }
+    | { type: 'audio'; originalContentUrl: string; duration: number };
+
+const replyMessage = async (
   accessToken: string,
   replyToken: string,
-  text: string,
+  message: LineMessage,
 ): Promise<void> => {
   const res = await fetch('https://api.line.me/v2/bot/message/reply', {
     method: 'POST',
@@ -111,10 +120,7 @@ const replyText = async (
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({
-      replyToken,
-      messages: [{ type: 'text', text }],
-    }),
+    body: JSON.stringify({ replyToken, messages: [message] }),
   });
   if (!res.ok) {
     const body = await res.text();
@@ -122,10 +128,10 @@ const replyText = async (
   }
 };
 
-const pushText = async (
+const pushMessage = async (
   accessToken: string,
   to: string,
-  text: string,
+  message: LineMessage,
 ): Promise<void> => {
   const res = await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',
@@ -133,10 +139,7 @@ const pushText = async (
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({
-      to,
-      messages: [{ type: 'text', text }],
-    }),
+    body: JSON.stringify({ to, messages: [message] }),
   });
   if (!res.ok) {
     const body = await res.text();
@@ -154,22 +157,22 @@ const deliverMessage = async (params: {
   accessToken: string;
   replyToken: string;
   userId: string;
-  text: string;
+  message: LineMessage;
   elapsedMs: number;
 }): Promise<DeliveryMethod> => {
-  const { accessToken, replyToken, userId, text, elapsedMs } = params;
+  const { accessToken, replyToken, userId, message, elapsedMs } = params;
 
   if (elapsedMs >= REPLY_BUDGET_MS) {
-    await pushText(accessToken, userId, text);
+    await pushMessage(accessToken, userId, message);
     return 'push';
   }
 
   try {
-    await replyText(accessToken, replyToken, text);
+    await replyMessage(accessToken, replyToken, message);
     return 'reply';
   } catch (err) {
     if (err instanceof LineReplyError && err.status === 400) {
-      await pushText(accessToken, userId, text);
+      await pushMessage(accessToken, userId, message);
       return 'push';
     }
     throw err;
@@ -185,7 +188,7 @@ const safeReply = async (
   text: string,
 ): Promise<void> => {
   try {
-    await replyText(accessToken, replyToken, text);
+    await replyMessage(accessToken, replyToken, { type: 'text', text });
   } catch (err) {
     if (err instanceof LineReplyError && err.status === 400) {
       console.warn('reply token expired or already used; dropping', { replyToken });
@@ -261,7 +264,13 @@ const isReplyableUserMessage = (event: LineEvent): event is LineEvent & {
 
 const runAgentLoop = async (params: {
   bot: { id: string; ownerId: string };
-  agent: { id: string; name: string; systemPrompt: string | null; defaultTextModel: string | null };
+  agent: {
+    id: string;
+    name: string;
+    systemPrompt: string | null;
+    defaultTextModel: string | null;
+    voiceReplyEnabled: boolean;
+  };
   openrouterKey: string;
   lineAccessToken: string;
   kek: CryptoKey;
@@ -435,13 +444,49 @@ const runAgentLoop = async (params: {
 
     await appendMessage(admin, threadId, 'assistant', { type: 'text', text: finalText });
 
+    // Voice-reply agents synthesize the final text and deliver as a
+    // LINE audio message. Any failure along the path (Free without
+    // OpenAI BYOK, platform env unset, OpenAI 4xx/5xx, upload error)
+    // falls back to text — better a text reply than no reply. The
+    // text variant of `finalText` is the canonical record in `messages`.
+    let deliveryMessage: LineMessage = { type: 'text', text: `🤖 ${finalText}` };
+    if (agent.voiceReplyEnabled) {
+      try {
+        const resolved = await resolveKey(admin, kek, {
+          ownerId: bot.ownerId,
+          purpose: 'openai',
+          platformKey: PLATFORM_OPENAI_KEY,
+        });
+        const speech = await synthesizeSpeech({ apiKey: resolved.key, text: finalText });
+        const { storagePath } = await uploadMessageAudio(admin, {
+          ownerId: bot.ownerId,
+          threadId,
+          runId,
+          mime: speech.mime,
+          bytes: speech.bytes,
+        });
+        const signedUrl = await signMessageAudioUrl(admin, storagePath);
+        deliveryMessage = {
+          type: 'audio',
+          originalContentUrl: signedUrl,
+          duration: speech.durationMs,
+        };
+      } catch (ttsErr) {
+        console.warn('TTS failed; falling back to text', {
+          agentId: agent.id,
+          ownerId: bot.ownerId,
+          err: String(ttsErr),
+        });
+      }
+    }
+
     const elapsedMs = Date.now() - eventTimestamp;
     try {
       const method = await deliverMessage({
         accessToken: lineAccessToken,
         replyToken,
         userId: externalUserId,
-        text: `🤖 ${finalText}`,
+        message: deliveryMessage,
         elapsedMs,
       });
       await logStep(admin, {
@@ -508,7 +553,7 @@ const runAgentLoop = async (params: {
         accessToken: lineAccessToken,
         replyToken,
         userId: externalUserId,
-        text: formatErrorForLine(err),
+        message: { type: 'text', text: formatErrorForLine(err) },
         elapsedMs: Date.now() - eventTimestamp,
       });
       userNotified = true;

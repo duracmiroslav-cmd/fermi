@@ -7,6 +7,7 @@ export interface AgentConfig {
   systemPrompt: string | null;
   defaultTextModel: string | null;
   avatarUrl: string | null;
+  voiceReplyEnabled: boolean;
 }
 
 const mapRow = (data: {
@@ -16,6 +17,7 @@ const mapRow = (data: {
   system_prompt: string | null;
   default_text_model: string | null;
   avatar_url: string | null;
+  voice_reply_enabled: boolean;
 }): AgentConfig => ({
   id: data.id,
   ownerId: data.owner_id,
@@ -23,6 +25,7 @@ const mapRow = (data: {
   systemPrompt: data.system_prompt,
   defaultTextModel: data.default_text_model,
   avatarUrl: data.avatar_url,
+  voiceReplyEnabled: data.voice_reply_enabled,
 });
 
 // Filters trashed agents so callers can treat a non-null return as
@@ -34,7 +37,7 @@ export const findAgentById = async (
 ): Promise<AgentConfig | null> => {
   const { data, error } = await admin
     .from('agents')
-    .select('id, owner_id, name, system_prompt, default_text_model, avatar_url')
+    .select('id, owner_id, name, system_prompt, default_text_model, avatar_url, voice_reply_enabled')
     .eq('id', agentId)
     .is('deleted_at', null)
     .maybeSingle();
