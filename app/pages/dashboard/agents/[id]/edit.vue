@@ -99,14 +99,13 @@ const onDelete = async () => {
 
       <DashboardContainer v-if="agent">
         <div class="flex items-center gap-4">
-          <div class="relative size-12 shrink-0">
+          <div class="size-12 shrink-0">
             <AgentAvatarUpload
               :agent-id="agent.id"
               :current-url="agent.avatarUrl"
               :fallback="(agent.name ?? '?').charAt(0).toUpperCase()"
               @change="onAvatarChange"
             />
-            <span class="absolute bottom-0 right-0 size-3 rounded-full ring-2 ring-default bg-success" />
           </div>
           <div class="min-w-0">
             <h1 class="text-2xl font-semibold truncate flex items-center gap-2">
@@ -120,8 +119,8 @@ const onDelete = async () => {
                 Default
               </UBadge>
             </h1>
-            <p class="text-sm text-toned mt-1">
-              Ready
+            <p class="text-sm text-toned mt-1 truncate">
+              {{ agent.defaultTextModel || 'No model configured' }}
             </p>
           </div>
         </div>
@@ -137,6 +136,7 @@ const onDelete = async () => {
                   :to="`/dashboard/agents/${agent.id}`"
                   color="neutral"
                   variant="ghost"
+                  size="sm"
                 >
                   Cancel
                 </UButton>
@@ -144,6 +144,7 @@ const onDelete = async () => {
                   type="submit"
                   form="agent-form"
                   :loading="saving"
+                  size="sm"
                 >
                   Save
                 </UButton>

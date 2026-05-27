@@ -401,7 +401,7 @@ onBeforeUnmount(() => {
               </UButton>
             </div>
           </template>
-          <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-6">
+          <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-7">
             <dt class="text-toned text-right">
               External ID
             </dt>
@@ -411,23 +411,31 @@ onBeforeUnmount(() => {
             <dt class="text-toned text-right">
               Agent
             </dt>
-            <dd class="min-w-0 truncate">
-              <NuxtLink
-                :to="`/dashboard/agents/${bot.agent.id}`"
-                class="text-primary hover:underline"
-              >
-                {{ bot.agent.name }}
-              </NuxtLink>
+            <dd class="min-w-0">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <UAvatar
+                  :src="bot.agent.avatarUrl || undefined"
+                  :text="(bot.agent.name ?? '?').charAt(0).toUpperCase()"
+                  size="sm"
+                  class="shrink-0"
+                />
+                <NuxtLink
+                  :to="`/dashboard/agents/${bot.agent.id}`"
+                  class="truncate min-w-0 text-primary hover:underline"
+                >
+                  {{ bot.agent.name }}
+                </NuxtLink>
+              </div>
             </dd>
             <dt class="text-toned text-right">
               Webhook URL
             </dt>
-            <dd class="text-highlighted flex items-center gap-2 min-w-0">
+            <dd class="text-highlighted flex items-center gap-1.5 min-w-0">
               <code class="font-mono truncate select-all">{{ bot.webhookUrl }}</code>
               <UButton
                 color="neutral"
                 variant="ghost"
-                size="xs"
+                size="sm"
                 :icon="webhookCopied ? 'i-lucide-check' : 'i-lucide-copy'"
                 :aria-label="webhookCopied ? 'Copied' : 'Copy webhook URL'"
                 @click="copyWebhook"
