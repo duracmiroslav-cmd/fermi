@@ -15,6 +15,11 @@ export default defineNuxtConfig({
     fermiKek: process.env.FERMI_KEK ?? '',
     supabaseUrl: process.env.SUPABASE_URL ?? '',
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
+    // Counter backend. Both blank → Postgres fallback; both set →
+    // Upstash REST. Read in webhook handler / quota call sites and
+    // forwarded into the counter factory.
+    upstashUrl: process.env.UPSTASH_REDIS_REST_URL ?? '',
+    upstashToken: process.env.UPSTASH_REDIS_REST_TOKEN ?? '',
     // Public-facing origin fermi serves under. Used to build webhook
     // URLs we expose to LINE. Falls back to the request origin when
     // unset (fine for prod via real domain; required when dev'ing
