@@ -1,15 +1,15 @@
--- Creates the `capabilities` catalog — MCP servers and skills an
--- agent can be wired up to use. A single `type` discriminator keeps
--- both kinds in one table so the binding layer (`agent_capabilities`)
--- only has one join to manage.
+-- Creates the `capabilities` catalog — tools an agent can be wired
+-- up to use. Each row is identified by `slug` (the key the agent
+-- runtime uses to find its in-process implementation under
+-- `supabase/functions/agent/tools/{slug}.ts`).
 --
--- `owner_id IS NULL` marks builtin (the 5 MCP servers fermi ships
--- with, seeded below); `owner_id IS NOT NULL` is a user's BYO entry.
+-- `owner_id IS NULL` marks builtin (fermi-shipped, seeded below);
+-- `owner_id IS NOT NULL` is a user's BYO entry (e.g. a self-hosted
+-- MCP server URL).
 
 create table public.capabilities (
   id            uuid primary key default gen_random_uuid(),
   owner_id      uuid references public.users(id) on delete cascade,
-  type          text not null check (type in ('mcp', 'skill')),
   slug          text not null,
   display_name  text not null,
   description   text,
@@ -20,18 +20,18 @@ create table public.capabilities (
 );
 
 -- Postgres UNIQUE treats NULLs as distinct, so a plain
--- `unique (owner_id, type, slug)` would let two builtin rows share
+-- `unique (owner_id, slug)` would let two builtin rows share
 -- the same slug. Split into two partial uniques:
---   builtin (owner_id is null) → (type, slug) globally unique
---   BYO     (owner_id not null) → (owner_id, type, slug) per-owner unique
+--   builtin (owner_id is null) → slug globally unique
+--   BYO     (owner_id not null) → (owner_id, slug) per-owner unique
 -- `where deleted_at is null` lets a user soft-delete + re-add a slug
 -- without colliding.
 create unique index capabilities_builtin_slug_uq
-  on public.capabilities (type, slug)
+  on public.capabilities (slug)
   where owner_id is null and deleted_at is null;
 
 create unique index capabilities_owner_slug_uq
-  on public.capabilities (owner_id, type, slug)
+  on public.capabilities (owner_id, slug)
   where owner_id is not null and deleted_at is null;
 
 -- Owner lookups always filter deleted_at, so a partial index over
@@ -59,11 +59,9 @@ create policy "Users can view available capabilities." on public.capabilities
 -- this hold even if RLS were ever disabled on the table.
 revoke insert, update, delete on public.capabilities from authenticated;
 
--- Seed the builtin MCP servers fermi ships with. `slug` is the key
--- the agent loader uses to find the in-process implementation under
--- `supabase/functions/agent/tools/{slug}.ts`. `description` is what
--- the LLM reads to decide whether to invoke the tool, so keep it
--- focused on "when to use" rather than "what it does".
+-- Seed the builtin tools fermi ships with. `description` is what the
+-- LLM reads to decide whether to invoke the tool, so keep it focused
+-- on "when to use" rather than "what it does".
 --
 -- Naming convention: nouns, not verbs (a capability is an integration,
 -- not an action). Use the provider name when there's one dominant
@@ -71,16 +69,16 @@ revoke insert, update, delete on public.capabilities from authenticated;
 -- Calendar would be a separate capability with its own OAuth flow).
 -- Use the domain name when providers are swappable (web-search can be
 -- backed by Tavily / Brave / Bing without changing the surface).
-insert into public.capabilities (type, slug, display_name, description) values
-  ('mcp', 'time', 'Time',
+insert into public.capabilities (slug, display_name, description) values
+  ('time', 'Time',
    'Get the current wall-clock time in any IANA timezone (e.g. "Asia/Taipei", "UTC"). Use whenever the answer depends on the current moment — today''s date, current time, age of a recent event.'),
-  ('mcp', 'web-search', 'Web search',
+  ('web-search', 'Web search',
    'Search the web for current information beyond the model''s training cutoff. Returns ranked titles, snippets, and URLs.'),
-  ('mcp', 'web-fetch', 'Web fetch',
+  ('web-fetch', 'Web fetch',
    'Fetch and return the text contents of a specific URL. Use after web-search returns a promising link, or when the user supplies a URL directly.'),
-  ('mcp', 'github', 'GitHub',
+  ('github', 'GitHub',
    'Browse repositories, issues, pull requests, and source code on the connected GitHub account.'),
-  ('mcp', 'google-calendar', 'Google Calendar',
+  ('google-calendar', 'Google Calendar',
    'Read and create events on the connected Google Calendar.'),
-  ('mcp', 'notion', 'Notion',
+  ('notion', 'Notion',
    'Read and update pages and databases in the connected Notion workspace.');
