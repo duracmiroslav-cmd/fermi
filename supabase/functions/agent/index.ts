@@ -5,6 +5,7 @@ import { findBotById } from '../../../shared/bots.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
 import { getKek } from '../../../shared/kek.ts';
 import { uploadMessageImage } from '../../../shared/messageImages.ts';
+import { DEFAULT_TEXT_MODEL, DEFAULT_VISION_MODEL } from '../../../shared/constants/models.ts';
 import { tryClaimIdempotencyKey } from './dedup.ts';
 import { LineContentError, fetchLineMessageContent } from './line-content.ts';
 import { OpenRouterError, chatCompletion, type ChatMessage } from './openrouter.ts';
@@ -24,12 +25,6 @@ const admin = createClient(supabaseUrl, supabaseServiceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const DEFAULT_TEXT_MODEL = 'anthropic/claude-opus-4.7';
-// Vision-capable fallback used for any run whose history contains
-// an image, regardless of agent.defaultTextModel. Per-agent vision
-// override is a follow-up; for now hardcoded so users can't pick a
-// text-only model and silently break image conversations.
-const DEFAULT_VISION_MODEL = 'anthropic/claude-sonnet-4.5';
 const HISTORY_WINDOW = 20;
 // Hard cap on LLM iterations within a single agent run. One iteration
 // = one OpenRouter call. A typical multi-step query (read calendar →

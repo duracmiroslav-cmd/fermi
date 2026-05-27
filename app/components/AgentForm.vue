@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { DEFAULT_TEXT_MODEL, DEFAULT_VISION_MODEL } from '~~/shared/constants/models';
 import { createAgentInputSchema } from '~~/shared/schemas/agents';
 
 interface AgentFormValue {
@@ -35,7 +36,10 @@ const formatContext = (n: number) =>
 const state = reactive<AgentFormValue>({
   name: props.initialValue?.name ?? '',
   systemPrompt: props.initialValue?.systemPrompt ?? '',
-  defaultTextModel: props.initialValue?.defaultTextModel ?? '',
+  // New agents seed the picker with the worker fallback; edit preserves the stored value.
+  defaultTextModel: props.initialValue
+    ? (props.initialValue.defaultTextModel ?? '')
+    : DEFAULT_TEXT_MODEL,
 });
 
 const isModelPickerOpening = ref(false);
@@ -59,6 +63,13 @@ const modelItems = computed(() =>
 const selectedModel = computed(() =>
   (models.value ?? []).find(m => m.id === state.defaultTextModel) ?? null,
 );
+
+// Fixed for now (not per-agent). Resolve to a friendly name + logo,
+// falling back to the raw slug while the catalog loads.
+const visionModel = computed(() => {
+  const found = (models.value ?? []).find(m => m.id === DEFAULT_VISION_MODEL);
+  return { name: found?.name ?? DEFAULT_VISION_MODEL, icon: found?.avatar.icon ?? 'i-lucide-eye' };
+});
 
 const promptCharCount = computed(() => state.systemPrompt.length);
 
@@ -105,7 +116,7 @@ const onSubmit = () => {
     </UFormField>
 
     <UFormField
-      label="Default model"
+      label="Default text model"
       name="defaultTextModel"
       help="The AI model that generates this agent's replies."
     >
@@ -178,6 +189,19 @@ const onSubmit = () => {
           />
         </template>
       </USelectMenu>
+    </UFormField>
+
+    <UFormField
+      label="Vision model"
+      help="Messages with an image are answered by this vision model, whatever the text model is set to."
+    >
+      <div class="flex items-center gap-1.5 h-9 text-toned">
+        <UIcon
+          :name="visionModel.icon"
+          class="size-5 shrink-0"
+        />
+        <span class="truncate">{{ visionModel.name }}</span>
+      </div>
     </UFormField>
   </UForm>
 </template>

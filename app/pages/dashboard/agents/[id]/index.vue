@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { DEFAULT_VISION_MODEL } from '~~/shared/constants/models';
+
 definePageMeta({ layout: false });
 
 interface BotRef {
@@ -40,6 +42,13 @@ const model = computed<ProviderModel | null>(() => {
   return (models.value ?? []).find(m => m.id === id)
     ?? { id, name: id, avatar: { icon: 'i-lucide-sparkles' } };
 });
+
+// Fixed across all agents for now: the worker swaps to this whenever a
+// conversation includes an image, regardless of the text model.
+const visionModel = computed<ProviderModel>(() =>
+  (models.value ?? []).find(m => m.id === DEFAULT_VISION_MODEL)
+  ?? { id: DEFAULT_VISION_MODEL, name: DEFAULT_VISION_MODEL, avatar: { icon: 'i-lucide-eye' } },
+);
 </script>
 
 <template>
@@ -146,6 +155,29 @@ const model = computed<ProviderModel | null>(() => {
               </span>
             </dd>
             <dt class="text-toned text-right">
+              Vision model
+            </dt>
+            <dd class="min-w-0">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <UIcon
+                  :name="visionModel.avatar.icon"
+                  class="size-5 text-toned shrink-0"
+                />
+                <NuxtLink
+                  :to="`https://openrouter.ai/${visionModel.id}`"
+                  target="_blank"
+                  rel="noopener"
+                  class="truncate min-w-0 text-primary hover:underline"
+                >
+                  {{ visionModel.name }}
+                </NuxtLink>
+                <UIcon
+                  name="i-lucide-external-link"
+                  class="size-3.5 shrink-0 text-toned"
+                />
+              </div>
+            </dd>
+            <dt class="text-toned text-right">
               ID
             </dt>
             <dd class="text-highlighted break-all">
@@ -164,6 +196,9 @@ const model = computed<ProviderModel | null>(() => {
               <TimeAgo :date="agent.updatedAt" />
             </dd>
           </dl>
+          <p class="text-xs text-toned mt-2">
+            Conversations that include an image are answered by the vision model, whatever the text model is set to.
+          </p>
           <div class="mt-4 border-t border-default pt-4">
             <p class="text-sm text-toned mb-1.5">
               System prompt
