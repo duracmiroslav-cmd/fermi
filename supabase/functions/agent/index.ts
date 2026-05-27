@@ -24,6 +24,7 @@ import {
   LineContentError,
   LinePushError,
   LineReplyError,
+  REPLY_BUDGET_MS,
   safeReply,
   type LineMessage,
 } from './channels/line.ts';

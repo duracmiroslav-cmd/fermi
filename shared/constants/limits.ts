@@ -1,4 +1,4 @@
-import type { Tier } from './tiers';
+import type { Tier } from './tiers.ts';
 
 // Purpose: a monthly-quota-gated fermi resource. Strings are stored in
 // `usage_counters.purpose` (Postgres impl) and Upstash keys; keep them

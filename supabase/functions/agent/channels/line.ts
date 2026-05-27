@@ -82,7 +82,7 @@ export type LineMessage
 // Switch to Push API once we've burned ~25s, leaving comfortable headroom
 // for the LLM call still in flight and the LINE round-trip, and avoiding a
 // Reply 400 wasting the only delivery attempt.
-const REPLY_BUDGET_MS = 25_000;
+export const REPLY_BUDGET_MS = 25_000;
 
 // LINE Reply / Push API both accept up to 5 messages in one call. We cap at
 // the API limit to keep the contract explicit.
