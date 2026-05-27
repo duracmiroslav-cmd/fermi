@@ -26,4 +26,4 @@ logs
 # Claude Code
 .claude/*
 !.claude/rules/
-!.claude/rules/**
+!.claude/skills/
