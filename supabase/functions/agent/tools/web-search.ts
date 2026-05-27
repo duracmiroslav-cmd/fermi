@@ -26,6 +26,7 @@ const SNIPPET_MAX_CHARS = 300;
 
 export const webSearch: Tool = {
   name: 'web_search',
+  capabilitySlug: 'web-search',
   description:
     'Search the web for current information. Returns a brief AI-synthesized answer plus relevant URLs with short snippets. Use when you need facts that may have changed, recent news, or anything outside your training data.',
   parameters: {

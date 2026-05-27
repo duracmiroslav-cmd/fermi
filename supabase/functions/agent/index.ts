@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { loadActiveCapabilitySlugs } from '../../../shared/agentCapabilities.ts';
 import { detectImageMime, type ImageMime } from '../../../shared/image.ts';
 import { findAgentById } from '../../../shared/agents.ts';
 import { findBotById } from '../../../shared/bots.ts';
@@ -14,7 +15,7 @@ import {
   loadRecentMessages,
   resolveOrCreateLatestThread,
 } from './threads.ts';
-import { executeTool, toolSchemas } from './tools/index.ts';
+import { executeTool, toolSchemasForCapabilities } from './tools/index.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -289,6 +290,12 @@ const runAgentLoop = async (params: {
   let totalCostUsd = 0;
 
   try {
+    // Resolved once per run: capability attachment changes mid-loop
+    // (e.g. user toggles in dashboard) shouldn't reshape the tool set
+    // an LLM call already in flight believes it has.
+    const attachedSlugs = await loadActiveCapabilitySlugs(admin, agent.id);
+    const tools = toolSchemasForCapabilities(attachedSlugs);
+
     const history = await loadRecentMessages(admin, threadId, HISTORY_WINDOW);
     const systemPrompt = agent.systemPrompt
       ?? `You are ${agent.name}, a helpful assistant on LINE. Reply in the user's language.`;
@@ -324,7 +331,7 @@ const runAgentLoop = async (params: {
         apiKey: openrouterKey,
         model,
         messages,
-        tools: toolSchemas,
+        tools,
       });
       const llmLatency = Math.round(performance.now() - llmStart);
       totalCostUsd += result.costUsd;

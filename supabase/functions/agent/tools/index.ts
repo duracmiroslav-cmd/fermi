@@ -12,7 +12,15 @@ export interface ToolContext {
 }
 
 export interface Tool {
+  // OpenRouter / OpenAI tool-call function name. What the LLM sees
+  // and emits. Snake_case by convention (e.g. `get_current_time`).
   name: string;
+  // Capability catalog slug this tool implements. The worker filters
+  // by this against `agent_capabilities` so only tools whose
+  // capability is attached + enabled for the current agent are
+  // exposed. Multiple tools may share a slug (e.g. a future MCP that
+  // exposes several functions under one `notion` capability).
+  capabilitySlug: string;
   description: string;
   // JSON Schema for arguments, passed straight to OpenRouter.
   parameters: Record<string, unknown>;
@@ -32,14 +40,24 @@ export interface ToolSchema {
   };
 }
 
-export const toolSchemas: ToolSchema[] = tools.map(t => ({
+const toSchema = (t: Tool): ToolSchema => ({
   type: 'function',
   function: {
     name: t.name,
     description: t.description,
     parameters: t.parameters,
   },
-}));
+});
+
+// Filters the registry to tools whose capability is attached to the
+// current agent. Agents with no attachments see an empty tool set
+// (the LLM falls back to plain chat). Catalog slugs that have no
+// runtime implementation yet (github, notion, etc.) yield nothing
+// here — the attach UI looks ready but the LLM correctly can't call
+// what isn't wired up.
+export const toolSchemasForCapabilities = (
+  attachedSlugs: ReadonlySet<string>,
+): ToolSchema[] => tools.filter(t => attachedSlugs.has(t.capabilitySlug)).map(toSchema);
 
 // Returns a JSON-stringified tool result suitable to send back as a
 // `role: 'tool'` message. Errors (unknown tool, bad JSON args, thrown

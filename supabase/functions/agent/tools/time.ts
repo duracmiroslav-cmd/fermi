@@ -24,6 +24,7 @@ const formatInZone = (date: Date, timezone: string): string => {
 
 export const getCurrentTime: Tool = {
   name: 'get_current_time',
+  capabilitySlug: 'time',
   description:
     'Get the current wall-clock time in a given IANA timezone (e.g. "Asia/Taipei", "UTC", "America/New_York"). Returns both ISO-8601 UTC and a human-readable local time string.',
   parameters: {
