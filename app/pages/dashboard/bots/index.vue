@@ -12,6 +12,7 @@ interface BotRow {
   webhookVerifiedAt: string | null;
   createdAt: string;
   webhookUrl: string;
+  agent: { id: string; name: string; avatarUrl: string | null } | null;
 }
 
 const { items: bots, used, atLimit, pending, refresh, limitMessage } = useTierLimit<BotRow>('bots');
@@ -32,10 +33,6 @@ const statusDot = (bot: BotRow) => {
 const statusAria = (bot: BotRow) => {
   const s = statusOf(bot);
   return s ? BOT_STATUS_LABEL[s] : 'Loading status';
-};
-const statusMeta = (bot: BotRow) => {
-  const s = statusOf(bot);
-  return s ? `${bot.platform} · ${BOT_STATUS_LABEL[s].toLowerCase()}` : bot.platform;
 };
 
 const search = ref('');
@@ -162,13 +159,26 @@ const filteredBots = computed(() => {
                       :aria-label="statusAria(bot)"
                     />
                   </div>
-                  <div class="flex-1 min-w-0">
+                  <div class="flex-1 min-w-0 flex flex-col gap-0.5">
                     <p class="font-medium truncate">
                       {{ bot.displayName || '(unnamed)' }}
                     </p>
-                    <p class="text-sm text-toned truncate mt-0.5">
-                      {{ statusMeta(bot) }}
-                    </p>
+                    <div class="flex items-center gap-3 min-w-0 text-sm text-toned">
+                      <span class="inline-flex items-center gap-1.5 min-w-0">
+                        <AgentAvatar
+                          v-if="bot.agent"
+                          :src="bot.agent.avatarUrl"
+                          :name="bot.agent.name"
+                          :seed="bot.agent.id"
+                          size="3xs"
+                        />
+                        <span class="truncate">{{ bot.agent?.name ?? 'No agent' }}</span>
+                      </span>
+                      <PlatformLabel
+                        :platform="bot.platform"
+                        class="shrink-0"
+                      />
+                    </div>
                   </div>
                   <span class="text-sm text-toned shrink-0">
                     <TimeAgo :date="bot.createdAt" />

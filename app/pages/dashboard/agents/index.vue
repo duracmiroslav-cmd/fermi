@@ -105,7 +105,7 @@ const filteredAgents = computed(() => {
                     :seed="agent.id"
                     size="lg"
                   />
-                  <div class="flex-1 min-w-0">
+                  <div class="flex-1 min-w-0 flex flex-col gap-0.5">
                     <div class="flex items-center gap-2">
                       <p class="font-medium truncate">
                         {{ agent.name }}
@@ -119,7 +119,7 @@ const filteredAgents = computed(() => {
                         Default
                       </UBadge>
                     </div>
-                    <p class="text-sm text-toned truncate mt-0.5">
+                    <p class="text-sm text-toned truncate">
                       {{ agent.defaultTextModel || '—' }}
                     </p>
                   </div>
