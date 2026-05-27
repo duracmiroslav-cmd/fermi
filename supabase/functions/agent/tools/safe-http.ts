@@ -108,7 +108,21 @@ const readAllCapped = async (
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     if (Date.now() > deadline) throw new Error('Read timeout');
-    const n = await conn.read(buf);
+    let n: number | null;
+    try {
+      n = await conn.read(buf);
+    } catch (err) {
+      // rustls strict mode flags a missing TLS close_notify as a fatal
+      // error. Many TLS servers in the wild (Google, some CDN edge
+      // configs) close the socket without sending it. Browsers and
+      // curl both tolerate this, so we mirror that behavior: treat
+      // missing close_notify as end-of-stream once we've already read
+      // bytes, but surface it as an error on a totally empty response
+      // since that signals a real handshake failure.
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('close_notify') && total > 0) break;
+      throw err;
+    }
     if (n === null) break;
     if (total + n > maxBytes) {
       chunks.push(buf.slice(0, maxBytes - total));
@@ -214,21 +228,24 @@ export const safeFetch = async (
       ? Number(currentUrl.port)
       : (currentUrl.protocol === 'https:' ? 443 : 80);
 
-    // The load-bearing line: socket target is the validated IP, but
-    // for TLS we hand the original hostname to `serverName` so SNI +
-    // cert chain validation still bind to the public name. Result:
-    // any DNS change between resolveAndValidate and this connect has
-    // no effect — we've already decided where the bytes go.
+    // The load-bearing pair: open the TCP socket to the validated IP,
+    // then upgrade via startTls passing the original hostname so both
+    // SNI and cert chain validation bind to the public name. Deno's
+    // connectTls would instead validate the cert against the literal
+    // IP we connected to, which the cert chain can't match. startTls
+    // separates "what to dial" from "what name to verify", giving
+    // true DNS pinning on HTTPS — any DNS change between our resolve
+    // and the connect has no effect, the bytes are already going to
+    // a pre-vetted address.
     let conn: Deno.Conn;
+    const tcp = await Deno.connect({ hostname: target.ip, port });
     if (currentUrl.protocol === 'https:') {
-      conn = await Deno.connectTls({
-        hostname:      target.ip,
-        port,
-        serverName:    host,
+      conn = await Deno.startTls(tcp, {
+        hostname:      host,
         alpnProtocols: ['http/1.1'],
       });
     } else {
-      conn = await Deno.connect({ hostname: target.ip, port });
+      conn = tcp;
     }
 
     try {
