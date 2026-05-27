@@ -163,11 +163,10 @@ const onSubmit = () => {
       </template>
     </UFormField>
 
-    <UFormField
+    <SettingsToggle
+      v-model="enabled"
       label="Enabled"
-      help="When off, the bot won't reply."
-    >
-      <USwitch v-model="enabled" />
-    </UFormField>
+      description="When off, the bot won't reply."
+    />
   </UForm>
 </template>
