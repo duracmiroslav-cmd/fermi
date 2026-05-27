@@ -2,6 +2,7 @@ import { validateSignature } from '@line/bot-sdk';
 import { z } from 'zod';
 import { showLineLoadingAnimation } from '~~/server/utils/bots/line';
 import { checkBotUserRateLimit } from '~~/server/utils/rate-limit';
+import { isTrustedTriggerHost } from '~~/server/utils/trigger';
 import { findBotByExternalId } from '~~/shared/bots';
 import { loadCredential } from '~~/shared/credentials';
 import { getKek } from '~~/shared/kek';
@@ -32,14 +33,6 @@ const collectUserSourceIds = (events: unknown[]): string[] => {
   }
   return [...ids];
 };
-
-// Hostname must match this for fermi to forward the service-role
-// bearer to /functions/v1/agent. A misconfigured SUPABASE_URL would
-// otherwise leak the bearer to whatever host it resolves to.
-const isTrustedTriggerHost = (url: URL): boolean =>
-  (url.protocol === 'https:' && url.hostname.endsWith('.supabase.co'))
-  || url.hostname === 'localhost'
-  || url.hostname === '127.0.0.1';
 
 export default defineEventHandler(async (event) => {
   const contentLength = Number(getHeader(event, 'content-length') ?? 0);
