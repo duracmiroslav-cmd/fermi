@@ -76,8 +76,17 @@ export class McpClient {
   }
 
   async listTools(): Promise<McpTool[]> {
-    const result = await this.#request('tools/list') as { tools?: McpTool[] };
-    return result?.tools ?? [];
+    const all: McpTool[] = [];
+    let cursor: string | undefined;
+    do {
+      const result = await this.#request(
+        'tools/list',
+        cursor ? { cursor } : undefined,
+      ) as { tools?: McpTool[]; nextCursor?: string };
+      all.push(...(result?.tools ?? []));
+      cursor = result?.nextCursor;
+    } while (cursor);
+    return all;
   }
 
   async callTool(name: string, args: Record<string, unknown>): Promise<McpToolResult> {

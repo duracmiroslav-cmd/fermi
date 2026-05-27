@@ -140,12 +140,13 @@ export const buildToolset = async (
           });
           routers.set(llmName, async (args) => {
             const r = await client.callTool(t.name, args);
-            if (r.structuredContent !== undefined) return r.structuredContent;
             const text = (r.content ?? [])
               .filter(c => c.type === 'text')
               .map(c => c.text ?? '')
               .join('\n');
-            return r.isError ? { error: text } : { text };
+            if (r.isError) return { error: r.structuredContent ?? text };
+            if (r.structuredContent !== undefined) return r.structuredContent;
+            return { text };
           });
         }
       } catch (err) {
