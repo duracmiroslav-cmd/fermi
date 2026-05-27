@@ -2,6 +2,11 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 const BUCKET = 'message-images';
 
+// LLM provider fetches the URL inline during chat completion, well
+// inside 1h. Fresh URL on each call so a queued request finishing
+// late doesn't hand the model a dead link.
+const SIGNED_URL_TTL_SECONDS = 3600;
+
 const extFromMime = (mime: string): string => {
   switch (mime) {
     case 'image/jpeg': return 'jpg';
@@ -12,10 +17,19 @@ const extFromMime = (mime: string): string => {
   }
 };
 
-// Uploads bytes to `message-images/<ownerId>/<threadId>/<lineMessageId>.<ext>`.
-// `upsert: true` makes the operation idempotent — pgmq re-delivery
-// or a worker restart re-running the same image won't error.
-export const uploadMessageImage = async (
+// Path layout in `message-images`:
+//   <owner>/<thread>/in/<lineMessageId>.<ext>   (user-uploaded vision)
+//   <owner>/<thread>/out/<imageId>.<ext>        (fermi-generated, image-gen)
+// `in/` + `out/` describe direction of flow (user → fermi vs
+// fermi → user). Matches `message-audio` for cross-bucket symmetry;
+// future modalities slot into the same in/out taxonomy.
+
+// Uploads user-uploaded vision bytes. `lineMessageId` is the LINE
+// webhook event ID. Using a real entity ID as the storage key means
+// the path doubles as an audit handle back to the source event, and
+// pgmq re-delivery of the same message upserts to the same path
+// (idempotent).
+export const uploadUserImage = async (
   admin: SupabaseClient,
   params: {
     ownerId: string;
@@ -26,19 +40,39 @@ export const uploadMessageImage = async (
   },
 ): Promise<{ storagePath: string }> => {
   const { ownerId, threadId, lineMessageId, mime, bytes } = params;
-  const storagePath = `${ownerId}/${threadId}/${lineMessageId}.${extFromMime(mime)}`;
-  const { error } = await admin.storage.from(BUCKET).upload(storagePath, bytes, {
+  const storagePath = `${ownerId}/${threadId}/in/${lineMessageId}.${extFromMime(mime)}`;
+  const { error: uploadErr } = await admin.storage.from(BUCKET).upload(storagePath, bytes, {
     contentType: mime,
     upsert: true,
   });
-  if (error) throw error;
+  if (uploadErr) throw uploadErr;
   return { storagePath };
 };
 
-// LLM provider fetches the URL inline during chat completion, well
-// inside 1h. Fresh URL on each call so a queued request finishing
-// late doesn't hand the model a dead link.
-const SIGNED_URL_TTL_SECONDS = 3600;
+// Uploads fermi-generated image bytes. `imageId` is typically the
+// LLM-issued `tool_call_id`. Using a real entity ID as the storage
+// key means the path doubles as an audit handle back to the
+// `agent_run_steps` row that recorded the tool call, and a retry of
+// the same call upserts to the same path (idempotent).
+export const uploadGeneratedImage = async (
+  admin: SupabaseClient,
+  params: {
+    ownerId: string;
+    threadId: string;
+    imageId: string;
+    mime: string;
+    bytes: Uint8Array;
+  },
+): Promise<{ storagePath: string }> => {
+  const { ownerId, threadId, imageId, mime, bytes } = params;
+  const storagePath = `${ownerId}/${threadId}/out/${imageId}.${extFromMime(mime)}`;
+  const { error: uploadErr } = await admin.storage.from(BUCKET).upload(storagePath, bytes, {
+    contentType: mime,
+    upsert: true,
+  });
+  if (uploadErr) throw uploadErr;
+  return { storagePath };
+};
 
 export const signMessageImageUrl = async (
   admin: SupabaseClient,

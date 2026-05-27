@@ -1,13 +1,13 @@
 -- Soft-deletes an agent. Blocks two cases:
---   1. Target is the user's Default — `agents.is_default` is a
+--   1. Target is the user's Default, `agents.is_default` is a
 --      one-per-owner invariant.
---   2. Target has live bots bound — `bots.agent_id` is NOT NULL
+--   2. Target has live bots bound, `bots.agent_id` is NOT NULL
 --      with ON DELETE RESTRICT (caller rebinds first).
 --
 -- Raises:
---   agent_not_found              (P0002) — missing / wrong owner / already trashed
---   cannot_delete_default_agent  (P0001) — target is Default
---   agent_in_use                 (P0001) — target has live bots bound
+--   agent_not_found              (P0002), missing / wrong owner / already trashed
+--   cannot_delete_default_agent  (P0001), target is Default
+--   agent_in_use                 (P0001), target has live bots bound
 
 create function public.delete_agent(
   p_agent_id uuid,

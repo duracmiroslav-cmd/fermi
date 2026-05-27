@@ -27,7 +27,7 @@ interface ProviderModel {
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const MIN_CONTEXT_LENGTH = 32_000;
 const EXCLUDED_TAG_SUFFIXES = [':beta', ':experimental', ':exp', ':preview', ':legacy'];
-// Only surface models from these providers — keeps the picker tight and dependable.
+// Only surface models from these providers, keeps the picker tight and dependable.
 const ALLOWED_PROVIDERS = new Set([
   'amazon',
   'anthropic',

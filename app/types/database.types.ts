@@ -212,6 +212,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          default_image_model: string | null
           default_text_model: string | null
           deleted_at: string | null
           id: string
@@ -221,10 +222,12 @@ export type Database = {
           owner_id: string
           system_prompt: string | null
           updated_at: string
+          voice_reply_mode: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          default_image_model?: string | null
           default_text_model?: string | null
           deleted_at?: string | null
           id?: string
@@ -234,10 +237,12 @@ export type Database = {
           owner_id: string
           system_prompt?: string | null
           updated_at?: string
+          voice_reply_mode?: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          default_image_model?: string | null
           default_text_model?: string | null
           deleted_at?: string | null
           id?: string
@@ -247,6 +252,7 @@ export type Database = {
           owner_id?: string
           system_prompt?: string | null
           updated_at?: string
+          voice_reply_mode?: string
         }
         Relationships: [
           {
@@ -341,7 +347,6 @@ export type Database = {
           id: string
           owner_id: string | null
           slug: string
-          type: string
           updated_at: string
         }
         Insert: {
@@ -353,7 +358,6 @@ export type Database = {
           id?: string
           owner_id?: string | null
           slug: string
-          type: string
           updated_at?: string
         }
         Update: {
@@ -365,7 +369,6 @@ export type Database = {
           id?: string
           owner_id?: string | null
           slug?: string
-          type?: string
           updated_at?: string
         }
         Relationships: [

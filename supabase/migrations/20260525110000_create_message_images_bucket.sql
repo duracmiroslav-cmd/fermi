@@ -6,12 +6,15 @@
 --
 -- Vision flow: worker fetches the image from LINE once on Turn 1,
 -- uploads here, then issues fresh signed URLs on subsequent turns
--- so the LLM provider fetches directly from Storage — no further
+-- so the LLM provider fetches directly from Storage, no further
 -- worker bandwidth.
 --
--- Path convention: <owner_id>/<thread_id>/<line_message_id>.<ext>
--- Prefix layout makes "delete a thread's media" a single
--- `remove(folder)` prefix scan.
+-- Path conventions:
+--   <owner_id>/<thread_id>/in/<line_message_id>.<ext>  (user-uploaded)
+--   <owner_id>/<thread_id>/out/<image_id>.<ext>        (fermi-generated)
+-- `in/` + `out/` describe direction of flow; both share a per-thread
+-- prefix so a future retention cron can prefix-delete an entire
+-- thread's media in one storage call regardless of source.
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (

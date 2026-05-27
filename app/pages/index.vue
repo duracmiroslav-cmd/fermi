@@ -37,7 +37,7 @@ const submit = async () => {
     <aside class="pointer-events-none absolute top-32 right-6 sm:right-12 hidden md:block font-mono text-right select-none">
       <p class="text-xs text-toned/70 leading-relaxed">
         <span class="block">"where is everyone?"</span>
-        <span class="block text-toned/50 mt-1">— enrico fermi, 1950</span>
+        <span class="block text-toned/50 mt-1">,  enrico fermi, 1950</span>
       </p>
       <p class="mt-6 text-xs text-toned/70">
         <span class="text-primary/80">∴</span> they're on LINE.
@@ -104,7 +104,7 @@ const submit = async () => {
             class="mt-10 text-toned text-base sm:text-lg max-w-xl leading-relaxed reveal"
             style="animation-delay: 520ms"
           >
-            fermi puts MCP-connected agents inside LINE. No deploy, no new app to learn. Add a friend, link your tools, and chat like normal — only now your chat ships work.
+            fermi puts MCP-connected agents inside LINE. No deploy, no new app to learn. Add a friend, link your tools, and chat like normal, only now your chat ships work.
           </p>
 
           <form

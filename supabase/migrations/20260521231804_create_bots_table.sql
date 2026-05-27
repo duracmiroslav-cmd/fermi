@@ -1,6 +1,6 @@
 -- Creates the `bots` table, the deployment / transport layer.
 -- Persona lives on `agents`; the `agent_id` FK is `not null` with
--- `on delete restrict` — every bot has exactly one agent at all
+-- `on delete restrict`, every bot has exactly one agent at all
 -- times, and an in-use agent can't be deleted (rebind first).
 -- One agent : N bots (a single persona can run on multiple LINE OAs).
 

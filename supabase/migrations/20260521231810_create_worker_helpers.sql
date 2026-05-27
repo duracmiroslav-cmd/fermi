@@ -7,7 +7,7 @@
 -- consume the queue.
 --
 -- `visibility_timeout` defaults to 120s: tool-calling agent loops
--- (web_search → LLM → LLM) can take 40-60s end-to-end, and anything
+-- (search_web → LLM → LLM) can take 40-60s end-to-end, and anything
 -- below that ceiling lets pgmq redeliver mid-flight so the user
 -- gets two replies.
 

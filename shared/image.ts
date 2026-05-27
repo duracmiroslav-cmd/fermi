@@ -23,7 +23,7 @@ const startsWith = (bytes: Uint8Array, prefix: number[]): boolean => {
 };
 
 // WebP has a split header: 'RIFF' at byte 0, 4 bytes of size, then
-// 'WEBP' at byte 8 — too irregular to fit the simple prefix table.
+// 'WEBP' at byte 8, too irregular to fit the simple prefix table.
 const isWebp = (bytes: Uint8Array): boolean => (
   bytes.length >= 12
   && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46

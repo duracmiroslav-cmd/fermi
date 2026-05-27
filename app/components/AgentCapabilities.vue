@@ -27,7 +27,7 @@ const CAP_WIDTHS = ['w-24', 'w-32', 'w-20', 'w-28'];
 const CAP_DESC_WIDTHS = ['w-48', 'w-40', 'w-52', 'w-44'];
 
 // Toggle is locked when the capability has no live credential to call
-// against — coming-soon entries, or providers-backed entries where the
+// against, coming-soon entries, or providers-backed entries where the
 // user hasn't connected any provider. Already-attached rows stay
 // togglable so the user can always detach.
 const isLocked = (cap: AgentCapabilityRow): boolean => {

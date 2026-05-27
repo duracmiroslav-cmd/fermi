@@ -4,7 +4,7 @@ interface Args {
   timezone?: string;
 }
 
-// Validates the IANA timezone via Intl.DateTimeFormat — passing an
+// Validates the IANA timezone via Intl.DateTimeFormat, passing an
 // unknown zone throws a RangeError, which lets the model self-correct
 // on the next turn instead of getting a silent default.
 const formatInZone = (date: Date, timezone: string): string => {
@@ -24,6 +24,7 @@ const formatInZone = (date: Date, timezone: string): string => {
 
 export const getCurrentTime: Tool = {
   name: 'get_current_time',
+  capabilitySlug: 'time',
   description:
     'Get the current wall-clock time in a given IANA timezone (e.g. "Asia/Taipei", "UTC", "America/New_York"). Returns both ISO-8601 UTC and a human-readable local time string.',
   parameters: {

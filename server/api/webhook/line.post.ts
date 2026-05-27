@@ -8,7 +8,7 @@ import { getKek } from '~~/shared/kek';
 const MAX_BODY_BYTES = 256 * 1024;
 
 // Only `message` events from a `user` source can show a loading
-// animation — group / room chats don't surface the indicator and
+// animation, group / room chats don't surface the indicator and
 // non-message events (follow / postback / etc.) don't expect one.
 const userMessageEventSchema = z.object({
   type: z.literal('message'),
@@ -93,7 +93,7 @@ export default defineEventHandler(async (event) => {
   // (URL reachable, secret matches, LINE-side webhook enabled).
   // Filter on `webhook_verified_at is null` keeps the write idempotent
   // so later events don't overwrite the original timestamp. Fire-and-
-  // forget — must not block the 1-second response window LINE owes.
+  // forget, must not block the 1-second response window LINE owes.
   void admin
     .from('bots')
     .update({ webhook_verified_at: new Date().toISOString() })

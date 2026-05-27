@@ -1,6 +1,6 @@
 -- Creates the `agents` table, the persona layer (system prompt,
 -- default model, avatar). Bots reference an agent via
--- `bots.agent_id` (NOT NULL, ON DELETE RESTRICT — see `bots`).
+-- `bots.agent_id` (NOT NULL, ON DELETE RESTRICT, see `bots`).
 
 create table public.agents (
   id                    uuid primary key default gen_random_uuid(),

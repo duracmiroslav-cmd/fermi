@@ -6,7 +6,7 @@
 --
 -- `bot_id` / `agent_id` / `owner_id` are denormalized snapshots so
 -- dashboards can filter without joining through `threads` and
--- `bots` on every read. `agent_id` is a frozen snapshot — if a
+-- `bots` on every read. `agent_id` is a frozen snapshot, if a
 -- bot's agent later changes, historical runs stay attributed to
 -- the agent that actually handled them. A BEFORE INSERT trigger
 -- fills the three from the run's thread so `startRun(threadId)`

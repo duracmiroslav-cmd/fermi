@@ -37,7 +37,7 @@ export const CAPABILITY_META: Record<string, CapabilityMeta> = {
 };
 
 // BYO capabilities (rows with owner_id IS NOT NULL) won't have an
-// entry here, so default to "no credential needed" — the BYO MCP
+// entry here, so default to "no credential needed", the BYO MCP
 // server's own auth lives in its `capabilities.config` jsonb.
 export const getCapabilityMeta = (slug: string): CapabilityMeta =>
   CAPABILITY_META[slug] ?? { credentialKind: 'none' };
@@ -55,7 +55,6 @@ export interface CapabilityProviderRow {
 export interface CapabilityRow {
   id: string;
   slug: string;
-  type: 'mcp' | 'skill';
   displayName: string;
   description: string | null;
   credentialKind: CredentialKind;
@@ -75,7 +74,7 @@ export const listCapabilitiesForUser = async (
 ): Promise<CapabilityRow[]> => {
   const { data: caps, error: capsErr } = await admin
     .from('capabilities')
-    .select('id, slug, type, display_name, description, owner_id')
+    .select('id, slug, display_name, description, owner_id')
     .is('deleted_at', null)
     .or(`owner_id.is.null,owner_id.eq.${userId}`)
     .order('owner_id', { ascending: true, nullsFirst: true })
@@ -96,7 +95,6 @@ export const listCapabilitiesForUser = async (
     const row: CapabilityRow = {
       id: cap.id,
       slug: cap.slug,
-      type: cap.type as 'mcp' | 'skill',
       displayName: cap.display_name,
       description: cap.description,
       credentialKind: meta.credentialKind,

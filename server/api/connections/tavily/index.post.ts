@@ -9,7 +9,7 @@ const bodySchema = z.object({
 
 // One free-tier Tavily query is spent here to confirm the key is
 // real before we encrypt and store it. Skipping verification would
-// let typos sit in the DB and surface as web_search errors much
+// let typos sit in the DB and surface as search_web errors much
 // later, far from where the user pasted the key.
 const verifyTavilyKey = async (apiKey: string): Promise<void> => {
   const res = await fetch('https://api.tavily.com/search', {

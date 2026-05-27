@@ -3,7 +3,7 @@
 -- `disabled_at is null`.
 --
 -- `disabled_at` (null = enabled) follows the same lifecycle-column
--- pattern as `bots.disabled_at` — a boolean would collapse "when
+-- pattern as `bots.disabled_at`, a boolean would collapse "when
 -- did the user turn this off" into nothing.
 --
 -- `config` holds per-agent overrides on top of the capability's

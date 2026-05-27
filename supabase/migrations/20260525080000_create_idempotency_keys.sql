@@ -4,7 +4,7 @@
 -- `update_id`; etc.). The worker never learns the key's origin.
 --
 -- Composite PK `(scope, key)` promotes "scope" to a first-class
--- concept — enables per-scope analytics, retention, and RLS without
+-- concept, enables per-scope analytics, retention, and RLS without
 -- having to parse a namespaced string PK.
 --
 -- This closes the duplicate-reply race that the pgmq visibility

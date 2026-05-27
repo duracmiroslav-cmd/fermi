@@ -1,7 +1,7 @@
 -- Creates the `purge_orphaned_credentials` function and a daily
 -- pg_cron job that deletes credentials whose parent bot has been in
 -- the trash longer than 30 days. Content (bot row, conversations,
--- threads, messages) is intentionally left alone — the system never
+-- threads, messages) is intentionally left alone, the system never
 -- auto-purges history; only secrets have a retention ceiling, for
 -- security hygiene.
 

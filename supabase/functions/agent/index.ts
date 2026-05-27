@@ -1,21 +1,35 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
+import { loadActiveCapabilitySlugs } from '../../../shared/agentCapabilities.ts';
+import { type AudioMime, detectAudioMime } from '../../../shared/audio.ts';
 import { detectImageMime, type ImageMime } from '../../../shared/image.ts';
-import { findAgentById } from '../../../shared/agents.ts';
+import { type VoiceReplyMode, findAgentById } from '../../../shared/agents.ts';
 import { findBotById } from '../../../shared/bots.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
 import { getKek } from '../../../shared/kek.ts';
-import { uploadMessageImage } from '../../../shared/messageImages.ts';
+import {
+  FreeBYOKRequiredError,
+  PlatformKeyNotConfiguredError,
+  resolveKey,
+} from '../../../shared/keys.ts';
+import {
+  signMessageAudioUrl,
+  uploadGeneratedAudio,
+  uploadUserAudio,
+} from '../../../shared/messageAudio.ts';
+import { uploadUserImage } from '../../../shared/messageImages.ts';
 import { DEFAULT_TEXT_MODEL, DEFAULT_VISION_MODEL } from '../../../shared/constants/models.ts';
 import { tryClaimIdempotencyKey } from './dedup.ts';
 import { LineContentError, fetchLineMessageContent } from './line-content.ts';
 import { OpenRouterError, chatCompletion, type ChatMessage } from './openrouter.ts';
 import { errorCodeFromStatus, finishRun, logStep, startRun } from './runs.ts';
+import { STTError, transcribeAudio } from './stt.ts';
+import { synthesizeSpeech } from './tts.ts';
 import {
   appendMessage,
   loadRecentMessages,
   resolveOrCreateLatestThread,
 } from './threads.ts';
-import { executeTool, toolSchemas } from './tools/index.ts';
+import { type ToolAttachment, executeTool, toolSchemasForCapabilities } from './tools/index.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -50,9 +64,14 @@ interface LineEvent {
 
 // What the user just sent for this turn. Discriminated at the event
 // boundary in processLineMessage; runAgentLoop only sees the
-// validated form.
+// validated form. The `audio` variant carries both the Whisper
+// transcript (LLM consumes) and the raw bytes (uploaded to storage
+// for a future thread replay UI). Knowing the input was audio is
+// also load-bearing for `voiceReplyMode='auto'`, which mirrors back
+// voice.
 type UserInput
   = | { type: 'text';  text: string }
+    | { type: 'audio'; lineMessageId: string; mime: AudioMime; bytes: Uint8Array; transcript: string }
     | { type: 'image'; lineMessageId: string; mime: ImageMime; bytes: Uint8Array };
 
 interface LinePayload {
@@ -82,15 +101,29 @@ class LinePushError extends Error {
 }
 
 // LINE reply tokens are valid roughly one minute from webhook delivery.
-// Switch to Push API once we've burned ~25s — leaves comfortable
+// Switch to Push API once we've burned ~25s, leaving comfortable
 // headroom for the LLM call still in flight and the LINE round-trip,
-// and avoids a Reply 400 wasting the only delivery attempt.
+// and avoiding a Reply 400 wasting the only delivery attempt.
 const REPLY_BUDGET_MS = 25_000;
 
-const replyText = async (
+// LINE outbound message shapes we emit. Adding a new variant (flex,
+// sticker, video) extends the union here, the JSON.stringify body
+// just forwards the discriminated objects straight to LINE's API.
+export type LineMessage
+  = | { type: 'text';  text: string }
+    | { type: 'audio'; originalContentUrl: string; duration: number }
+    | { type: 'image'; originalContentUrl: string; previewImageUrl: string };
+
+// LINE Reply / Push API both accept up to 5 messages in one call.
+// We cap at the API limit to keep the contract explicit. Image-gen
+// tool calls that produce >4 images (rare) will be truncated by the
+// caller before reaching this layer.
+const LINE_MESSAGES_PER_CALL = 5;
+
+const replyMessages = async (
   accessToken: string,
   replyToken: string,
-  text: string,
+  messages: LineMessage[],
 ): Promise<void> => {
   const res = await fetch('https://api.line.me/v2/bot/message/reply', {
     method: 'POST',
@@ -98,10 +131,7 @@ const replyText = async (
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({
-      replyToken,
-      messages: [{ type: 'text', text }],
-    }),
+    body: JSON.stringify({ replyToken, messages: messages.slice(0, LINE_MESSAGES_PER_CALL) }),
   });
   if (!res.ok) {
     const body = await res.text();
@@ -109,10 +139,10 @@ const replyText = async (
   }
 };
 
-const pushText = async (
+const pushMessages = async (
   accessToken: string,
   to: string,
-  text: string,
+  messages: LineMessage[],
 ): Promise<void> => {
   const res = await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',
@@ -120,10 +150,7 @@ const pushText = async (
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({
-      to,
-      messages: [{ type: 'text', text }],
-    }),
+    body: JSON.stringify({ to, messages: messages.slice(0, LINE_MESSAGES_PER_CALL) }),
   });
   if (!res.ok) {
     const body = await res.text();
@@ -136,27 +163,27 @@ export type DeliveryMethod = 'reply' | 'push';
 // Delivers the bot's response, picking Reply (free) when we're inside
 // the reply-token window and Push (quota) when we're not. If a Reply
 // attempt fails with 400 (token expired or already used), falls back
-// to Push so the message isn't dropped on the floor.
-const deliverMessage = async (params: {
+// to Push so the messages aren't dropped on the floor.
+const deliverMessages = async (params: {
   accessToken: string;
   replyToken: string;
   userId: string;
-  text: string;
+  messages: LineMessage[];
   elapsedMs: number;
 }): Promise<DeliveryMethod> => {
-  const { accessToken, replyToken, userId, text, elapsedMs } = params;
+  const { accessToken, replyToken, userId, messages, elapsedMs } = params;
 
   if (elapsedMs >= REPLY_BUDGET_MS) {
-    await pushText(accessToken, userId, text);
+    await pushMessages(accessToken, userId, messages);
     return 'push';
   }
 
   try {
-    await replyText(accessToken, replyToken, text);
+    await replyMessages(accessToken, replyToken, messages);
     return 'reply';
   } catch (err) {
     if (err instanceof LineReplyError && err.status === 400) {
-      await pushText(accessToken, userId, text);
+      await pushMessages(accessToken, userId, messages);
       return 'push';
     }
     throw err;
@@ -172,7 +199,7 @@ const safeReply = async (
   text: string,
 ): Promise<void> => {
   try {
-    await replyText(accessToken, replyToken, text);
+    await replyMessages(accessToken, replyToken, [{ type: 'text', text }]);
   } catch (err) {
     if (err instanceof LineReplyError && err.status === 400) {
       console.warn('reply token expired or already used; dropping', { replyToken });
@@ -183,27 +210,16 @@ const safeReply = async (
 };
 
 const NO_AGENT_NOTICE = '⚙️ 這個 bot 還沒設定 agent，請到 https://fermi.tw/dashboard 綁定一個。';
-const NO_OPENROUTER_NOTICE = '⚙️ fermi 還沒連接 OpenRouter，請到 https://fermi.tw/dashboard/connections 連接。';
+// Free tier: BYOK is the friction point. Notice surfaces both paths so
+// the bot owner can pick connect (manual) or upgrade (instant).
+const FREE_BYOK_NOTICE_OPENROUTER
+  = '⚙️ 還沒連接 OpenRouter。Free 方案請到 https://fermi.tw/dashboard/connections 連接，或升級 Pro 由 fermi 代管。';
+const PLATFORM_KEY_OPS_NOTICE = '⚠️ Pro 服務暫時不可用，已通知 fermi 處理，請稍後再試。';
+const FREE_BYOK_NOTICE_OPENAI
+  = '🎙️ 語音功能需要 OpenAI key。Free 方案請到 https://fermi.tw/dashboard/connections 連接，或升級 Pro 由 fermi 代管。';
 
-const tryLoadOpenRouterKey = async (
-  admin: SupabaseClient,
-  kek: CryptoKey,
-  userId: string,
-): Promise<string | null> => {
-  try {
-    const { plaintext } = await loadCredential(admin, kek, {
-      userId,
-      botId: null,
-      keyType: 'openrouter',
-    });
-    return plaintext;
-  } catch (err) {
-    // PGRST116 from PostgREST's .single() when no rows match — the
-    // user simply hasn't connected OpenRouter yet.
-    if ((err as { code?: string })?.code === 'PGRST116') return null;
-    throw err;
-  }
-};
+const PLATFORM_OPENROUTER_KEY = Deno.env.get('OPENROUTER_API_KEY') ?? null;
+const PLATFORM_OPENAI_KEY = Deno.env.get('OPENAI_API_KEY') ?? null;
 
 const isTextMessageFromUser = (event: LineEvent): event is LineEvent & {
   replyToken: string;
@@ -231,17 +247,41 @@ const isImageMessageFromUser = (event: LineEvent): event is LineEvent & {
   && typeof event.source.userId === 'string'
 );
 
+const isAudioMessageFromUser = (event: LineEvent): event is LineEvent & {
+  replyToken: string;
+  source: LineSource & { userId: string };
+  message: { type: 'audio'; id: string };
+} => (
+  event.type === 'message'
+  && event.message?.type === 'audio'
+  && typeof event.message.id === 'string'
+  && typeof event.replyToken === 'string'
+  && event.source?.type === 'user'
+  && typeof event.source.userId === 'string'
+);
+
 // Reply-bearing user message of any modality we accept. Used by the
-// "no agent / no openrouter key" early-return paths so an image
-// arriving in those states still gets the configuration notice.
+// "no agent / no openrouter key" early-return paths so a message of
+// any supported type arriving in those states still gets the
+// configuration notice.
 const isReplyableUserMessage = (event: LineEvent): event is LineEvent & {
   replyToken: string;
   source: LineSource & { userId: string };
-} => isTextMessageFromUser(event) || isImageMessageFromUser(event);
+} => (
+  isTextMessageFromUser(event)
+  || isImageMessageFromUser(event)
+  || isAudioMessageFromUser(event)
+);
 
 const runAgentLoop = async (params: {
   bot: { id: string; ownerId: string };
-  agent: { id: string; name: string; systemPrompt: string | null; defaultTextModel: string | null };
+  agent: {
+    id: string;
+    name: string;
+    systemPrompt: string | null;
+    defaultTextModel: string | null;
+    voiceReplyMode: VoiceReplyMode;
+  };
   openrouterKey: string;
   lineAccessToken: string;
   kek: CryptoKey;
@@ -249,7 +289,7 @@ const runAgentLoop = async (params: {
   replyToken: string;
   userInput: UserInput;
   // Webhook timestamp from LINE (ms since epoch). Anchors the
-  // reply-token budget — we time elapsed from when LINE delivered
+  // reply-token budget: we time elapsed from when LINE delivered
   // the event, not when our worker dequeued it.
   eventTimestamp: number;
 }): Promise<void> => {
@@ -258,8 +298,28 @@ const runAgentLoop = async (params: {
   const threadId = await resolveOrCreateLatestThread(admin, bot.id, externalUserId);
   if (userInput.type === 'text') {
     await appendMessage(admin, threadId, 'user', { type: 'text', text: userInput.text });
+  } else if (userInput.type === 'audio') {
+    // Upload the raw bytes alongside the transcript: LLM history
+    // rebuild reads the transcript (so re-loads never re-pay
+    // Whisper), a future replay viewer reads the storagePath. Bytes
+    // are retained for thread lifetime and prefix-deleted with the
+    // rest of the thread's media when retention cleanup runs.
+    const { storagePath } = await uploadUserAudio(admin, {
+      ownerId: bot.ownerId,
+      threadId,
+      lineMessageId: userInput.lineMessageId,
+      mime: userInput.mime,
+      bytes: userInput.bytes,
+    });
+    await appendMessage(admin, threadId, 'user', {
+      type: 'audio',
+      mime: userInput.mime,
+      sizeBytes: userInput.bytes.byteLength,
+      storagePath,
+      transcript: userInput.transcript,
+    });
   } else {
-    const { storagePath } = await uploadMessageImage(admin, {
+    const { storagePath } = await uploadUserImage(admin, {
       ownerId: bot.ownerId,
       threadId,
       lineMessageId: userInput.lineMessageId,
@@ -283,7 +343,18 @@ const runAgentLoop = async (params: {
   let step = 1;
   let totalCostUsd = 0;
 
+  // Side-effect sink for tools that produce media (image-gen, future
+  // TTS-via-tool etc.). Tools push entries during execute; the loop
+  // tail drains them into the LINE delivery array.
+  const attachments: ToolAttachment[] = [];
+
   try {
+    // Resolved once per run: capability attachment changes mid-loop
+    // (e.g. user toggles in dashboard) shouldn't reshape the tool set
+    // an LLM call already in flight believes it has.
+    const attachedSlugs = await loadActiveCapabilitySlugs(admin, agent.id);
+    const tools = toolSchemasForCapabilities(attachedSlugs);
+
     const history = await loadRecentMessages(admin, threadId, HISTORY_WINDOW);
     const systemPrompt = agent.systemPrompt
       ?? `You are ${agent.name}, a helpful assistant on LINE. Reply in the user's language.`;
@@ -319,7 +390,7 @@ const runAgentLoop = async (params: {
         apiKey: openrouterKey,
         model,
         messages,
-        tools: toolSchemas,
+        tools,
       });
       const llmLatency = Math.round(performance.now() - llmStart);
       totalCostUsd += result.costUsd;
@@ -339,7 +410,7 @@ const runAgentLoop = async (params: {
         openrouterGenId: result.generationId,
       });
 
-      // No tool calls — model's final answer. Exit loop.
+      // No tool calls, model's final answer. Exit loop.
       if (!result.toolCalls) {
         finalText = result.text ?? '';
         break;
@@ -376,6 +447,10 @@ const runAgentLoop = async (params: {
           admin,
           kek,
           ownerId: bot.ownerId,
+          threadId,
+          runId,
+          toolCallId: call.id,
+          attachments,
         });
         const toolLatency = Math.round(performance.now() - toolStart);
 
@@ -407,15 +482,112 @@ const runAgentLoop = async (params: {
       finalText = `⚠️ 跑了 ${MAX_AGENT_STEPS} 步還沒收斂，先停下來。可以換個方式問我一次。`;
     }
 
-    await appendMessage(admin, threadId, 'assistant', { type: 'text', text: finalText });
+    // Voice-reply mode resolves to a yes/no per-turn:
+    //   always → every turn
+    //   auto   → only when this turn's user input was audio (mirror)
+    //   off    → never
+    // Any failure along the TTS path (Free without OpenAI BYOK,
+    // platform env unset, OpenAI 4xx/5xx, upload error) falls back to
+    // text. Better a text reply than no reply.
+    const wantsVoiceReply
+      = agent.voiceReplyMode === 'always'
+        || (agent.voiceReplyMode === 'auto' && userInput.type === 'audio');
+
+    // Synthesize TTS first (if requested) so we know whether the
+    // primary `messages` row should be audio (with transcript) or
+    // plain text. Mirrors the user-side STT shape: a voice turn is
+    // stored as a single audio row with transcript embedded.
+    let ttsAudio: { storagePath: string; signedUrl: string; mime: string; sizeBytes: number; durationMs: number } | null = null;
+    if (wantsVoiceReply) {
+      try {
+        const resolved = await resolveKey(admin, kek, {
+          ownerId: bot.ownerId,
+          purpose: 'openai',
+          platformKey: PLATFORM_OPENAI_KEY,
+        });
+        const speech = await synthesizeSpeech({ apiKey: resolved.key, text: finalText });
+        const { storagePath } = await uploadGeneratedAudio(admin, {
+          ownerId: bot.ownerId,
+          threadId,
+          runId,
+          mime: speech.mime,
+          bytes: speech.bytes,
+        });
+        const signedUrl = await signMessageAudioUrl(admin, storagePath);
+        ttsAudio = {
+          storagePath,
+          signedUrl,
+          mime: speech.mime,
+          sizeBytes: speech.bytes.byteLength,
+          durationMs: speech.durationMs,
+        };
+      } catch (ttsErr) {
+        console.warn('TTS failed; falling back to text', {
+          agentId: agent.id,
+          ownerId: bot.ownerId,
+          err: String(ttsErr),
+        });
+      }
+    }
+
+    // Primary assistant row: audio variant when TTS succeeded (single
+    // row with transcript embedded, mirroring the user STT shape),
+    // text variant otherwise. Either way `finalText` is the
+    // canonical semantic content.
+    if (ttsAudio) {
+      await appendMessage(admin, threadId, 'assistant', {
+        type: 'audio',
+        mime: ttsAudio.mime,
+        sizeBytes: ttsAudio.sizeBytes,
+        storagePath: ttsAudio.storagePath,
+        transcript: finalText,
+      });
+    } else {
+      await appendMessage(admin, threadId, 'assistant', { type: 'text', text: finalText });
+    }
+
+    // Persist tool-produced media as additional assistant rows so
+    // history rebuild on subsequent turns can re-sign URLs and feed
+    // them to the LLM (same pattern as user-uploaded vision images).
+    for (const att of attachments) {
+      if (att.type === 'image') {
+        await appendMessage(admin, threadId, 'assistant', {
+          type: 'image',
+          mime: att.mime,
+          sizeBytes: att.sizeBytes,
+          storagePath: att.storagePath,
+        });
+      }
+    }
+
+    // Compose LINE delivery: primary message (audio if TTS succeeded,
+    // text otherwise) followed by any image attachments. LINE caps
+    // multi-message replies at 5; image attachments take the slots
+    // after the primary, so a generation-heavy turn that produces 5+
+    // images would lose the tail. Acceptable for v1 (the LLM is
+    // discouraged from generating that many images per turn in the
+    // tool description), and the truncation layer (replyMessages /
+    // pushMessages) caps at LINE_MESSAGES_PER_CALL anyway.
+    const outbound: LineMessage[] = ttsAudio
+      ? [{ type: 'audio', originalContentUrl: ttsAudio.signedUrl, duration: ttsAudio.durationMs }]
+      : [{ type: 'text', text: `🤖 ${finalText}` }];
+    for (const att of attachments) {
+      if (att.type === 'image') {
+        outbound.push({
+          type: 'image',
+          originalContentUrl: att.originalContentUrl,
+          previewImageUrl: att.previewImageUrl,
+        });
+      }
+    }
 
     const elapsedMs = Date.now() - eventTimestamp;
     try {
-      const method = await deliverMessage({
+      const method = await deliverMessages({
         accessToken: lineAccessToken,
         replyToken,
         userId: externalUserId,
-        text: `🤖 ${finalText}`,
+        messages: outbound,
         elapsedMs,
       });
       await logStep(admin, {
@@ -425,7 +597,7 @@ const runAgentLoop = async (params: {
         payload: { method, elapsed_ms: elapsedMs },
       });
       // Mark the moment this bot first delivered a reply end-to-end.
-      // Drives the "Setup complete" prompt on the info page — only an
+      // Drives the "Setup complete" prompt on the info page. Only an
       // actual reply (not LINE's verify ping) counts. Idempotent via
       // .is(null) so subsequent replies leave the first timestamp.
       await admin
@@ -455,7 +627,7 @@ const runAgentLoop = async (params: {
       });
       await finishRun(admin, runId, 'failed', totalCostUsd, errorCodeFromStatus(pushStatus));
       // Both Reply 400 (fallback to Push already tried) and Push 4xx
-      // are terminal for this event — retrying via pgmq would just
+      // are terminal for this event. Retrying via pgmq would just
       // duplicate the failure or, worse, re-charge a successful Push.
       // Bubble for any other error so pgmq retries the whole payload.
       if (err instanceof LinePushError) return;
@@ -473,16 +645,16 @@ const runAgentLoop = async (params: {
     });
     // Surface the failure to LINE so the user (and dogfooding owner)
     // sees what went wrong instead of staring at a vanished `...`.
-    // v1 ships the raw error string for fast dogfooding — once we
-    // have non-trusted users this needs to switch to a friendly
-    // notice + admin-only debug link (see roadmap M3 P1).
+    // Ships the raw error string for fast dogfooding. Once non-
+    // trusted users start arriving this needs to switch to a
+    // friendly notice plus an admin-only debug link.
     let userNotified = false;
     try {
-      await deliverMessage({
+      await deliverMessages({
         accessToken: lineAccessToken,
         replyToken,
         userId: externalUserId,
-        text: formatErrorForLine(err),
+        messages: [{ type: 'text', text: formatErrorForLine(err) }],
         elapsedMs: Date.now() - eventTimestamp,
       });
       userNotified = true;
@@ -494,7 +666,7 @@ const runAgentLoop = async (params: {
     // notified, throwing would have pgmq redeliver and we'd spam the
     // chat with a duplicate ⚠️ every visibility-timeout (~30s). If
     // notice itself failed (LINE 5xx), keep the throw so pgmq can
-    // retry — maybe the next attempt lands while LINE is back up.
+    // retry (maybe the next attempt lands while LINE is back up).
     if (userNotified) return;
     throw err;
   }
@@ -516,8 +688,8 @@ const formatErrorForLine = (err: unknown): string => {
 
 // Filters out events whose webhookEventId we've already processed
 // (pgmq re-delivery, LINE webhook retry). Events without a
-// webhookEventId fall through unguarded — defensive only; LINE has
-// set this field on every webhook event since 2021.
+// webhookEventId fall through unguarded (defensive only, LINE has
+// set this field on every webhook event since 2021).
 const claimFreshEvents = async (events: LineEvent[]): Promise<LineEvent[]> => {
   const fresh: LineEvent[] = [];
   for (const event of events) {
@@ -574,11 +746,32 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     return;
   }
 
-  const openrouterKey = await tryLoadOpenRouterKey(admin, kek, bot.ownerId);
-  if (!openrouterKey) {
+  let openrouterKey: string;
+  try {
+    const resolved = await resolveKey(admin, kek, {
+      ownerId: bot.ownerId,
+      purpose: 'openrouter',
+      platformKey: PLATFORM_OPENROUTER_KEY,
+    });
+    openrouterKey = resolved.key;
+  } catch (err) {
+    // FreeBYOKRequiredError = owner is on Free + hasn't connected.
+    // PlatformKeyNotConfiguredError = Pro user but fermi's env is missing
+    // (operational issue on our side; user-facing message must not blame
+    // the user). Any other throw is a real DB/decryption error → bubble
+    // so pgmq retries.
+    const notice = err instanceof FreeBYOKRequiredError
+      ? FREE_BYOK_NOTICE_OPENROUTER
+      : err instanceof PlatformKeyNotConfiguredError
+        ? PLATFORM_KEY_OPS_NOTICE
+        : null;
+    if (notice === null) throw err;
+    if (err instanceof PlatformKeyNotConfiguredError) {
+      console.error('platform OpenRouter key missing for Pro user', { ownerId: bot.ownerId });
+    }
     for (const event of events) {
       if (isReplyableUserMessage(event)) {
-        await safeReply(lineAccessToken, event.replyToken, NO_OPENROUTER_NOTICE);
+        await safeReply(lineAccessToken, event.replyToken, notice);
       }
     }
     return;
@@ -607,7 +800,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
 
     if (isImageMessageFromUser(event)) {
       let imageBytes: Uint8Array;
-      let mime: ImageMime;
+      let imageMime: ImageMime;
       try {
         const content = await fetchLineMessageContent(lineAccessToken, event.message.id);
         const detected = detectImageMime(content.bytes);
@@ -615,7 +808,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
           await safeReply(lineAccessToken, event.replyToken, '⚠️ 目前只支援 JPG / PNG / GIF / WebP。');
           continue;
         }
-        mime = detected;
+        imageMime = detected;
         imageBytes = content.bytes;
       } catch (err) {
         if (err instanceof LineContentError && err.status === 413) {
@@ -632,9 +825,113 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         kek,
         externalUserId: event.source.userId,
         replyToken: event.replyToken,
-        userInput: { type: 'image', lineMessageId: event.message.id, mime, bytes: imageBytes },
+        userInput: { type: 'image', lineMessageId: event.message.id, mime: imageMime, bytes: imageBytes },
         eventTimestamp,
       });
+      continue;
+    }
+
+    if (isAudioMessageFromUser(event)) {
+      let audioBytes: Uint8Array;
+      let audioMime: AudioMime;
+      try {
+        const content = await fetchLineMessageContent(lineAccessToken, event.message.id);
+        const detected = detectAudioMime(content.bytes);
+        if (!detected) {
+          await safeReply(lineAccessToken, event.replyToken, '⚠️ 不支援的音訊格式。');
+          continue;
+        }
+        audioMime = detected;
+        audioBytes = content.bytes;
+      } catch (err) {
+        if (err instanceof LineContentError && err.status === 413) {
+          await safeReply(lineAccessToken, event.replyToken, '⚠️ 音訊太大，上限 10MB。');
+          continue;
+        }
+        throw err;
+      }
+
+      // STT runs *before* the agent loop because the rest of the
+      // pipeline only knows text + image. Whisper turns audio into
+      // text, then the loop proceeds exactly like a typed message.
+      // Errors here short-circuit with a user-facing notice. No
+      // agent_run is started for failed transcriptions.
+      let openaiKey: string;
+      try {
+        const resolved = await resolveKey(admin, kek, {
+          ownerId: bot.ownerId,
+          purpose: 'openai',
+          platformKey: PLATFORM_OPENAI_KEY,
+        });
+        openaiKey = resolved.key;
+      } catch (err) {
+        if (err instanceof FreeBYOKRequiredError) {
+          await safeReply(lineAccessToken, event.replyToken, FREE_BYOK_NOTICE_OPENAI);
+          continue;
+        }
+        if (err instanceof PlatformKeyNotConfiguredError) {
+          console.error('platform OpenAI key missing for Pro user', { ownerId: bot.ownerId });
+          await safeReply(lineAccessToken, event.replyToken, PLATFORM_KEY_OPS_NOTICE);
+          continue;
+        }
+        throw err;
+      }
+
+      let transcript: string;
+      try {
+        transcript = await transcribeAudio({ apiKey: openaiKey, bytes: audioBytes, mime: audioMime });
+      } catch (err) {
+        if (err instanceof STTError) {
+          console.warn('Whisper failed; dropping audio', { status: err.status });
+          await safeReply(lineAccessToken, event.replyToken, '⚠️ 無法辨識這段語音，請再試一次。');
+          continue;
+        }
+        throw err;
+      }
+      if (transcript.length === 0) {
+        await safeReply(lineAccessToken, event.replyToken, '⚠️ 沒聽清楚，請再試一次。');
+        continue;
+      }
+
+      // `audio` variant retains modality + raw bytes so runAgentLoop
+      // can (a) prefix `[audio]` in messages history for the LLM,
+      // (b) persist bytes to storage for future replay viewer, and
+      // (c) honor voiceReplyMode='auto' (mirror back voice).
+      await runAgentLoop({
+        bot,
+        agent,
+        openrouterKey,
+        lineAccessToken,
+        kek,
+        externalUserId: event.source.userId,
+        replyToken: event.replyToken,
+        userInput: {
+          type: 'audio',
+          lineMessageId: event.message.id,
+          mime: audioMime,
+          bytes: audioBytes,
+          transcript,
+        },
+        eventTimestamp,
+      });
+      continue;
+    }
+
+    // Fallback for message events whose subtype we don't support yet:
+    // sticker / video / file / location / imagemap. Reply once with a
+    // clear scope notice so the user knows what to send instead.
+    // Non-message events (follow / unfollow / postback / ...) drop
+    // through silently, they have no replyToken to address.
+    if (
+      event.type === 'message'
+      && typeof event.replyToken === 'string'
+      && event.source?.type === 'user'
+    ) {
+      await safeReply(
+        lineAccessToken,
+        event.replyToken,
+        '⚠️ 目前只支援文字、圖片、語音訊息。',
+      );
     }
   }
 };

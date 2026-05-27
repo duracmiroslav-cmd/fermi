@@ -88,7 +88,7 @@ export const connectLineBot = async (
 
   // Surface a specific 409 instead of leaking the DB unique-index
   // name. The index still guards the race between this check and
-  // the RPC insert below — see the 23505 fallback in insertErr.
+  // the RPC insert below, see the 23505 fallback in insertErr.
   const { data: existing, error: existingErr } = await admin
     .from('bots')
     .select('id, owner_id, display_name')
@@ -121,7 +121,7 @@ export const connectLineBot = async (
   if (!defaultAgent) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'No default agent for user — signup trigger may have failed',
+      statusMessage: 'No default agent for user, signup trigger may have failed',
     });
   }
 
@@ -140,8 +140,8 @@ export const connectLineBot = async (
         statusMessage: `Bot limit reached (max ${limit})`,
       });
     }
-    // Race fallback for the (platform, external_id) unique index —
-    // a parallel connect could slot in between the pre-check above
+    // Race fallback for the (platform, external_id) unique index.
+    // A parallel connect could slot in between the pre-check above
     // and this insert. Same UX as the pre-check, just no ownership
     // disambiguation since we don't have the colliding row in hand.
     if ((insertErr as { code?: string }).code === '23505') {
