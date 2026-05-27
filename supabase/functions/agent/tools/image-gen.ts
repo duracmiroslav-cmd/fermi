@@ -102,6 +102,7 @@ export const generateImage: Tool = {
       ctx.attachments.push({
         type: 'image',
         mime: generated.mime,
+        sizeBytes: generated.bytes.byteLength,
         originalContentUrl: signedUrl,
         previewImageUrl: signedUrl,
         storagePath,

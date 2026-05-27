@@ -488,6 +488,21 @@ const runAgentLoop = async (params: {
 
     await appendMessage(admin, threadId, 'assistant', { type: 'text', text: finalText });
 
+    // Persist tool-produced media to `messages` so history rebuild
+    // on subsequent turns can re-sign URLs and feed them to the LLM
+    // (same pattern as user-uploaded vision images). Each attachment
+    // becomes its own assistant message row, ordered after the text.
+    for (const att of attachments) {
+      if (att.type === 'image') {
+        await appendMessage(admin, threadId, 'assistant', {
+          type: 'image',
+          mime: att.mime,
+          sizeBytes: att.sizeBytes,
+          storagePath: att.storagePath,
+        });
+      }
+    }
+
     // Voice-reply mode resolves to a yes/no per-turn:
     //   always → every turn
     //   auto   → only when this turn's user input was audio (mirror)

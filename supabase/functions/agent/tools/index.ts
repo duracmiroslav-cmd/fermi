@@ -13,12 +13,15 @@ export type ToolAttachment
   = | {
       type: 'image';
       mime: string;
+      sizeBytes: number;
       // Pre-signed URL for LINE to download from. The preview is what
       // shows in the chat list / lock-screen notification — for now
       // identical to original (LINE accepts that).
       originalContentUrl: string;
       previewImageUrl: string;
-      // Persisted storage path for future replay / debug viewer.
+      // Persisted storage path. Worker writes this back into `messages`
+      // so history rebuild can sign a fresh URL and feed it to the LLM
+      // on the next turn (same pattern as user-uploaded vision images).
       storagePath: string;
     };
 
