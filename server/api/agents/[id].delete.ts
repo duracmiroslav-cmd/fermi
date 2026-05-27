@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 409, statusMessage: 'The default agent cannot be deleted' });
     }
     if (error.message?.includes('agent_in_use')) {
-      throw createError({ statusCode: 409, statusMessage: 'Agent is bound to one or more bots — rebind them first' });
+      throw createError({ statusCode: 409, statusMessage: 'Agent is bound to one or more bots, rebind them first' });
     }
     throw error;
   }

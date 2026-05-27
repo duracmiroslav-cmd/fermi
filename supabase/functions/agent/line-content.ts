@@ -11,7 +11,7 @@ export class LineContentError extends Error {
 const LINE_CONTENT_BASE = 'https://api-data.line.me/v2/bot/message';
 
 // Matches LINE's own per-message size cap (10MB) for all binary
-// modalities — image, audio, video, file. Enforced before
+// modalities, image, audio, video, file. Enforced before
 // arrayBuffer() resolves so a malicious or mislabelled stream can't
 // exhaust the Edge Function's memory.
 export const MAX_LINE_CONTENT_BYTES = 10 * 1024 * 1024;

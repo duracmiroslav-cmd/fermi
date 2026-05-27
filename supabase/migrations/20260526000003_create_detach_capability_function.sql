@@ -7,7 +7,7 @@
 -- config", use the `disabled_at` switch (future toggle RPC).
 --
 -- Raises:
---   agent_not_found  (P0002) — missing / wrong owner / trashed
+--   agent_not_found  (P0002), missing / wrong owner / trashed
 
 create function public.detach_capability(
   p_agent_id      uuid,

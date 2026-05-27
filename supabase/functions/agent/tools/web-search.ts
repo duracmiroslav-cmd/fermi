@@ -22,7 +22,7 @@ interface TavilyResponse {
   results: TavilyResult[];
 }
 
-// Snippet cap per result keeps the agent's message list compact —
+// Snippet cap per result keeps the agent's message list compact , 
 // 300 chars is enough for the model to judge relevance and decide
 // whether to fetch the full page via a follow-up tool, without
 // burning context on five paragraphs of marketing copy.

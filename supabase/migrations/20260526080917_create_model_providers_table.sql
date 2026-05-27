@@ -1,4 +1,4 @@
--- Creates the `model_providers` catalog — where every agent message
+-- Creates the `model_providers` catalog, where every agent message
 -- gets routed for a response. Sibling of `capabilities` (tools), but
 -- with different cardinality: every agent picks exactly one model
 -- provider, vs N optional capabilities. Kept in its own table so the

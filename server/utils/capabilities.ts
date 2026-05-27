@@ -37,7 +37,7 @@ export const CAPABILITY_META: Record<string, CapabilityMeta> = {
 };
 
 // BYO capabilities (rows with owner_id IS NOT NULL) won't have an
-// entry here, so default to "no credential needed" — the BYO MCP
+// entry here, so default to "no credential needed", the BYO MCP
 // server's own auth lives in its `capabilities.config` jsonb.
 export const getCapabilityMeta = (slug: string): CapabilityMeta =>
   CAPABILITY_META[slug] ?? { credentialKind: 'none' };

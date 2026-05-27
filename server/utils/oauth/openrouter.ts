@@ -1,7 +1,7 @@
 // OpenRouter PKCE OAuth helpers.
 //
 // OpenRouter's PKCE flow has no client_id / client_secret and no app
-// registration — any callback URL works. The exchange returns a
+// registration, any callback URL works. The exchange returns a
 // long-lived user-controlled API key (no access/refresh split), so
 // `refresh_ciphertext` on encrypted_credentials stays null.
 

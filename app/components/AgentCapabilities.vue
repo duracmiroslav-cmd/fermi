@@ -24,7 +24,7 @@ const iconBySlug: Record<string, string> = {
 const iconFor = (slug: string) => iconBySlug[slug] ?? 'i-lucide-puzzle';
 
 // Toggle is locked when the capability has no live credential to call
-// against — coming-soon entries, or providers-backed entries where the
+// against, coming-soon entries, or providers-backed entries where the
 // user hasn't connected any provider. Already-attached rows stay
 // togglable so the user can always detach.
 const isLocked = (cap: AgentCapabilityRow): boolean => {

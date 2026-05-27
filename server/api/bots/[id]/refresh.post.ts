@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
 
   const botInfo = await verifyLineBot(accessToken);
 
-  // Whatever LINE returns is now ground truth — including null avatar
+  // Whatever LINE returns is now ground truth, including null avatar
   // (an OA that removed its picture should clear fermi's copy too).
   const patch = {
     display_name: botInfo.displayName,

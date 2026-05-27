@@ -38,7 +38,7 @@ export const resolveKey = async (
     ownerId: string;
     purpose: KeyPurpose;
     // Platform fallback candidate. `null` means "no platform key
-    // configured" — Pro users will trip PlatformKeyNotConfiguredError.
+    // configured", Pro users will trip PlatformKeyNotConfiguredError.
     platformKey: string | null;
   },
 ): Promise<KeyResult> => {
@@ -50,7 +50,7 @@ export const resolveKey = async (
     });
     return { key: plaintext, source: 'byok' };
   } catch (err) {
-    // PGRST116 = no row from .single() — owner hasn't connected this
+    // PGRST116 = no row from .single(), owner hasn't connected this
     // provider yet. Re-throw anything else (decryption failures etc.).
     if ((err as { code?: string })?.code !== 'PGRST116') throw err;
   }

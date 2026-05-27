@@ -4,12 +4,12 @@
 --
 -- Validation:
 --   - agent must belong to the caller's owner and not be soft-deleted
---   - capability must be visible to the caller — builtin (owner_id
---     is null) or owned by the caller — and not soft-deleted
+--   - capability must be visible to the caller, builtin (owner_id
+--     is null) or owned by the caller, and not soft-deleted
 --
 -- Raises:
---   agent_not_found        (P0002) — missing / wrong owner / trashed
---   capability_not_found   (P0002) — missing / not visible / trashed
+--   agent_not_found        (P0002), missing / wrong owner / trashed
+--   capability_not_found   (P0002), missing / not visible / trashed
 
 create function public.attach_capability(
   p_agent_id      uuid,

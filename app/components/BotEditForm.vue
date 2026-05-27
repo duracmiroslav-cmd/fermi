@@ -43,7 +43,7 @@ const agentItems = computed(() =>
   (agents.value ?? []).map(a => ({
     label: a.name,
     value: a.id,
-    description: a.defaultTextModel ?? '—',
+    description: a.defaultTextModel ?? ', ',
     avatar: {
       src: a.avatarUrl ?? undefined,
       text: a.name.charAt(0).toUpperCase(),

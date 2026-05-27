@@ -14,7 +14,7 @@ export interface OutgoingToolCall {
 // Parts of a multimodal user turn. Today only `text` and `image_url`
 // are emitted; OpenAI's spec also allows `input_audio` etc., extend
 // as needed. `image_url.url` may be either a `data:` URL (base64) or
-// a regular HTTPS URL — we use Supabase Storage signed URLs so the
+// a regular HTTPS URL, we use Supabase Storage signed URLs so the
 // LLM provider fetches the bytes directly, skipping our worker.
 export type ChatMessageContentPart
   = | { type: 'text'; text: string }
@@ -32,7 +32,7 @@ export interface ChatMessage {
   tool_calls?: OutgoingToolCall[];
 }
 
-// OpenRouter's usage object — full passthrough. New fields appear
+// OpenRouter's usage object, full passthrough. New fields appear
 // from upstream (cache_write_tokens, reasoning_tokens, etc.) without
 // requiring a wrapper change.
 export interface ChatCompletionUsage {

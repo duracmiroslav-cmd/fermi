@@ -86,7 +86,7 @@ watchEffect(() => {
 });
 
 // Distinguish "bot just powered on while user is watching" from "page
-// loaded with reply already in the DB" — only the first deserves a
+// loaded with reply already in the DB", only the first deserves a
 // celebration. Captures the snapshot at first bot fetch; later refetch
 // transitions are compared against this baseline.
 const wasPendingOnLoad = ref<boolean | null>(null);

@@ -50,7 +50,7 @@ export const startRun = async (
 // caller accumulated; we trust the caller's tally rather than
 // re-querying. `errorCode` only matters when status === 'failed';
 // pass it via errorCodeFromStatus to keep buckets in sync with the
-// SQL backfill. Idempotent enough — a second call just overwrites
+// SQL backfill. Idempotent enough, a second call just overwrites
 // status/cost/finished_at/error_code.
 export const finishRun = async (
   admin: SupabaseClient,
@@ -79,7 +79,7 @@ export const finishRun = async (
 // written to `agent_runs.error_code`. Past-verb form matches the
 // `agent_run_steps.type` convention (`error_occurred`, `push_failed`).
 // Mirrors the SQL backfill in 20260525060000_add_agent_runs_error_code.sql
-// — keep the two in sync.
+//, keep the two in sync.
 export const errorCodeFromStatus = (status: number | undefined): string => {
   if (status === 429) return 'rate_limited';
   if (status === 408 || status === 504) return 'timed_out';

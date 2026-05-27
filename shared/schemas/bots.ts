@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // LINE's own credential names (Channel Secret / Channel Access Token)
-// are kept on the input shape — they describe LINE's API, not fermi's
+// are kept on the input shape, they describe LINE's API, not fermi's
 // `bots` domain.
 const lineBotInputSchema = z.object({
   platform: z.literal('line'),
@@ -22,7 +22,7 @@ export const updateBotInputSchema = z.object({
   // The form sends `new Date().toISOString()` on disable.
   disabledAt: z.string().datetime().nullable().optional(),
 }).strict();
-// `displayName` is intentionally not editable here — fermi mirrors
+// `displayName` is intentionally not editable here, fermi mirrors
 // LINE's OA name through the connect / refresh flows so the two
 // dashboards can't drift. To rename the bot, rename it in LINE
 // Official Account Manager and hit "Sync from LINE".

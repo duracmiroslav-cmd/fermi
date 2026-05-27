@@ -15,7 +15,7 @@ export type ToolAttachment
       mime: string;
       sizeBytes: number;
       // Pre-signed URL for LINE to download from. The preview is what
-      // shows in the chat list / lock-screen notification — for now
+      // shows in the chat list / lock-screen notification, for now
       // identical to original (LINE accepts that).
       originalContentUrl: string;
       previewImageUrl: string;
@@ -26,7 +26,7 @@ export type ToolAttachment
     };
 
 // Per-call context passed to every tool. Tools that don't need a
-// field can ignore it. `attachments` is a mutable sink — tools that
+// field can ignore it. `attachments` is a mutable sink, tools that
 // produce media push entries; tools that don't leave it alone.
 //
 // `toolCallId` is the OpenAI/OpenRouter-issued identifier for this
@@ -85,7 +85,7 @@ const toSchema = (t: Tool): ToolSchema => ({
 // current agent. Agents with no attachments see an empty tool set
 // (the LLM falls back to plain chat). Catalog slugs that have no
 // runtime implementation yet (github, notion, etc.) yield nothing
-// here — the attach UI looks ready but the LLM correctly can't call
+// here, the attach UI looks ready but the LLM correctly can't call
 // what isn't wired up.
 export const toolSchemasForCapabilities = (
   attachedSlugs: ReadonlySet<string>,

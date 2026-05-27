@@ -5,7 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // Downstream credential loaders and the agent worker trust this
 // invariant instead of re-checking. A disabled bot still accepts
 // webhook events at the HTTP layer (no 4xx, so LINE stops retrying)
-// but the worker no-ops on it — pause means "stop replying," not
+// but the worker no-ops on it, pause means "stop replying," not
 // "drop the connection."
 
 export interface BotRef {

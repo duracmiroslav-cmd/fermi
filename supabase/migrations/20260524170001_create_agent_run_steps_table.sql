@@ -4,7 +4,7 @@
 -- (1, 2, 3, ...); to compare timelines across runs, join through
 -- `agent_runs`.
 --
--- Type values use past-verb form (`<subject>_<past_verb>`) — each
+-- Type values use past-verb form (`<subject>_<past_verb>`), each
 -- row is a thing that happened. Matches Stripe / GitHub webhook
 -- conventions (`charge.succeeded`, `pull_request.opened`).
 --

@@ -1,8 +1,8 @@
 -- Per-agent reply modality control. Three modes:
---   off     — text reply always (default; no TTS cost)
---   auto    — voice reply when user input was audio; text otherwise
+--   off    , text reply always (default; no TTS cost)
+--   auto   , voice reply when user input was audio; text otherwise
 --             (mirrors the user's modality, natural-conversation feel)
---   always  — voice reply regardless of input (language-learning bots,
+--   always , voice reply regardless of input (language-learning bots,
 --             accessibility, story-telling personas)
 --
 -- text enum rather than boolean because the dimension is genuinely

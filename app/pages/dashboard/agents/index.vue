@@ -121,7 +121,7 @@ const filteredAgents = computed(() => {
                   </UBadge>
                 </div>
                 <p class="text-sm text-toned truncate mt-0.5">
-                  {{ agent.defaultTextModel || '—' }}
+                  {{ agent.defaultTextModel || ', ' }}
                 </p>
               </div>
               <span class="text-sm text-toned shrink-0">

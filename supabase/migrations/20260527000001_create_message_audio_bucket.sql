@@ -8,8 +8,8 @@
 -- voice messages in (AAC inside MP4 container).
 --
 -- Path conventions:
---   <owner_id>/<thread_id>/in/<line_message_id>.m4a — user-uploaded
---   <owner_id>/<thread_id>/out/<run_id>.aac         — fermi-generated (TTS)
+--   <owner_id>/<thread_id>/in/<line_message_id>.m4a  (user-uploaded)
+--   <owner_id>/<thread_id>/out/<run_id>.aac          (fermi-generated, TTS)
 -- `in/` + `out/` describe direction of flow; both share a per-thread
 -- prefix so a future retention cron can prefix-delete an entire
 -- thread's media in one call regardless of source.

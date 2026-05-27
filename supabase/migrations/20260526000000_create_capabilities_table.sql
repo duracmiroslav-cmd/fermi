@@ -1,4 +1,4 @@
--- Creates the `capabilities` catalog — tools an agent can be wired
+-- Creates the `capabilities` catalog, tools an agent can be wired
 -- up to use. Each row is identified by `slug` (the key the agent
 -- runtime uses to find its in-process implementation under
 -- `supabase/functions/agent/tools/{slug}.ts`).
@@ -65,13 +65,13 @@ revoke insert, update, delete on public.capabilities from authenticated;
 --
 -- Naming convention: nouns, not verbs (a capability is an integration,
 -- not an action). Use the provider name when there's one dominant
--- provider with its own OAuth (github, notion, google-calendar — Apple
--- Calendar would be a separate capability with its own OAuth flow).
+-- provider with its own OAuth (github, notion, google-calendar).
+-- Apple Calendar would be a separate capability with its own OAuth flow.
 -- Use the domain name when providers are swappable (web-search can be
 -- backed by Tavily / Brave / Bing without changing the surface).
 insert into public.capabilities (slug, display_name, description) values
   ('time', 'Time',
-   'Get the current wall-clock time in any IANA timezone (e.g. "Asia/Taipei", "UTC"). Use whenever the answer depends on the current moment — today''s date, current time, age of a recent event.'),
+   'Get the current wall-clock time in any IANA timezone (e.g. "Asia/Taipei", "UTC"). Use whenever the answer depends on the current moment, today''s date, current time, age of a recent event.'),
   ('web-search', 'Web search',
    'Search the web for current information beyond the model''s training cutoff. Returns ranked titles, snippets, and URLs.'),
   ('web-fetch', 'Web fetch',

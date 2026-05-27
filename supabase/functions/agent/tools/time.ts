@@ -4,7 +4,7 @@ interface Args {
   timezone?: string;
 }
 
-// Validates the IANA timezone via Intl.DateTimeFormat — passing an
+// Validates the IANA timezone via Intl.DateTimeFormat, passing an
 // unknown zone throws a RangeError, which lets the model self-correct
 // on the next turn instead of getting a silent default.
 const formatInZone = (date: Date, timezone: string): string => {

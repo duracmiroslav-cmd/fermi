@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { getCurrentUser } from '~~/server/utils/auth';
 
-// Attaches a capability to one of the caller's agents. Idempotent —
+// Attaches a capability to one of the caller's agents. Idempotent:
 // re-attaching an already-bound capability is a no-op, so frontend
 // can call this without checking first.
 
