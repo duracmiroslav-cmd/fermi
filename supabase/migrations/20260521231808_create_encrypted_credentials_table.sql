@@ -19,8 +19,7 @@ create table public.encrypted_credentials (
                         'anthropic',
                         'openai',
                         'gemini',
-                        'tavily',
-                        'github'
+                        'tavily'
                       )),
   ciphertext          bytea not null,
   iv                  bytea not null check (octet_length(iv) = 12),
