@@ -23,14 +23,12 @@ const iconFor = (slug: string) => iconBySlug[slug] ?? 'i-lucide-puzzle';
 </script>
 
 <template>
-  <UCard>
-    <template #header>
-      <p class="font-medium">
-        Capabilities
-      </p>
-    </template>
-
-    <div class="flex flex-wrap gap-2 min-h-6">
+  <div class="flex flex-col gap-3">
+    <h2 class="font-semibold">
+      Capabilities
+    </h2>
+    <UCard>
+      <div class="flex flex-wrap gap-2 min-h-6">
       <template v-if="pending">
         <USkeleton
           v-for="i in 3"
@@ -58,6 +56,7 @@ const iconFor = (slug: string) => iconBySlug[slug] ?? 'i-lucide-puzzle';
       >
         No capabilities enabled.
       </p>
-    </div>
-  </UCard>
+      </div>
+    </UCard>
+  </div>
 </template>

@@ -75,28 +75,26 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
 </script>
 
 <template>
-  <UCard :ui="{ body: 'p-0 sm:p-0' }">
-    <template #header>
-      <div class="flex items-center justify-between gap-4">
-        <p class="font-medium">
-          Capabilities
-        </p>
-        <UButton
-          size="xs"
-          color="neutral"
-          variant="link"
-          trailing-icon="i-lucide-external-link"
-          to="/dashboard/connections"
-          target="_blank"
-          rel="noopener"
-        >
-          Manage credentials
-        </UButton>
-      </div>
-    </template>
-
-    <div
-      v-if="pending && !rows"
+  <div class="flex flex-col gap-3">
+    <div class="flex items-center justify-between gap-4">
+      <h2 class="font-semibold">
+        Capabilities
+      </h2>
+      <UButton
+        size="xs"
+        color="neutral"
+        variant="link"
+        trailing-icon="i-lucide-external-link"
+        to="/dashboard/connections"
+        target="_blank"
+        rel="noopener"
+      >
+        Manage credentials
+      </UButton>
+    </div>
+    <UCard :ui="{ body: 'p-0 sm:p-0' }">
+      <div
+        v-if="pending && !rows"
       class="divide-y divide-default overflow-hidden"
       aria-busy="true"
     >
@@ -179,6 +177,7 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
           />
         </div>
       </div>
-    </div>
-  </UCard>
+      </div>
+    </UCard>
+  </div>
 </template>

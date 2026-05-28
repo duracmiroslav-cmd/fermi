@@ -118,50 +118,49 @@ const onDelete = async () => {
           </div>
         </div>
 
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between gap-4">
-              <p class="font-medium">
-                Settings
-              </p>
-              <div class="flex items-center gap-2">
-                <UButton
-                  :to="`/dashboard/bots/${bot.id}`"
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                >
-                  Cancel
-                </UButton>
-                <UButton
-                  type="submit"
-                  form="bot-form"
-                  :loading="saving"
-                  size="sm"
-                >
-                  Save
-                </UButton>
-              </div>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="font-semibold">
+              Settings
+            </h2>
+            <div class="flex items-center gap-2">
+              <UButton
+                :to="`/dashboard/bots/${bot.id}`"
+                color="neutral"
+                variant="outline"
+                size="sm"
+              >
+                Cancel
+              </UButton>
+              <UButton
+                type="submit"
+                form="bot-form"
+                :loading="saving"
+                size="sm"
+              >
+                Save
+              </UButton>
             </div>
-          </template>
-          <BotEditForm
-            form-id="bot-form"
-            :initial-value="{
-              agentId: bot.agentId,
-              disabledAt: bot.disabledAt,
-            }"
-            :is-setup-complete="isSetupComplete"
-            @submit="onSubmit"
-          />
-        </UCard>
+          </div>
+          <UCard>
+            <BotEditForm
+              form-id="bot-form"
+              :initial-value="{
+                agentId: bot.agentId,
+                disabledAt: bot.disabledAt,
+              }"
+              :is-setup-complete="isSetupComplete"
+              @submit="onSubmit"
+            />
+          </UCard>
+        </div>
 
-        <UCard>
-          <template #header>
-            <p class="font-medium text-error">
-              Danger zone
-            </p>
-          </template>
-          <div class="grid grid-cols-12 gap-4 md:items-center">
+        <div class="flex flex-col gap-3">
+          <h2 class="font-semibold text-error">
+            Danger zone
+          </h2>
+          <UCard>
+            <div class="grid grid-cols-12 gap-4 md:items-center">
             <div class="col-span-12 md:col-span-9 min-w-0">
               <p class="text-sm font-medium">
                 Delete this bot
@@ -179,8 +178,9 @@ const onDelete = async () => {
             >
               Delete bot
             </UButton>
-          </div>
-        </UCard>
+            </div>
+          </UCard>
+        </div>
 
         <DeleteConfirmDialog
           v-model:open="deleteDialogOpen"

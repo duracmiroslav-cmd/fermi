@@ -133,54 +133,53 @@ const visionModel = computed<ProviderModel>(() => {
           </UBadge>
         </div>
 
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between gap-4">
-              <p class="font-medium">
-                System prompt
-              </p>
-              <UButton
-                v-if="agent.systemPrompt"
-                :to="`/dashboard/agents/${agent.id}/edit`"
-                icon="i-lucide-pencil"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-              >
-                Edit
-              </UButton>
-            </div>
-          </template>
-          <p
-            v-if="agent.systemPrompt"
-            class="text-sm text-highlighted whitespace-pre-wrap break-words leading-relaxed"
-          >
-            {{ agent.systemPrompt }}
-          </p>
-          <div
-            v-else
-            class="flex flex-col items-start gap-3"
-          >
-            <p class="text-sm text-toned">
-              No system prompt set. This agent replies with default behavior.
-            </p>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="font-semibold">
+              System prompt
+            </h2>
             <UButton
+              v-if="agent.systemPrompt"
               :to="`/dashboard/agents/${agent.id}/edit`"
-              icon="i-lucide-plus"
+              icon="i-lucide-square-pen"
+              color="neutral"
+              variant="soft"
               size="sm"
             >
-              Add system prompt
+              Edit
             </UButton>
           </div>
-        </UCard>
-
-        <UCard>
-          <template #header>
-            <p class="font-medium">
-              Details
+          <UCard>
+            <p
+              v-if="agent.systemPrompt"
+              class="text-sm text-highlighted whitespace-pre-wrap break-words leading-relaxed"
+            >
+              {{ agent.systemPrompt }}
             </p>
-          </template>
-          <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-7">
+            <div
+              v-else
+              class="flex flex-col items-start gap-3"
+            >
+              <p class="text-sm text-toned">
+                No system prompt set. This agent replies with default behavior.
+              </p>
+              <UButton
+                :to="`/dashboard/agents/${agent.id}/edit`"
+                icon="i-lucide-plus"
+                size="sm"
+              >
+                Add system prompt
+              </UButton>
+            </div>
+          </UCard>
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <h2 class="font-semibold">
+            Details
+          </h2>
+          <UCard>
+            <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-7">
             <dt class="text-toned text-right">
               Model
             </dt>
@@ -246,13 +245,14 @@ const visionModel = computed<ProviderModel>(() => {
               <TimeAgo :date="agent.updatedAt" />
             </dd>
           </dl>
-        </UCard>
+          </UCard>
+        </div>
 
         <AgentCapabilitiesReadonly :agent-id="agent.id" />
 
         <div
           v-if="agent.bots.length"
-          class="flex flex-col gap-4"
+          class="flex flex-col gap-3"
         >
           <h2 class="font-semibold">
             Bots using this agent

@@ -126,53 +126,55 @@ const onDelete = async () => {
           </div>
         </div>
 
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between gap-4">
-              <p class="font-medium">
-                Settings
-              </p>
-              <div class="flex items-center gap-2">
-                <UButton
-                  :to="`/dashboard/agents/${agent.id}`"
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                >
-                  Cancel
-                </UButton>
-                <UButton
-                  type="submit"
-                  form="agent-form"
-                  :loading="saving"
-                  size="sm"
-                >
-                  Save
-                </UButton>
-              </div>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="font-semibold">
+              Settings
+            </h2>
+            <div class="flex items-center gap-2">
+              <UButton
+                :to="`/dashboard/agents/${agent.id}`"
+                color="neutral"
+                variant="outline"
+                size="sm"
+              >
+                Cancel
+              </UButton>
+              <UButton
+                type="submit"
+                form="agent-form"
+                :loading="saving"
+                size="sm"
+              >
+                Save
+              </UButton>
             </div>
-          </template>
-          <AgentForm
-            form-id="agent-form"
-            :initial-value="{
-              name: agent.name,
-              systemPrompt: agent.systemPrompt ?? '',
-              defaultTextModel: agent.defaultTextModel ?? undefined,
-              defaultVisionModel: agent.defaultVisionModel ?? undefined,
-            }"
-            @submit="onSubmit"
-          />
-        </UCard>
+          </div>
+          <UCard>
+            <AgentForm
+              form-id="agent-form"
+              :initial-value="{
+                name: agent.name,
+                systemPrompt: agent.systemPrompt ?? '',
+                defaultTextModel: agent.defaultTextModel ?? undefined,
+                defaultVisionModel: agent.defaultVisionModel ?? undefined,
+              }"
+              @submit="onSubmit"
+            />
+          </UCard>
+        </div>
 
         <AgentCapabilities :agent-id="agent.id" />
 
-        <UCard v-if="!agent.isDefault">
-          <template #header>
-            <p class="font-medium text-error">
-              Danger zone
-            </p>
-          </template>
-          <div class="grid grid-cols-12 gap-4 md:items-center">
+        <div
+          v-if="!agent.isDefault"
+          class="flex flex-col gap-3"
+        >
+          <h2 class="font-semibold text-error">
+            Danger zone
+          </h2>
+          <UCard>
+            <div class="grid grid-cols-12 gap-4 md:items-center">
             <div class="col-span-12 md:col-span-9 min-w-0">
               <p class="text-sm font-medium">
                 Delete this agent
@@ -210,8 +212,9 @@ const onDelete = async () => {
                 Delete agent
               </UButton>
             </div>
-          </div>
-        </UCard>
+            </div>
+          </UCard>
+        </div>
 
         <DeleteConfirmDialog
           v-model:open="deleteDialogOpen"

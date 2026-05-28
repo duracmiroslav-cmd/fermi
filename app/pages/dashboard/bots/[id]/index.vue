@@ -166,24 +166,23 @@ const copyWebhook = async () => {
           @refresh="refresh"
         />
 
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between gap-4">
-              <p class="font-medium">
-                Details
-              </p>
-              <UButton
-                :to="`/dashboard/bots/${bot.id}/edit`"
-                icon="i-lucide-pencil"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-              >
-                Edit
-              </UButton>
-            </div>
-          </template>
-          <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-7">
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="font-semibold">
+              Details
+            </h2>
+            <UButton
+              :to="`/dashboard/bots/${bot.id}/edit`"
+              icon="i-lucide-square-pen"
+              color="neutral"
+              variant="soft"
+              size="sm"
+            >
+              Edit
+            </UButton>
+          </div>
+          <UCard>
+            <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-7">
             <dt class="text-toned text-right">
               External ID
             </dt>
@@ -242,7 +241,8 @@ const copyWebhook = async () => {
               <TimeAgo :date="bot.updatedAt" />
             </dd>
           </dl>
-        </UCard>
+          </UCard>
+        </div>
       </DashboardContainer>
     </NuxtLayout>
   </div>
