@@ -74,6 +74,7 @@ create function public.insert_agent_if_under_limit(
   p_default_text_model   text,
   p_default_vision_model text,
   p_model_provider_id    uuid,
+  p_voice_reply_mode     text,
   p_avatar_url           text,
   p_limit                int
 ) returns table (id uuid)
@@ -95,11 +96,11 @@ begin
   end if;
 
   return query
-    insert into public.agents (owner_id, name, system_prompt, default_text_model, default_vision_model, model_provider_id, avatar_url)
-    values (p_owner_id, p_name, p_system_prompt, p_default_text_model, p_default_vision_model, p_model_provider_id, p_avatar_url)
+    insert into public.agents (owner_id, name, system_prompt, default_text_model, default_vision_model, model_provider_id, voice_reply_mode, avatar_url)
+    values (p_owner_id, p_name, p_system_prompt, p_default_text_model, p_default_vision_model, p_model_provider_id, p_voice_reply_mode, p_avatar_url)
     returning agents.id;
 end;
 $$;
 
-revoke execute on function public.insert_agent_if_under_limit(uuid, text, text, text, text, uuid, text, int) from public;
-grant  execute on function public.insert_agent_if_under_limit(uuid, text, text, text, text, uuid, text, int) to service_role;
+revoke execute on function public.insert_agent_if_under_limit(uuid, text, text, text, text, uuid, text, text, int) from public;
+grant  execute on function public.insert_agent_if_under_limit(uuid, text, text, text, text, uuid, text, text, int) to service_role;

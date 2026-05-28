@@ -41,6 +41,7 @@ export default defineEventHandler(async (event) => {
     p_default_text_model:   input.defaultTextModel ?? null,
     p_default_vision_model: input.defaultVisionModel ?? null,
     p_model_provider_id:    modelProviderId,
+    p_voice_reply_mode:     input.voiceReplyMode ?? 'off',
     p_avatar_url:           input.avatarUrl ?? null,
     p_limit:                limit,
   });
@@ -65,6 +66,7 @@ export default defineEventHandler(async (event) => {
     defaultTextModel:   input.defaultTextModel ?? null,
     defaultVisionModel: input.defaultVisionModel ?? null,
     modelProviderId,
+    voiceReplyMode:     input.voiceReplyMode ?? 'off',
     avatarUrl:          input.avatarUrl ?? null,
   };
 });

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { VOICE_REPLY_MODES } from '../agents';
 
 export const createAgentInputSchema = z.object({
   name:               z.string().min(1).max(80),
@@ -10,6 +11,11 @@ export const createAgentInputSchema = z.object({
   // for callers that pre-date BYOK. The DB column is NOT NULL, so
   // null is rejected; use .optional() (undefined-only), not .nullish().
   modelProviderId:    z.string().uuid().optional(),
+  // Optional on input: POST applies `'off'` default at the handler
+  // (matches DB default), so PATCH can omit voiceReplyMode to leave
+  // the stored value unchanged — putting `.default()` here would make
+  // PATCH silently reset it on every save.
+  voiceReplyMode:     z.enum(VOICE_REPLY_MODES).optional(),
   avatarUrl:          z.string().url().max(2048).nullish(),
 }).strict();
 

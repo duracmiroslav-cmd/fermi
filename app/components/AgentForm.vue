@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { VoiceReplyMode } from '~~/shared/agents';
 import { DEFAULT_TEXT_MODEL, DEFAULT_VISION_MODEL } from '~~/shared/constants/models';
 import { createAgentInputSchema } from '~~/shared/schemas/agents';
 
@@ -7,6 +8,7 @@ interface AgentFormValue {
   systemPrompt:       string;
   defaultTextModel:   string;
   defaultVisionModel: string;
+  voiceReplyMode:     VoiceReplyMode;
 }
 
 interface ProviderModel {
@@ -44,6 +46,7 @@ const state = reactive<AgentFormValue>({
   defaultVisionModel: props.initialValue
     ? (props.initialValue.defaultVisionModel ?? '')
     : DEFAULT_VISION_MODEL,
+  voiceReplyMode: props.initialValue?.voiceReplyMode ?? 'off',
 });
 
 const isTextModelPickerOpening = ref(false);
@@ -369,6 +372,21 @@ const onSubmit = () => {
           </UTooltip>
         </template>
       </USelectMenu>
+    </UFormField>
+
+    <UFormField
+      label="Voice reply"
+      name="voiceReplyMode"
+      help="Whether the agent speaks its replies. Audio replies use the owner's OpenAI key for TTS and cost more than text."
+    >
+      <URadioGroup
+        v-model="state.voiceReplyMode"
+        :items="[
+          { label: 'Off', value: 'off', description: 'Never speak. Always reply with text.' },
+          { label: 'Auto', value: 'auto', description: 'Mirror the user — speak only when the user sent voice.' },
+          { label: 'Always', value: 'always', description: 'Always speak, regardless of how the user wrote.' },
+        ]"
+      />
     </UFormField>
   </UForm>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { VoiceReplyMode } from '~~/shared/agents';
 import { DEFAULT_VISION_MODEL, resolveTextModel } from '~~/shared/constants/models';
 
 definePageMeta({ layout: false });
@@ -19,12 +20,19 @@ interface AgentDetail {
   systemPrompt:       string | null;
   defaultTextModel:   string | null;
   defaultVisionModel: string | null;
+  voiceReplyMode:     VoiceReplyMode;
   avatarUrl:          string | null;
   isDefault:          boolean;
   createdAt:          string;
   updatedAt:          string;
   bots:               BotRef[];
 }
+
+const VOICE_REPLY_LABELS: Record<VoiceReplyMode, string> = {
+  off:    'Off',
+  auto:   'Auto (mirror the user)',
+  always: 'Always',
+};
 
 interface ProviderModel {
   id:     string;
@@ -204,6 +212,12 @@ const visionModel = computed<ProviderModel>(() => {
                     />
                   </NuxtLink>
                 </div>
+              </dd>
+              <dt class="text-toned text-right">
+                Voice reply
+              </dt>
+              <dd class="text-highlighted">
+                {{ VOICE_REPLY_LABELS[agent.voiceReplyMode] }}
               </dd>
               <dt class="text-toned text-right">
                 Created

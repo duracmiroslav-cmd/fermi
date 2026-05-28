@@ -21,6 +21,7 @@ export default defineEventHandler(async (event) => {
   if ('defaultTextModel' in input) patch.default_text_model = input.defaultTextModel;
   if ('defaultVisionModel' in input) patch.default_vision_model = input.defaultVisionModel;
   if ('modelProviderId' in input) patch.model_provider_id = input.modelProviderId;
+  if ('voiceReplyMode' in input) patch.voice_reply_mode = input.voiceReplyMode;
   if ('avatarUrl' in input) patch.avatar_url = input.avatarUrl;
 
   if (Object.keys(patch).length === 0) {
@@ -34,7 +35,7 @@ export default defineEventHandler(async (event) => {
     .eq('id', id)
     .eq('owner_id', user.id)
     .is('deleted_at', null)
-    .select('id, name, system_prompt, default_text_model, default_vision_model, model_provider_id, avatar_url, updated_at')
+    .select('id, name, system_prompt, default_text_model, default_vision_model, model_provider_id, voice_reply_mode, avatar_url, updated_at')
     .maybeSingle();
   if (error) throw error;
   if (!data) {
@@ -48,6 +49,7 @@ export default defineEventHandler(async (event) => {
     defaultTextModel:   data.default_text_model,
     defaultVisionModel: data.default_vision_model,
     modelProviderId:    data.model_provider_id,
+    voiceReplyMode:     data.voice_reply_mode,
     avatarUrl:          data.avatar_url,
     updatedAt:          data.updated_at,
   };

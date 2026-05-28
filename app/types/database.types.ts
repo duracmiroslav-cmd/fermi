@@ -728,6 +728,7 @@ export type Database = {
           p_name: string
           p_owner_id: string
           p_system_prompt: string
+          p_voice_reply_mode: string
         }
         Returns: {
           id: string

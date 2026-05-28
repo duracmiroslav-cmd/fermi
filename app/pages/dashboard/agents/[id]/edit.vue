@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { VoiceReplyMode } from '~~/shared/agents';
+
 definePageMeta({ layout: false });
 
 interface AgentDetail {
@@ -7,6 +9,7 @@ interface AgentDetail {
   systemPrompt:       string | null;
   defaultTextModel:   string | null;
   defaultVisionModel: string | null;
+  voiceReplyMode:     VoiceReplyMode;
   avatarUrl:          string | null;
   isDefault:          boolean;
   bots:               Array<{ id: string; displayName: string | null; platform: string }>;
@@ -23,7 +26,7 @@ const saving = ref(false);
 const deleting = ref(false);
 const deleteDialogOpen = ref(false);
 
-const onSubmit = async (value: { name: string; systemPrompt: string; defaultTextModel: string; defaultVisionModel: string }) => {
+const onSubmit = async (value: { name: string; systemPrompt: string; defaultTextModel: string; defaultVisionModel: string; voiceReplyMode: VoiceReplyMode }) => {
   saving.value = true;
   try {
     await $fetch(`/api/agents/${route.params.id}`, {
@@ -33,6 +36,7 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultText
         systemPrompt:       value.systemPrompt || null,
         defaultTextModel:   value.defaultTextModel || null,
         defaultVisionModel: value.defaultVisionModel || null,
+        voiceReplyMode:     value.voiceReplyMode,
       },
     });
     notify.success('Agent updated');
@@ -153,6 +157,7 @@ const onDelete = async () => {
                 systemPrompt: agent.systemPrompt ?? '',
                 defaultTextModel: agent.defaultTextModel ?? undefined,
                 defaultVisionModel: agent.defaultVisionModel ?? undefined,
+                voiceReplyMode: agent.voiceReplyMode,
               }"
               @submit="onSubmit"
             />

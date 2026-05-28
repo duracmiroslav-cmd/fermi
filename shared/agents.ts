@@ -3,9 +3,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // Matches `agents.voice_reply_mode` CHECK constraint. Narrow type
 // gates downstream switches on a closed set; widening requires both
 // a migration and a TS change so they stay in lockstep.
-export type VoiceReplyMode = 'off' | 'auto' | 'always';
-
-const VOICE_REPLY_MODES: readonly VoiceReplyMode[] = ['off', 'auto', 'always'];
+export const VOICE_REPLY_MODES = ['off', 'auto', 'always'] as const;
+export type VoiceReplyMode = (typeof VOICE_REPLY_MODES)[number];
 
 const parseVoiceReplyMode = (raw: string): VoiceReplyMode => (
   (VOICE_REPLY_MODES as readonly string[]).includes(raw)
