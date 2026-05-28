@@ -29,7 +29,7 @@ const emit = defineEmits<{
   submit: [value: AgentFormValue];
 }>();
 
-const { data: models, pending: modelsPending } = useApiFetch<ProviderModel[]>('/api/providers/openrouter/models');
+const { data: models, pending: modelsPending, refresh: refreshModels } = useApiFetch<ProviderModel[]>('/api/providers/openrouter/models');
 
 const formatContext = (n: number) =>
   n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M context` : `${Math.round(n / 1000)}k context`;
@@ -46,11 +46,12 @@ const state = reactive<AgentFormValue>({
     : DEFAULT_VISION_MODEL,
 });
 
-const isModelPickerOpening = ref(false);
-const isVisionPickerOpening = ref(false);
+const isTextModelPickerOpening = ref(false);
+const isVisionModelPickerOpening = ref(false);
+const isRefreshing = ref(false);
 
 // Same UUID-flash-avoidance trick as the agent picker: hide value while loading.
-const displayModelId = computed<string | undefined>({
+const displayTextModelId = computed<string | undefined>({
   get: () => (modelsPending.value ? undefined : state.defaultTextModel || undefined),
   set: (v) => { if (v) state.defaultTextModel = v; },
 });
@@ -60,7 +61,7 @@ const displayVisionModelId = computed<string | undefined>({
   set: (v) => { if (v) state.defaultVisionModel = v; },
 });
 
-const modelItems = computed(() =>
+const allModelItems = computed(() =>
   (models.value ?? []).map(m => ({
     label:       m.name,
     value:       m.id,
@@ -84,7 +85,7 @@ const visionModelItems = computed(() =>
     })),
 );
 
-const selectedModel = computed(() =>
+const selectedTextModel = computed(() =>
   (models.value ?? []).find(m => m.id === state.defaultTextModel) ?? null,
 );
 
@@ -108,6 +109,17 @@ const defaultVisionModelInfo = computed(() =>
 );
 
 const promptCharCount = computed(() => state.systemPrompt.length);
+
+// Models come from OpenRouter; refresh re-pulls the catalog (e.g. after a
+// failed initial load) without closing the picker.
+const onRefresh = async () => {
+  isRefreshing.value = true;
+  try {
+    await refreshModels();
+  } finally {
+    isRefreshing.value = false;
+  }
+};
 
 const onSubmit = () => {
   emit('submit', { ...state });
@@ -152,20 +164,40 @@ const onSubmit = () => {
     </UFormField>
 
     <UFormField
-      label="Default text model"
+      label="Text model"
       name="defaultTextModel"
       help="The AI model that generates this agent's replies."
     >
       <USelectMenu
-        v-model="displayModelId"
-        :items="modelItems"
+        v-model="displayTextModelId"
+        :items="allModelItems"
         value-key="value"
         :placeholder="`${defaultTextModelInfo.name} (default)`"
-        :loading="modelsPending || isModelPickerOpening"
+        :loading="modelsPending || isTextModelPickerOpening"
         :ui="{ itemTrailingIcon: 'hidden' }"
-        @pointerdown="isModelPickerOpening = true"
-        @update:open="isModelPickerOpening = false"
+        @pointerdown="isTextModelPickerOpening = true"
+        @update:open="isTextModelPickerOpening = false"
       >
+        <template #content-top>
+          <div
+            class="flex items-center justify-between gap-2 px-2 py-1.5 border-b border-default"
+            @pointerdown.stop
+          >
+            <span class="text-xs">
+              {{ allModelItems.length }} text model{{ allModelItems.length === 1 ? '' : 's' }}
+            </span>
+            <UButton
+              icon="i-lucide-refresh-cw"
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              label="Refresh"
+              :loading="isRefreshing"
+              @click.stop="onRefresh"
+              @pointerdown.stop
+            />
+          </div>
+        </template>
         <template #item-leading="{ item }">
           <UIcon
             :name="item.avatar.icon"
@@ -174,13 +206,13 @@ const onSubmit = () => {
         </template>
         <template #leading>
           <UIcon
-            v-if="isModelPickerOpening"
+            v-if="isTextModelPickerOpening"
             name="i-lucide-loader-circle"
             class="size-5 animate-spin text-toned"
           />
           <UIcon
-            v-else-if="selectedModel"
-            :name="selectedModel.avatar.icon"
+            v-else-if="selectedTextModel"
+            :name="selectedTextModel.avatar.icon"
             class="size-5 text-toned"
           />
           <UIcon
@@ -245,11 +277,31 @@ const onSubmit = () => {
         :items="visionModelItems"
         value-key="value"
         :placeholder="`${defaultVisionModelInfo.name} (default)`"
-        :loading="modelsPending || isVisionPickerOpening"
+        :loading="modelsPending || isVisionModelPickerOpening"
         :ui="{ itemTrailingIcon: 'hidden' }"
-        @pointerdown="isVisionPickerOpening = true"
-        @update:open="isVisionPickerOpening = false"
+        @pointerdown="isVisionModelPickerOpening = true"
+        @update:open="isVisionModelPickerOpening = false"
       >
+        <template #content-top>
+          <div
+            class="flex items-center justify-between gap-2 px-2 py-1.5 border-b border-default"
+            @pointerdown.stop
+          >
+            <span class="text-xs">
+              {{ visionModelItems.length }} vision model{{ visionModelItems.length === 1 ? '' : 's' }}
+            </span>
+            <UButton
+              icon="i-lucide-refresh-cw"
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              label="Refresh"
+              :loading="isRefreshing"
+              @click.stop="onRefresh"
+              @pointerdown.stop
+            />
+          </div>
+        </template>
         <template #item-leading="{ item }">
           <UIcon
             :name="item.avatar.icon"
@@ -258,7 +310,7 @@ const onSubmit = () => {
         </template>
         <template #leading>
           <UIcon
-            v-if="isVisionPickerOpening"
+            v-if="isVisionModelPickerOpening"
             name="i-lucide-loader-circle"
             class="size-5 animate-spin text-toned"
           />

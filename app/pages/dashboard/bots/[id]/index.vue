@@ -329,7 +329,7 @@ onBeforeUnmount(() => {
                 alt="Scan to add bot on LINE"
                 class="size-24 rounded-md bg-white p-1"
               >
-              <span class="text-xs text-toned">Scan to add</span>
+              <span class="text-xs">Scan to add</span>
             </a>
           </div>
 

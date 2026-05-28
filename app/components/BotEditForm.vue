@@ -108,7 +108,7 @@ const onSubmit = () => {
             class="flex items-center justify-between gap-2 px-2 py-1.5 border-b border-default"
             @pointerdown.stop
           >
-            <span class="text-xs text-toned">
+            <span class="text-xs">
               {{ agents?.length ?? 0 }} agent{{ (agents?.length ?? 0) === 1 ? '' : 's' }}
             </span>
             <div class="flex items-center gap-1">
