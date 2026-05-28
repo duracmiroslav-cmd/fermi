@@ -44,7 +44,7 @@ const lockedHint = (cap: AgentCapabilityRow): { text: string; to?: string } | nu
   if (cap.credentialType === 'coming_soon') {
     return { text: 'Coming soon' };
   }
-  return { text: 'Connect on Connections', to: `/dashboard/connections/${cap.slug}` };
+  return { text: 'Connect', to: `/dashboard/connections/${cap.slug}` };
 };
 
 const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
@@ -80,17 +80,18 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
       <h2 class="font-semibold">
         Capabilities
       </h2>
-      <UButton
-        size="xs"
-        color="neutral"
-        variant="link"
-        trailing-icon="i-lucide-external-link"
+      <NuxtLink
         to="/dashboard/connections"
         target="_blank"
         rel="noopener"
+        class="text-xs text-toned hover:text-highlighted inline-flex items-center gap-1"
       >
         Manage credentials
-      </UButton>
+        <UIcon
+          name="i-lucide-external-link"
+          class="size-3"
+        />
+      </NuxtLink>
     </div>
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <div
