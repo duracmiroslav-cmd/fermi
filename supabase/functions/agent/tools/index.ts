@@ -6,6 +6,7 @@ import { fetchWeb } from './web-fetch.ts';
 import { loadCredential, type KeyType } from '../../../../shared/credentials.ts';
 import type { AttachedCapability } from '../../../../shared/agentCapabilities.ts';
 import { McpClient, type McpTool } from './mcp/client.ts';
+import { wrapToolOutput } from '../prompt-guard.ts';
 
 // Worker drains `attachments` after the agent loop ends and appends
 // matching LINE messages to delivery.
@@ -180,20 +181,22 @@ export const buildToolset = async (
 
   const execute = async (name: string, argumentsJson: string, ctx: ToolContext): Promise<string> => {
     const router = routers.get(name);
-    if (!router) return JSON.stringify({ error: `Unknown tool: ${name}` });
+    if (!router) return wrapToolOutput(JSON.stringify({ error: `Unknown tool: ${name}` }));
 
     let args: Record<string, unknown>;
     try {
       args = JSON.parse(argumentsJson) as Record<string, unknown>;
     } catch {
-      return JSON.stringify({ error: 'Tool arguments were not valid JSON.' });
+      return wrapToolOutput(JSON.stringify({ error: 'Tool arguments were not valid JSON.' }));
     }
 
+    let result: unknown;
     try {
-      return JSON.stringify(await router(args, ctx));
+      result = await router(args, ctx);
     } catch (err) {
-      return JSON.stringify({ error: `Tool execution failed: ${String(err)}` });
+      result = { error: `Tool execution failed: ${String(err)}` };
     }
+    return wrapToolOutput(JSON.stringify(result));
   };
 
   return { schemas, execute };

@@ -40,6 +40,7 @@ import {
   resolveOrCreateLatestThread,
 } from './threads.ts';
 import { type ToolAttachment, buildToolset } from './tools/index.ts';
+import { checkInjection, wrapSystemPrompt } from './prompt-guard.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -257,8 +258,10 @@ const runAgentLoop = async (params: {
     const tools = toolset.schemas;
 
     const history = await loadRecentMessages(admin, threadId, HISTORY_WINDOW);
-    const systemPrompt = agent.systemPrompt
-      ?? `You are ${agent.name}, a helpful assistant on LINE. Reply in the user's language.`;
+    const systemPrompt = wrapSystemPrompt(
+      agent.systemPrompt
+      ?? `You are ${agent.name}, a helpful assistant on LINE. Reply in the user's language.`,
+    );
     // Any image in the history window forces a vision-capable model.
     // Without this, an agent configured with a text-only model would
     // silently 4xx the moment an image enters its conversation.
@@ -398,6 +401,15 @@ const runAgentLoop = async (params: {
     // user a clear "I stopped" notice rather than nothing.
     if (finalText === null) {
       finalText = `⚠️ 跑了 ${MAX_AGENT_STEPS} 步還沒收斂，先停下來。可以換個方式問我一次。`;
+    }
+
+    const injectionCheck = checkInjection(finalText);
+    if (injectionCheck.detected) {
+      console.warn('prompt injection signal in LLM output', {
+        runId,
+        ownerId: bot.ownerId,
+        pattern: injectionCheck.pattern,
+      });
     }
 
     // Voice-reply mode resolves to a yes/no per-turn:
