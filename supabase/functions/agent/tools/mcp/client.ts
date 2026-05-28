@@ -157,6 +157,8 @@ export class McpClient {
       }
       throw new Error('MCP: no matching JSON-RPC response in SSE stream');
     }
-    return await res.json() as JsonRpcResponse;
+    const msg = await res.json() as JsonRpcResponse;
+    if (msg.id !== id) throw new Error(`MCP: response id mismatch (expected ${id}, got ${msg.id})`);
+    return msg;
   }
 }
