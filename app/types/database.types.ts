@@ -212,8 +212,8 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
-          default_image_model: string | null
           default_text_model: string | null
+          default_vision_model: string | null
           deleted_at: string | null
           id: string
           is_default: boolean
@@ -227,8 +227,8 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
-          default_image_model?: string | null
           default_text_model?: string | null
+          default_vision_model?: string | null
           deleted_at?: string | null
           id?: string
           is_default?: boolean
@@ -242,8 +242,8 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
-          default_image_model?: string | null
           default_text_model?: string | null
+          default_vision_model?: string | null
           deleted_at?: string | null
           id?: string
           is_default?: boolean
@@ -545,6 +545,24 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_buckets: {
+        Row: {
+          count: number
+          expires_at: string
+          key: string
+        }
+        Insert: {
+          count?: number
+          expires_at: string
+          key: string
+        }
+        Update: {
+          count?: number
+          expires_at?: string
+          key?: string
+        }
+        Relationships: []
+      }
       threads: {
         Row: {
           bot_id: string
@@ -582,6 +600,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      usage_counters: {
+        Row: {
+          count: number
+          key: string
+          updated_at: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          updated_at?: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       users: {
         Row: {
@@ -642,10 +678,7 @@ export type Database = {
         }
         Returns: undefined
       }
-      get_bots_last_replied: {
-        Args: { p_owner_id: string }
-        Returns: { bot_id: string; last_replied_at: string }[]
-      }
+      consume_usage_quota: { Args: { quota_key: string }; Returns: number }
       delete_agent: {
         Args: { p_agent_id: string; p_owner_id: string }
         Returns: string
@@ -670,10 +703,22 @@ export type Database = {
         Returns: undefined
       }
       enqueue_webhook_event: { Args: { payload: Json }; Returns: number }
+      get_bots_last_replied: {
+        Args: { p_owner_id: string }
+        Returns: {
+          bot_id: string
+          last_replied_at: string
+        }[]
+      }
+      incr_rate_limit_bucket: {
+        Args: { bucket_key: string; ttl_sec: number }
+        Returns: number
+      }
       insert_agent_if_under_limit: {
         Args: {
           p_avatar_url: string
           p_default_text_model: string
+          p_default_vision_model: string
           p_limit: number
           p_model_provider_id: string
           p_name: string
@@ -698,6 +743,7 @@ export type Database = {
           id: string
         }[]
       }
+      purge_expired_rate_limit_buckets: { Args: never; Returns: number }
       purge_idempotency_keys: {
         Args: { older_than?: string; p_scope?: string }
         Returns: number
