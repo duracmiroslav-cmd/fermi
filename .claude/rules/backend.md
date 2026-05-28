@@ -38,6 +38,10 @@ DB enum strings (CHECK-constrained `text` columns) and their TS unions use `<sub
 2. **TS**: extend the union in `supabase/functions/agent/runs.ts` (`StepType` / `RunStatus`)
 3. **Mapping helpers**: if a SQL `case` mapping (e.g. backfill in `_add_agent_runs_error_code.sql`) and a TS helper (e.g. `errorCodeFromStatus`) both produce these values, **they must stay in sync** — each cites the other in a comment
 
+## Discriminator suffix: `Type`, not `Kind`
+
+A field or union that names "which category is this" takes the `Type` suffix. `Kind` has no precedent — the codebase is uniform on `Type`: `keyType`, `authKeyType`, `KeyType`, `ByokKeyType`, `StepType`, `recordType`. New category field → `<subject>Type`.
+
 ## Supabase / async result destructure
 
 Single call in scope: leave as `{ data, error }`. Two or more: alias both.

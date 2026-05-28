@@ -39,8 +39,8 @@ export const flattenCapabilities = (list: CapabilityRow[]): FlatCard[] => {
       icon:        capabilityIcon(cap.slug),
       searchHaystack,
     };
-    if (cap.credentialKind === 'coming_soon') return { ...base, status: 'coming_soon' };
-    if (cap.credentialKind === 'none') return { ...base, status: 'none' };
+    if (cap.credentialType === 'coming_soon') return { ...base, status: 'coming_soon' };
+    if (cap.credentialType === 'none') return { ...base, status: 'none' };
     const anyConnected = (cap.providers ?? []).some(p => p.status === 'connected');
     return { ...base, status: anyConnected ? 'connected' : 'available' };
   });

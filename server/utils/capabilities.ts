@@ -8,7 +8,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // encrypted_credentials enum, and add a connect endpoint under
 // /api/connections/<provider>.
 
-export type CredentialKind = 'none' | 'providers' | 'coming_soon';
+export type CredentialType = 'none' | 'providers' | 'coming_soon';
 
 export interface ProviderMeta {
   slug:        string;
@@ -18,29 +18,34 @@ export interface ProviderMeta {
 }
 
 export interface CapabilityMeta {
-  credentialKind: CredentialKind;
+  credentialType: CredentialType;
   providers?:     ProviderMeta[];
 }
 
 export const CAPABILITY_META: Record<string, CapabilityMeta> = {
-  'time':       { credentialKind: 'none' },
+  'time':       { credentialType: 'none' },
   'web-search': {
-    credentialKind: 'providers',
+    credentialType: 'providers',
     providers:      [
       { slug: 'tavily', displayName: 'Tavily', keyType: 'tavily', status: 'live' },
     ],
   },
-  'web-fetch':       { credentialKind: 'none' },
-  'github':          { credentialKind: 'coming_soon' },
-  'google-calendar': { credentialKind: 'coming_soon' },
-  'notion':          { credentialKind: 'coming_soon' },
+  'web-fetch': { credentialType: 'none' },
+  'github':    {
+    credentialType: 'providers',
+    providers:      [
+      { slug: 'github', displayName: 'GitHub', keyType: 'github', status: 'live' },
+    ],
+  },
+  'google-calendar': { credentialType: 'coming_soon' },
+  'notion':          { credentialType: 'coming_soon' },
 };
 
 // BYO capabilities (rows with owner_id IS NOT NULL) won't have an
 // entry here, so default to "no credential needed", the BYO MCP
 // server's own auth lives in its `capabilities.config` jsonb.
 export const getCapabilityMeta = (slug: string): CapabilityMeta =>
-  CAPABILITY_META[slug] ?? { credentialKind: 'none' };
+  CAPABILITY_META[slug] ?? { credentialType: 'none' };
 
 export type ProviderStatus = 'connected' | 'available' | 'coming_soon';
 
@@ -57,7 +62,7 @@ export interface CapabilityRow {
   slug:           string;
   displayName:    string;
   description:    string | null;
-  credentialKind: CredentialKind;
+  credentialType: CredentialType;
   providers?:     CapabilityProviderRow[];
 }
 
@@ -97,9 +102,9 @@ export const listCapabilitiesForUser = async (
       slug:           cap.slug,
       displayName:    cap.display_name,
       description:    cap.description,
-      credentialKind: meta.credentialKind,
+      credentialType: meta.credentialType,
     };
-    if (meta.credentialKind !== 'providers' || !meta.providers) return row;
+    if (meta.credentialType !== 'providers' || !meta.providers) return row;
 
     row.providers = meta.providers.map((p): CapabilityProviderRow => {
       if (p.status === 'coming_soon') {

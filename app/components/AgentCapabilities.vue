@@ -32,8 +32,8 @@ const CAP_DESC_WIDTHS = ['w-48', 'w-40', 'w-52', 'w-44'];
 // togglable so the user can always detach.
 const isLocked = (cap: AgentCapabilityRow): boolean => {
   if (cap.attached) return false;
-  if (cap.credentialKind === 'coming_soon') return true;
-  if (cap.credentialKind === 'providers') {
+  if (cap.credentialType === 'coming_soon') return true;
+  if (cap.credentialType === 'providers') {
     return !cap.providers?.some(p => p.status === 'connected');
   }
   return false;
@@ -41,7 +41,7 @@ const isLocked = (cap: AgentCapabilityRow): boolean => {
 
 const lockedHint = (cap: AgentCapabilityRow): { text: string; to?: string } | null => {
   if (!isLocked(cap)) return null;
-  if (cap.credentialKind === 'coming_soon') {
+  if (cap.credentialType === 'coming_soon') {
     return { text: 'Coming soon' };
   }
   return { text: 'Connect on Connections', to: '/dashboard/connections' };
@@ -150,7 +150,7 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
 
         <div class="flex items-center gap-3 shrink-0">
           <UBadge
-            v-if="cap.credentialKind === 'coming_soon'"
+            v-if="cap.credentialType === 'coming_soon'"
             color="neutral"
             variant="subtle"
             size="sm"
