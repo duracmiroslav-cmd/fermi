@@ -39,23 +39,6 @@ const { data: agent, error, pending } = useApiFetch<AgentDetail>(
   { key: route.params.id as string },
 );
 const { data: models } = useApiFetch<ProviderModel[]>('/api/providers/openrouter/models');
-const { data: openrouter, pending: openrouterPending } = useApiFetch<{ connected: boolean }>(
-  '/api/oauth/openrouter',
-);
-
-const statusOf = (bot: BotRef) => deriveBotStatus(
-  bot,
-  !!openrouter.value?.connected,
-  openrouterPending.value && openrouter.value === undefined,
-);
-const statusDot = (bot: BotRef) => {
-  const s = statusOf(bot);
-  return s ? BOT_STATUS_DOT[s] : 'bg-muted animate-pulse';
-};
-const statusAria = (bot: BotRef) => {
-  const s = statusOf(bot);
-  return s ? BOT_STATUS_LABEL[s] : 'Loading status';
-};
 
 // OpenRouter names come as "Provider: Model"; the provider logo already
 // carries the provider so we strip the prefix to avoid duplicating it.
@@ -248,61 +231,14 @@ const visionModel = computed<ProviderModel>(() => {
           class="flex flex-col gap-3"
         >
           <h2 class="font-semibold">
-            Bots using this agent
+            Bots
           </h2>
           <div class="space-y-2">
-            <NuxtLink
+            <BotListCard
               v-for="bot in agent.bots"
               :key="bot.id"
-              :to="`/dashboard/bots/${bot.id}`"
-              class="block"
-            >
-              <UCard class="hover:bg-elevated transition-colors">
-                <div class="flex items-center gap-4">
-                  <div class="relative shrink-0">
-                    <UAvatar
-                      v-if="bot.avatarUrl"
-                      :src="bot.avatarUrl"
-                      size="lg"
-                    />
-                    <div
-                      v-else
-                      class="size-9 rounded-full bg-primary/10 flex items-center justify-center font-mono text-sm font-semibold text-primary"
-                    >
-                      {{ (bot.displayName ?? '?').charAt(0).toUpperCase() }}
-                    </div>
-                    <span
-                      class="absolute bottom-0 right-0 size-3 rounded-full ring-2 ring-default"
-                      :class="statusDot(bot)"
-                      :aria-label="statusAria(bot)"
-                    />
-                  </div>
-                  <div class="flex-1 min-w-0 flex flex-col gap-0.5">
-                    <p class="font-medium truncate">
-                      {{ bot.displayName || '(unnamed)' }}
-                    </p>
-                    <div class="flex items-center gap-3 min-w-0 text-sm text-toned">
-                      <PlatformLabel
-                        :platform="bot.platform"
-                        class="shrink-0"
-                      />
-                    </div>
-                  </div>
-                  <span
-                    v-if="bot.lastRepliedAt"
-                    class="text-xs text-toned shrink-0"
-                  >
-                    Replied <TimeAgo :date="bot.lastRepliedAt" />
-                  </span>
-                  <span
-                    v-else
-                    class="text-xs text-toned shrink-0"
-                  >
-                    No replies yet
-                  </span>
-                </div>
-              </UCard>
-            </NuxtLink>
+              :bot="bot"
+            />
           </div>
         </div>
       </DashboardContainer>

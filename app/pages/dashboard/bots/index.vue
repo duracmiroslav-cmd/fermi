@@ -18,23 +18,8 @@ interface BotRow {
 
 const { items: bots, used, atLimit, pending, refresh, limitMessage } = useTierLimit<BotRow>('bots');
 const { syncingId, sync: syncAvatar } = useBotAvatar(refresh);
-const { data: openrouter, pending: openrouterPending } = useApiFetch<{ connected: boolean }>('/api/oauth/openrouter');
 
 const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
-
-const statusOf = (bot: BotRow) => deriveBotStatus(
-  bot,
-  !!openrouter.value?.connected,
-  openrouterPending.value && openrouter.value === undefined,
-);
-const statusDot = (bot: BotRow) => {
-  const s = statusOf(bot);
-  return s ? BOT_STATUS_DOT[s] : 'bg-muted animate-pulse';
-};
-const statusAria = (bot: BotRow) => {
-  const s = statusOf(bot);
-  return s ? BOT_STATUS_LABEL[s] : 'Loading status';
-};
 
 const search = ref('');
 const filteredBots = computed(() => {
@@ -115,89 +100,37 @@ const filteredBots = computed(() => {
             v-else-if="filteredBots.length"
             class="space-y-2"
           >
-            <NuxtLink
+            <BotListCard
               v-for="bot in filteredBots"
               :key="bot.id"
-              :to="`/dashboard/bots/${bot.id}`"
-              class="block"
+              :bot="bot"
             >
-              <UCard class="hover:bg-elevated transition-colors">
-                <div class="flex items-center gap-4">
-                  <div class="relative shrink-0">
-                    <UAvatar
-                      v-if="bot.avatarUrl"
-                      :src="bot.avatarUrl"
-                      :text="initial(bot.displayName)"
-                      size="lg"
+              <template #avatar-fallback>
+                <UTooltip text="Sync avatar from LINE">
+                  <button
+                    type="button"
+                    :disabled="syncingId === bot.id"
+                    class="relative size-9 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors group disabled:opacity-60 cursor-pointer"
+                    @click.stop.prevent="syncAvatar(bot.id)"
+                  >
+                    <UIcon
+                      v-if="syncingId === bot.id"
+                      name="i-lucide-loader-circle"
+                      class="absolute inset-0 m-auto size-4 text-primary animate-spin"
                     />
-                    <UTooltip
-                      v-else
-                      text="Sync avatar from LINE"
-                    >
-                      <button
-                        type="button"
-                        :disabled="syncingId === bot.id"
-                        class="relative size-9 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors group disabled:opacity-60 cursor-pointer"
-                        @click.stop.prevent="syncAvatar(bot.id)"
-                      >
-                        <UIcon
-                          v-if="syncingId === bot.id"
-                          name="i-lucide-loader-circle"
-                          class="absolute inset-0 m-auto size-4 text-primary animate-spin"
-                        />
-                        <template v-else>
-                          <span class="absolute inset-0 flex items-center justify-center font-mono text-sm font-semibold text-primary transition-opacity group-hover:opacity-0">
-                            {{ initial(bot.displayName) }}
-                          </span>
-                          <UIcon
-                            name="i-lucide-refresh-cw"
-                            class="absolute inset-0 m-auto size-3.5 text-primary opacity-0 transition-opacity group-hover:opacity-100"
-                          />
-                        </template>
-                      </button>
-                    </UTooltip>
-                    <span
-                      class="absolute bottom-0 right-0 size-3 rounded-full ring-2 ring-default"
-                      :class="statusDot(bot)"
-                      :aria-label="statusAria(bot)"
-                    />
-                  </div>
-                  <div class="flex-1 min-w-0 flex flex-col gap-0.5">
-                    <p class="font-medium truncate">
-                      {{ bot.displayName || '(unnamed)' }}
-                    </p>
-                    <div class="flex items-center gap-3 min-w-0 text-sm text-toned">
-                      <span class="inline-flex items-center gap-1.5 min-w-0">
-                        <AgentAvatar
-                          v-if="bot.agent"
-                          :src="bot.agent.avatarUrl"
-                          :name="bot.agent.name"
-                          :seed="bot.agent.id"
-                          size="2xs"
-                        />
-                        <span class="truncate">{{ bot.agent?.name ?? 'No agent' }}</span>
+                    <template v-else>
+                      <span class="absolute inset-0 flex items-center justify-center font-mono text-sm font-semibold text-primary transition-opacity group-hover:opacity-0">
+                        {{ initial(bot.displayName) }}
                       </span>
-                      <PlatformLabel
-                        :platform="bot.platform"
-                        class="shrink-0"
+                      <UIcon
+                        name="i-lucide-refresh-cw"
+                        class="absolute inset-0 m-auto size-3.5 text-primary opacity-0 transition-opacity group-hover:opacity-100"
                       />
-                    </div>
-                  </div>
-                  <span
-                    v-if="bot.lastRepliedAt"
-                    class="text-xs text-toned shrink-0"
-                  >
-                    Replied <TimeAgo :date="bot.lastRepliedAt" />
-                  </span>
-                  <span
-                    v-else
-                    class="text-xs text-toned shrink-0"
-                  >
-                    No replies yet
-                  </span>
-                </div>
-              </UCard>
-            </NuxtLink>
+                    </template>
+                  </button>
+                </UTooltip>
+              </template>
+            </BotListCard>
           </div>
 
           <p
