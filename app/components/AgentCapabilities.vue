@@ -85,8 +85,10 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
           size="xs"
           color="neutral"
           variant="link"
-          trailing-icon="i-lucide-arrow-up-right"
+          trailing-icon="i-lucide-external-link"
           to="/dashboard/connections"
+          target="_blank"
+          rel="noopener"
         >
           Manage credentials
         </UButton>
@@ -160,11 +162,13 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
           <NuxtLink
             v-if="lockedHint(cap)?.to"
             :to="lockedHint(cap)!.to"
+            target="_blank"
+            rel="noopener"
             class="text-xs text-toned hover:text-highlighted hidden sm:inline-flex items-center gap-1"
           >
             {{ lockedHint(cap)!.text }}
             <UIcon
-              name="i-lucide-arrow-up-right"
+              name="i-lucide-external-link"
               class="size-3"
             />
           </NuxtLink>

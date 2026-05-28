@@ -203,9 +203,15 @@ const copyWebhook = async () => {
                 />
                 <NuxtLink
                   :to="`/dashboard/agents/${bot.agent.id}`"
-                  class="truncate min-w-0 text-primary hover:underline"
+                  target="_blank"
+                  rel="noopener"
+                  class="flex items-center gap-1.5 min-w-0 text-primary hover:underline"
                 >
-                  {{ bot.agent.name }}
+                  <span class="truncate">{{ bot.agent.name }}</span>
+                  <UIcon
+                    name="i-lucide-external-link"
+                    class="size-3.5 shrink-0 text-toned"
+                  />
                 </NuxtLink>
               </div>
             </dd>
