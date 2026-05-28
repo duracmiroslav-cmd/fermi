@@ -68,7 +68,8 @@ export interface Toolset {
 }
 
 // Module-level: reused across warm edge-function invocations of the same isolate.
-// Key = `url\x00token`; PAT rotations bust stale entries automatically.
+// Key = url only; the tool list is server-side static, independent of which PAT
+// calls it. TTL handles server-side deploys; per-user isolation is unnecessary.
 interface CachedTools {
   list:      McpTool[];
   expiresAt: number;
@@ -123,7 +124,7 @@ export const buildToolset = async (
             ? await loadToken(base, cap.config.authKeyType)
             : undefined;
 
-          const cacheKey = `${cap.config.url}\x00${token ?? ''}`;
+          const cacheKey = cap.config.url!;
 
           // Promise-coalesced lazy connect: all tools on this cap share one
           // McpClient. On a cache hit the connect is deferred to the first
