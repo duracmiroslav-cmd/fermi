@@ -99,7 +99,7 @@ const dismissCelebration = () => {
     <UCard
       v-if="!hasFirstReplied && celebrationStage === 'idle'"
       key="checklist"
-      :ui="{ root: 'ring-warning/30 bg-warning/10' }"
+      :ui="{ root: 'ring-warning/30 bg-warning/10 divide-warning/20' }"
     >
       <template #header>
         <p class="font-medium flex items-center gap-3">
@@ -197,7 +197,7 @@ const dismissCelebration = () => {
     <UCard
       v-else-if="celebrationStage === 'success'"
       key="success"
-      :ui="{ root: 'ring-success/30 bg-success/10' }"
+      :ui="{ root: 'ring-success/30 bg-success/10 divide-success/20' }"
     >
       <template #header>
         <div class="flex items-center justify-between gap-4">

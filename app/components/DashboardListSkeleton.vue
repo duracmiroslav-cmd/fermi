@@ -1,10 +1,4 @@
 <script setup lang="ts">
-withDefaults(defineProps<{
-  rows?: number;
-}>(), {
-  rows: 3,
-});
-
 // Deterministic widths so server + client render the same skeleton.
 const TITLE_WIDTHS = ['w-40', 'w-32', 'w-48'];
 const SUBTITLE_WIDTHS = ['w-24', 'w-28', 'w-20'];
@@ -17,7 +11,7 @@ const SUBTITLE_WIDTHS = ['w-24', 'w-28', 'w-20'];
     aria-live="polite"
   >
     <div
-      v-for="i in rows"
+      v-for="i in 3"
       :key="i"
       class="p-4 sm:p-6 rounded-md ring ring-inset ring-muted bg-elevated/50 flex items-center gap-4"
     >

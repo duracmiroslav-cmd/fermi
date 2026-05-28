@@ -74,7 +74,6 @@ const onDelete = async () => {
 
       <DashboardDetailSkeleton
         v-if="pending && !bot"
-        :fields="2"
       />
 
       <DashboardContainer v-else-if="error">
@@ -162,23 +161,23 @@ const onDelete = async () => {
           </h2>
           <UCard>
             <div class="grid grid-cols-12 gap-4 md:items-center">
-            <div class="col-span-12 md:col-span-9 min-w-0">
-              <p class="text-sm font-medium">
-                Delete this bot
-              </p>
-              <p class="text-sm text-toned mt-1">
-                Permanent. The saved tokens are removed and any attached agent is unlinked.
-              </p>
-            </div>
-            <UButton
-              color="error"
-              variant="outline"
-              size="sm"
-              class="col-span-12 md:col-span-3 justify-self-end"
-              @click="deleteDialogOpen = true"
-            >
-              Delete bot
-            </UButton>
+              <div class="col-span-12 md:col-span-9 min-w-0">
+                <p class="text-sm font-medium">
+                  Delete this bot
+                </p>
+                <p class="text-xs text-toned mt-1">
+                  Permanent. The saved tokens are removed and any attached agent is unlinked.
+                </p>
+              </div>
+              <UButton
+                color="error"
+                variant="outline"
+                size="sm"
+                class="col-span-12 md:col-span-3 justify-self-end"
+                @click="deleteDialogOpen = true"
+              >
+                Delete bot
+              </UButton>
             </div>
           </UCard>
         </div>

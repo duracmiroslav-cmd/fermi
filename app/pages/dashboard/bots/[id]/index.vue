@@ -95,7 +95,6 @@ const copyWebhook = async () => {
 
       <DashboardDetailSkeleton
         v-if="pending && !bot"
-        :fields="2"
       />
 
       <DashboardContainer v-else-if="error">
@@ -184,64 +183,64 @@ const copyWebhook = async () => {
           </div>
           <UCard>
             <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-7">
-            <dt class="text-toned text-right">
-              External ID
-            </dt>
-            <dd class="text-highlighted break-all">
-              {{ bot.externalId }}
-            </dd>
-            <dt class="text-toned text-right">
-              Agent
-            </dt>
-            <dd class="min-w-0">
-              <div class="flex items-center gap-1.5 min-w-0">
-                <AgentAvatar
-                  :src="bot.agent.avatarUrl"
-                  :name="bot.agent.name"
-                  :seed="bot.agent.id"
-                  size="2xs"
-                />
-                <NuxtLink
-                  :to="`/dashboard/agents/${bot.agent.id}`"
-                  target="_blank"
-                  rel="noopener"
-                  class="flex items-center gap-1.5 min-w-0 text-primary hover:underline"
-                >
-                  <span class="truncate">{{ bot.agent.name }}</span>
-                  <UIcon
-                    name="i-lucide-external-link"
-                    class="size-3.5 shrink-0 text-toned"
+              <dt class="text-toned text-right">
+                External ID
+              </dt>
+              <dd class="text-highlighted break-all">
+                {{ bot.externalId }}
+              </dd>
+              <dt class="text-toned text-right">
+                Agent
+              </dt>
+              <dd class="min-w-0">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <AgentAvatar
+                    :src="bot.agent.avatarUrl"
+                    :name="bot.agent.name"
+                    :seed="bot.agent.id"
+                    size="2xs"
                   />
-                </NuxtLink>
-              </div>
-            </dd>
-            <dt class="text-toned text-right">
-              Webhook URL
-            </dt>
-            <dd class="text-highlighted flex items-center gap-1.5 min-w-0">
-              <code class="font-mono truncate select-all">{{ bot.webhookUrl }}</code>
-              <UButton
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                :icon="webhookCopied ? 'i-lucide-check' : 'i-lucide-copy'"
-                :aria-label="webhookCopied ? 'Copied' : 'Copy webhook URL'"
-                @click="copyWebhook"
-              />
-            </dd>
-            <dt class="text-toned text-right">
-              Created
-            </dt>
-            <dd class="text-highlighted">
-              <TimeAgo :date="bot.createdAt" />
-            </dd>
-            <dt class="text-toned text-right">
-              Updated
-            </dt>
-            <dd class="text-highlighted">
-              <TimeAgo :date="bot.updatedAt" />
-            </dd>
-          </dl>
+                  <NuxtLink
+                    :to="`/dashboard/agents/${bot.agent.id}`"
+                    target="_blank"
+                    rel="noopener"
+                    class="flex items-center gap-1.5 min-w-0 text-primary hover:underline"
+                  >
+                    <span class="truncate">{{ bot.agent.name }}</span>
+                    <UIcon
+                      name="i-lucide-external-link"
+                      class="size-3.5 shrink-0 text-toned"
+                    />
+                  </NuxtLink>
+                </div>
+              </dd>
+              <dt class="text-toned text-right">
+                Webhook URL
+              </dt>
+              <dd class="text-highlighted flex items-center gap-1.5 min-w-0">
+                <code class="font-mono truncate select-all">{{ bot.webhookUrl }}</code>
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  :icon="webhookCopied ? 'i-lucide-check' : 'i-lucide-copy'"
+                  :aria-label="webhookCopied ? 'Copied' : 'Copy webhook URL'"
+                  @click="copyWebhook"
+                />
+              </dd>
+              <dt class="text-toned text-right">
+                Created
+              </dt>
+              <dd class="text-highlighted">
+                <TimeAgo :date="bot.createdAt" />
+              </dd>
+              <dt class="text-toned text-right">
+                Updated
+              </dt>
+              <dd class="text-highlighted">
+                <TimeAgo :date="bot.updatedAt" />
+              </dd>
+            </dl>
           </UCard>
         </div>
       </DashboardContainer>

@@ -1,11 +1,3 @@
-<script setup lang="ts">
-withDefaults(defineProps<{
-  fields?: number;
-}>(), {
-  fields: 3,
-});
-</script>
-
 <template>
   <DashboardContainer
     aria-busy="true"
@@ -17,7 +9,7 @@ withDefaults(defineProps<{
     </div>
 
     <div
-      v-for="i in fields"
+      v-for="i in 3"
       :key="i"
       class="space-y-2"
     >

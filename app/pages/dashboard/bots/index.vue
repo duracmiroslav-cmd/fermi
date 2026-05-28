@@ -84,7 +84,6 @@ const filteredBots = computed(() => {
 
           <DashboardListSkeleton
             v-if="pending && !bots?.length"
-            :rows="3"
           />
 
           <UEmpty

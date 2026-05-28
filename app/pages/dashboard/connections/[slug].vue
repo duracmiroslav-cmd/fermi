@@ -111,7 +111,6 @@ const onGithubDisconnect = async () => {
 
       <DashboardDetailSkeleton
         v-if="pending && !capabilities"
-        :fields="2"
       />
 
       <DashboardContainer v-else-if="capability">

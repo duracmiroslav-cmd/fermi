@@ -36,7 +36,6 @@ const onConnect = () => {
 
       <DashboardDetailSkeleton
         v-if="pending && !openrouter"
-        :fields="2"
       />
 
       <DashboardContainer v-else>

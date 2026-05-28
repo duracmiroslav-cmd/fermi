@@ -79,7 +79,6 @@ const visionModel = computed<ProviderModel>(() => {
 
       <DashboardDetailSkeleton
         v-if="pending && !agent"
-        :fields="3"
       />
 
       <DashboardContainer v-else-if="error">
@@ -162,65 +161,65 @@ const visionModel = computed<ProviderModel>(() => {
           </h2>
           <UCard>
             <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-7">
-            <dt class="text-toned text-right">
-              Text model
-            </dt>
-            <dd class="min-w-0">
-              <div class="flex items-center gap-1.5 min-w-0">
-                <UIcon
-                  :name="model.avatar.icon"
-                  class="size-5 text-toned shrink-0"
-                />
-                <NuxtLink
-                  :to="`https://openrouter.ai/${model.id}`"
-                  target="_blank"
-                  rel="noopener"
-                  class="flex items-center gap-1.5 min-w-0 text-primary hover:underline"
-                >
-                  <span class="truncate">{{ model.isDefault ? `${model.name} (default)` : model.name }}</span>
+              <dt class="text-toned text-right">
+                Text model
+              </dt>
+              <dd class="min-w-0">
+                <div class="flex items-center gap-1.5 min-w-0">
                   <UIcon
-                    name="i-lucide-external-link"
-                    class="size-3.5 shrink-0 text-toned"
+                    :name="model.avatar.icon"
+                    class="size-5 text-toned shrink-0"
                   />
-                </NuxtLink>
-              </div>
-            </dd>
-            <dt class="text-toned text-right">
-              Vision model
-            </dt>
-            <dd class="min-w-0">
-              <div class="flex items-center gap-1.5 min-w-0">
-                <UIcon
-                  :name="visionModel.avatar.icon"
-                  class="size-5 text-toned shrink-0"
-                />
-                <NuxtLink
-                  :to="`https://openrouter.ai/${visionModel.id}`"
-                  target="_blank"
-                  rel="noopener"
-                  class="flex items-center gap-1.5 min-w-0 text-primary hover:underline"
-                >
-                  <span class="truncate">{{ visionModel.name }}</span>
+                  <NuxtLink
+                    :to="`https://openrouter.ai/${model.id}`"
+                    target="_blank"
+                    rel="noopener"
+                    class="flex items-center gap-1.5 min-w-0 text-primary hover:underline"
+                  >
+                    <span class="truncate">{{ model.isDefault ? `${model.name} (default)` : model.name }}</span>
+                    <UIcon
+                      name="i-lucide-external-link"
+                      class="size-3.5 shrink-0 text-toned"
+                    />
+                  </NuxtLink>
+                </div>
+              </dd>
+              <dt class="text-toned text-right">
+                Vision model
+              </dt>
+              <dd class="min-w-0">
+                <div class="flex items-center gap-1.5 min-w-0">
                   <UIcon
-                    name="i-lucide-external-link"
-                    class="size-3.5 shrink-0 text-toned"
+                    :name="visionModel.avatar.icon"
+                    class="size-5 text-toned shrink-0"
                   />
-                </NuxtLink>
-              </div>
-            </dd>
-            <dt class="text-toned text-right">
-              Created
-            </dt>
-            <dd class="text-highlighted">
-              <TimeAgo :date="agent.createdAt" />
-            </dd>
-            <dt class="text-toned text-right">
-              Updated
-            </dt>
-            <dd class="text-highlighted">
-              <TimeAgo :date="agent.updatedAt" />
-            </dd>
-          </dl>
+                  <NuxtLink
+                    :to="`https://openrouter.ai/${visionModel.id}`"
+                    target="_blank"
+                    rel="noopener"
+                    class="flex items-center gap-1.5 min-w-0 text-primary hover:underline"
+                  >
+                    <span class="truncate">{{ visionModel.name }}</span>
+                    <UIcon
+                      name="i-lucide-external-link"
+                      class="size-3.5 shrink-0 text-toned"
+                    />
+                  </NuxtLink>
+                </div>
+              </dd>
+              <dt class="text-toned text-right">
+                Created
+              </dt>
+              <dd class="text-highlighted">
+                <TimeAgo :date="agent.createdAt" />
+              </dd>
+              <dt class="text-toned text-right">
+                Updated
+              </dt>
+              <dd class="text-highlighted">
+                <TimeAgo :date="agent.updatedAt" />
+              </dd>
+            </dl>
           </UCard>
         </div>
 

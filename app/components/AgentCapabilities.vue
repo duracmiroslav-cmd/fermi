@@ -96,88 +96,88 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <div
         v-if="pending && !rows"
-      class="divide-y divide-default overflow-hidden"
-      aria-busy="true"
-    >
-      <div
-        v-for="i in 4"
-        :key="i"
-        class="flex items-center gap-4 p-4"
+        class="divide-y divide-default overflow-hidden"
+        aria-busy="true"
       >
-        <USkeleton class="size-5 shrink-0" />
-        <div class="flex-1 min-w-0">
-          <div class="h-5 flex items-center">
-            <USkeleton
-              class="h-3"
-              :class="CAP_WIDTHS[(i - 1) % CAP_WIDTHS.length]"
-            />
+        <div
+          v-for="i in 4"
+          :key="i"
+          class="flex items-center gap-4 p-4"
+        >
+          <USkeleton class="size-5 shrink-0" />
+          <div class="flex-1 min-w-0">
+            <div class="h-5 flex items-center">
+              <USkeleton
+                class="h-3"
+                :class="CAP_WIDTHS[(i - 1) % CAP_WIDTHS.length]"
+              />
+            </div>
+            <div class="h-5 flex items-center">
+              <USkeleton
+                class="h-3 bg-muted/70"
+                :class="CAP_DESC_WIDTHS[(i - 1) % CAP_DESC_WIDTHS.length]"
+              />
+            </div>
           </div>
-          <div class="h-5 flex items-center">
-            <USkeleton
-              class="h-3 bg-muted/70"
-              :class="CAP_DESC_WIDTHS[(i - 1) % CAP_DESC_WIDTHS.length]"
-            />
-          </div>
+          <USkeleton class="h-5 w-9 rounded-full shrink-0" />
         </div>
-        <USkeleton class="h-5 w-9 rounded-full shrink-0" />
       </div>
-    </div>
 
-    <div
-      v-else
-      class="divide-y divide-default overflow-hidden"
-    >
       <div
-        v-for="cap in rows ?? []"
-        :key="cap.id"
-        class="flex items-center gap-4 p-4"
+        v-else
+        class="divide-y divide-default overflow-hidden"
       >
-        <UIcon
-          :name="iconFor(cap.slug)"
-          class="size-5 text-toned shrink-0"
-        />
-
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium truncate">
-            {{ cap.displayName }}
-          </p>
-          <p
-            v-if="cap.description"
-            class="text-xs text-toned"
-          >
-            {{ cap.description }}
-          </p>
-        </div>
-
-        <div class="flex items-center gap-3 shrink-0">
-          <UBadge
-            v-if="cap.credentialType === 'coming_soon'"
-            color="neutral"
-            variant="subtle"
-            size="sm"
-          >
-            Coming soon
-          </UBadge>
-          <NuxtLink
-            v-if="lockedHint(cap)?.to"
-            :to="lockedHint(cap)!.to"
-            target="_blank"
-            rel="noopener"
-            class="text-xs text-toned hover:text-highlighted hidden sm:inline-flex items-center gap-1"
-          >
-            {{ lockedHint(cap)!.text }}
-            <UIcon
-              name="i-lucide-external-link"
-              class="size-3"
-            />
-          </NuxtLink>
-          <USwitch
-            :model-value="cap.attached"
-            :disabled="isLocked(cap) || pendingIds.has(cap.id)"
-            @update:model-value="onToggle(cap, $event)"
+        <div
+          v-for="cap in rows ?? []"
+          :key="cap.id"
+          class="flex items-center gap-4 p-4"
+        >
+          <UIcon
+            :name="iconFor(cap.slug)"
+            class="size-5 text-toned shrink-0"
           />
+
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium truncate">
+              {{ cap.displayName }}
+            </p>
+            <p
+              v-if="cap.description"
+              class="text-xs text-toned"
+            >
+              {{ cap.description }}
+            </p>
+          </div>
+
+          <div class="flex items-center gap-3 shrink-0">
+            <UBadge
+              v-if="cap.credentialType === 'coming_soon'"
+              color="neutral"
+              variant="subtle"
+              size="sm"
+            >
+              Coming soon
+            </UBadge>
+            <NuxtLink
+              v-if="lockedHint(cap)?.to"
+              :to="lockedHint(cap)!.to"
+              target="_blank"
+              rel="noopener"
+              class="text-xs text-toned hover:text-highlighted hidden sm:inline-flex items-center gap-1"
+            >
+              {{ lockedHint(cap)!.text }}
+              <UIcon
+                name="i-lucide-external-link"
+                class="size-3"
+              />
+            </NuxtLink>
+            <USwitch
+              :model-value="cap.attached"
+              :disabled="isLocked(cap) || pendingIds.has(cap.id)"
+              @update:model-value="onToggle(cap, $event)"
+            />
+          </div>
         </div>
-      </div>
       </div>
     </UCard>
   </div>

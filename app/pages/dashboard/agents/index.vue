@@ -107,7 +107,6 @@ const textModelFor = (stored: string | null): ProviderModel & { isDefault: boole
 
           <DashboardListSkeleton
             v-if="pending && !agents?.length"
-            :rows="3"
           />
 
           <UEmpty

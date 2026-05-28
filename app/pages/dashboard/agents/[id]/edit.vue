@@ -87,7 +87,6 @@ const onDelete = async () => {
 
       <DashboardDetailSkeleton
         v-if="pending && !agent"
-        :fields="3"
       />
 
       <DashboardContainer v-else-if="error">
@@ -173,43 +172,43 @@ const onDelete = async () => {
           </h2>
           <UCard>
             <div class="grid grid-cols-12 gap-4 md:items-center">
-            <div class="col-span-12 md:col-span-9 min-w-0">
-              <p class="text-sm font-medium">
-                Delete this agent
-              </p>
-              <p class="text-sm text-toned mt-1">
-                <template v-if="agent.bots.length">
-                  Bound to {{ agent.bots.length }} bot{{ agent.bots.length === 1 ? '' : 's' }}. Rebind to another agent before deleting.
-                </template>
-                <template v-else>
-                  Permanent. This agent isn't bound to any bot.
-                </template>
-              </p>
-            </div>
-            <div class="col-span-12 md:col-span-3 justify-self-end">
-              <UTooltip
-                v-if="agent.bots.length"
-                text="Agent still bound to a bot"
-              >
+              <div class="col-span-12 md:col-span-9 min-w-0">
+                <p class="text-sm font-medium">
+                  Delete this agent
+                </p>
+                <p class="text-xs text-toned mt-1">
+                  <template v-if="agent.bots.length">
+                    Bound to {{ agent.bots.length }} bot{{ agent.bots.length === 1 ? '' : 's' }}. Rebind to another agent before deleting.
+                  </template>
+                  <template v-else>
+                    Permanent. This agent isn't bound to any bot.
+                  </template>
+                </p>
+              </div>
+              <div class="col-span-12 md:col-span-3 justify-self-end">
+                <UTooltip
+                  v-if="agent.bots.length"
+                  text="Agent still bound to a bot"
+                >
+                  <UButton
+                    color="error"
+                    variant="outline"
+                    size="sm"
+                    disabled
+                  >
+                    Delete agent
+                  </UButton>
+                </UTooltip>
                 <UButton
+                  v-else
                   color="error"
                   variant="outline"
                   size="sm"
-                  disabled
+                  @click="deleteDialogOpen = true"
                 >
                   Delete agent
                 </UButton>
-              </UTooltip>
-              <UButton
-                v-else
-                color="error"
-                variant="outline"
-                size="sm"
-                @click="deleteDialogOpen = true"
-              >
-                Delete agent
-              </UButton>
-            </div>
+              </div>
             </div>
           </UCard>
         </div>
