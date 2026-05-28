@@ -105,9 +105,7 @@ const textModelFor = (stored: string | null): ProviderModel & { isDefault: boole
             </template>
           </UInput>
 
-          <DashboardListSkeleton
-            v-if="pending && !agents?.length"
-          />
+          <DashboardListSkeleton v-if="pending && !agents?.length" />
 
           <UEmpty
             v-else-if="!agents?.length"
@@ -128,7 +126,7 @@ const textModelFor = (stored: string | null): ProviderModel & { isDefault: boole
               :to="`/dashboard/agents/${agent.id}`"
               class="block"
             >
-              <UCard class="hover:bg-elevated transition-colors">
+              <UCard variant="interactive">
                 <div class="flex items-center gap-4">
                   <AgentAvatar
                     :src="agent.avatarUrl"

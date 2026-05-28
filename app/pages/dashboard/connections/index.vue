@@ -88,7 +88,7 @@ const filteredCards = computed(() => {
             to="/dashboard/connections/openrouter"
             class="block"
           >
-            <UCard class="transition-colors hover:bg-elevated">
+            <UCard variant="interactive">
               <div class="flex items-center gap-4">
                 <UIcon
                   name="i-simple-icons-openrouter"

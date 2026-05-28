@@ -39,13 +39,16 @@ export default defineAppConfig({
     card: {
       variants: {
         variant: {
-          fermi: {
-            root: 'bg-elevated/50 rounded-md ring ring-inset ring-muted divide-y divide-muted',
+          static: {
+            root: 'bg-muted/50 rounded-md ring ring-inset ring-muted divide-y divide-muted',
+          },
+          interactive: {
+            root: 'bg-muted/50 rounded-md ring ring-inset ring-muted hover:ring-primary transition-shadow divide-y divide-muted',
           },
         },
       },
       defaultVariants: {
-        variant: 'fermi',
+        variant: 'static',
       },
     },
     empty: {
