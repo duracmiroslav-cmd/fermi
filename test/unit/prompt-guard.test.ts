@@ -101,13 +101,13 @@ describe('checkInjection', () => {
 
   describe('false positives', () => {
     it('does not flag normal English responses', () => {
-      expect(checkInjection("Here's the weather: sunny today.").detected).toBe(false);
+      expect(checkInjection('Here\'s the weather: sunny today.').detected).toBe(false);
       expect(checkInjection('The search results are in.').detected).toBe(false);
     });
 
     it('does not flag legitimate use of "instructions"', () => {
-      expect(checkInjection("I'll follow the cooking instructions carefully.").detected).toBe(false);
-      expect(checkInjection("The assembly instructions are on page 3.").detected).toBe(false);
+      expect(checkInjection('I\'ll follow the cooking instructions carefully.').detected).toBe(false);
+      expect(checkInjection('The assembly instructions are on page 3.').detected).toBe(false);
     });
 
     it('does not flag legitimate Chinese messages', () => {

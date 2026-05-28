@@ -32,7 +32,7 @@ export const loadActiveCapabilities = async (
 ): Promise<AttachedCapability[]> => {
   const { data, error } = await admin
     .from('agent_capabilities')
-    .select('capability:capabilities!inner(slug, config, deleted_at)')
+    .select('config, capability:capabilities!inner(slug, config, deleted_at)')
     .eq('agent_id', agentId)
     .is('disabled_at', null)
     .is('capability.deleted_at', null);
@@ -42,6 +42,7 @@ export const loadActiveCapabilities = async (
   // FK is many-to-one. Runtime returns a single object; cast through unknown
   // to accept either shape and flatten.
   const rows = (data ?? []) as unknown as Array<{
+    config:     CapabilityConfig | null;
     capability:
       | { slug: string; config: CapabilityConfig | null }
       | { slug: string; config: CapabilityConfig | null }[]
@@ -50,6 +51,8 @@ export const loadActiveCapabilities = async (
   return rows.flatMap((r) => {
     if (!r.capability) return [];
     const caps = Array.isArray(r.capability) ? r.capability : [r.capability];
-    return caps.map(c => ({ slug: c.slug, config: c.config ?? {} }));
+    // Per-agent config shallow-overrides the catalog default. Any key present
+    // in the agent binding wins; absent keys fall through to the global value.
+    return caps.map(c => ({ slug: c.slug, config: { ...(c.config ?? {}), ...(r.config ?? {}) } }));
   });
 };
