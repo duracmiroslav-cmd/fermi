@@ -96,145 +96,131 @@ const dismissCelebration = () => {
     leave-to-class="opacity-0"
     mode="out-in"
   >
-    <UAlert
-      v-if="!isSetupComplete"
+    <UCard
+      v-if="!hasFirstReplied && celebrationStage === 'idle'"
       key="checklist"
-      color="warning"
-      variant="subtle"
-      :ui="{ description: 'mt-4' }"
+      :ui="{ root: 'ring-warning/30 bg-warning/10' }"
     >
-      <template #title>
-        <span class="flex items-center gap-3">
+      <template #header>
+        <p class="font-medium flex items-center gap-3">
           <UIcon
             name="i-lucide-rocket"
-            class="size-5"
+            class="size-5 text-warning"
           />
           Finish setting up
-        </span>
+        </p>
       </template>
-      <template #description>
-        <ul class="flex flex-col gap-3">
-          <li class="flex items-start gap-3">
-            <UIcon
-              :name="isOpenrouterConnected ? 'i-lucide-circle-check' : 'i-lucide-circle'"
-              :class="['size-5 shrink-0', isOpenrouterConnected ? 'text-success' : 'text-toned']"
-            />
-            <div class="flex-1 min-w-0 flex flex-col gap-2">
-              <p :class="['text-sm', isOpenrouterConnected && 'text-toned']">
-                Connect OpenRouter
-              </p>
-              <p class="text-xs text-toned">
-                Bots reply through OpenRouter. One signup unlocks Claude, GPT, Gemini, and 200+ other LLMs.
-              </p>
-              <UButton
-                v-if="!isOpenrouterConnected"
-                size="sm"
-                to="/api/oauth/openrouter/start"
-                external
-                target="_blank"
-                rel="noopener"
-                trailing-icon="i-lucide-external-link"
-                class="self-start"
-              >
-                Set up OpenRouter
-              </UButton>
-            </div>
-          </li>
-          <li class="flex items-start gap-3">
-            <UIcon
-              :name="isWebhookVerified ? 'i-lucide-circle-check' : 'i-lucide-circle'"
-              :class="['size-5 shrink-0', isWebhookVerified ? 'text-success' : 'text-toned']"
-            />
-            <div class="flex-1 min-w-0 flex flex-col gap-2">
-              <p :class="['text-sm', isWebhookVerified && 'text-toned']">
-                Connect webhook to LINE
-              </p>
-              <p class="text-xs text-toned">
-                fermi pushes the webhook URL to your LINE channel and runs a verify request. No need to touch LINE Developer Console.
-              </p>
-              <UButton
-                v-if="!isWebhookVerified"
-                size="sm"
-                class="self-start"
-                :loading="webhookSettingUp"
-                :disabled="!isOpenrouterConnected"
-                @click="setupWebhook"
-              >
-                Set up webhook
-              </UButton>
-            </div>
-          </li>
-        </ul>
-      </template>
-    </UAlert>
-
-    <UAlert
-      v-else-if="!hasFirstReplied && celebrationStage === 'idle'"
-      key="ready"
-      color="success"
-      variant="subtle"
-      :ui="{ description: 'mt-4' }"
-    >
-      <template #title>
-        <span class="flex items-center gap-3">
+      <ul class="flex flex-col gap-3">
+        <li class="flex items-start gap-3">
           <UIcon
-            name="i-lucide-circle-check"
-            class="size-5"
+            :name="isOpenrouterConnected ? 'i-lucide-circle-check' : 'i-lucide-circle'"
+            :class="['size-5 shrink-0', isOpenrouterConnected ? 'text-success' : 'text-toned']"
           />
-          Setup complete
-        </span>
-      </template>
-      <template #description>
-        <div class="flex items-start gap-4">
-          <div class="flex-1 min-w-0">
-            <p>
-              Add the bot on LINE and send it a message. fermi will celebrate the first reply.
+          <div class="flex-1 min-w-0 flex flex-col gap-2">
+            <p :class="['text-sm', isOpenrouterConnected && 'text-toned']">
+              Connect OpenRouter
             </p>
-            <p class="text-xs mt-3 flex items-center gap-2">
-              <UIcon
-                name="i-lucide-loader-circle"
-                class="size-3.5 animate-spin"
-              />
-              Listening for the first reply...
+            <p class="text-xs text-toned">
+              Bots reply through OpenRouter. One signup unlocks Claude, GPT, Gemini, and 200+ other LLMs.
             </p>
-          </div>
-          <a
-            v-if="qrImageUrl && friendAddUrl"
-            :href="friendAddUrl"
-            target="_blank"
-            rel="noopener"
-            class="flex flex-col items-center gap-1 shrink-0"
-          >
-            <img
-              :src="qrImageUrl"
-              alt="Scan to add bot on LINE"
-              class="size-24 rounded-md bg-white p-1"
+            <UButton
+              v-if="!isOpenrouterConnected"
+              size="sm"
+              to="/api/oauth/openrouter/start"
+              external
+              target="_blank"
+              rel="noopener"
+              trailing-icon="i-lucide-external-link"
+              class="self-start"
             >
-            <span class="text-xs">Scan to add</span>
-          </a>
-        </div>
-      </template>
-    </UAlert>
+              Set up OpenRouter
+            </UButton>
+          </div>
+        </li>
+        <li class="flex items-start gap-3">
+          <UIcon
+            :name="isWebhookVerified ? 'i-lucide-circle-check' : 'i-lucide-circle'"
+            :class="['size-5 shrink-0', isWebhookVerified ? 'text-success' : 'text-toned']"
+          />
+          <div class="flex-1 min-w-0 flex flex-col gap-2">
+            <p :class="['text-sm', isWebhookVerified && 'text-toned']">
+              Connect webhook to LINE
+            </p>
+            <p class="text-xs text-toned">
+              fermi pushes the webhook URL to your LINE channel and runs a verify request. No need to touch LINE Developer Console.
+            </p>
+            <UButton
+              v-if="!isWebhookVerified"
+              size="sm"
+              class="self-start"
+              :loading="webhookSettingUp"
+              :disabled="!isOpenrouterConnected"
+              @click="setupWebhook"
+            >
+              Set up webhook
+            </UButton>
+          </div>
+        </li>
+        <li class="flex items-start gap-3">
+          <UIcon
+            :name="isSetupComplete ? 'i-lucide-loader-circle' : 'i-lucide-circle'"
+            :class="['size-5 shrink-0', isSetupComplete ? 'text-warning animate-spin' : 'text-toned']"
+          />
+          <div class="flex-1 min-w-0 flex items-start gap-4">
+            <div class="flex-1 min-w-0 flex flex-col gap-2">
+              <p class="text-sm">
+                Send a test message
+              </p>
+              <p class="text-xs text-toned">
+                Add the bot on LINE and send it any message. fermi will celebrate the first reply.
+              </p>
+            </div>
+            <a
+              v-if="qrImageUrl && friendAddUrl"
+              :href="friendAddUrl"
+              target="_blank"
+              rel="noopener"
+              class="flex flex-col items-center gap-1 shrink-0"
+            >
+              <img
+                :src="qrImageUrl"
+                alt="Scan to add bot on LINE"
+                class="size-24 rounded-md bg-white p-1"
+              >
+              <span class="text-xs">Scan to add</span>
+            </a>
+          </div>
+        </li>
+      </ul>
+    </UCard>
 
-    <UAlert
+    <UCard
       v-else-if="celebrationStage === 'success'"
       key="success"
-      color="success"
-      variant="subtle"
-      description="Your bot is live and replying."
-      close
-      :ui="{ description: 'mt-4' }"
-      @close="dismissCelebration"
+      :ui="{ root: 'ring-success/30 bg-success/10' }"
     >
-      <template #title>
-        <span class="flex items-center gap-3">
-          <UIcon
-            name="i-lucide-party-popper"
-            class="size-5"
+      <template #header>
+        <div class="flex items-center justify-between gap-4">
+          <p class="font-medium flex items-center gap-3">
+            <UIcon
+              name="i-lucide-party-popper"
+              class="size-5 text-success"
+            />
+            You&apos;re all set
+          </p>
+          <UButton
+            icon="i-lucide-x"
+            size="sm"
+            color="neutral"
+            variant="ghost"
+            aria-label="Dismiss"
+            @click="dismissCelebration"
           />
-          You&apos;re all set
-        </span>
+        </div>
       </template>
-    </UAlert>
+      <p class="text-sm text-toned">
+        Your bot is live and replying.
+      </p>
+    </UCard>
   </Transition>
 </template>
