@@ -121,9 +121,6 @@ const onDelete = async () => {
                 Default
               </UBadge>
             </h1>
-            <p class="text-sm text-toned mt-1 truncate">
-              {{ agent.defaultTextModel || 'No model configured' }}
-            </p>
           </div>
         </div>
 

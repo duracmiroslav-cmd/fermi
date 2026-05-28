@@ -118,20 +118,18 @@ const visionModel = computed<ProviderModel>(() => {
             size="3xl"
           />
           <div class="min-w-0">
-            <h1 class="text-2xl font-semibold truncate">
+            <h1 class="text-2xl font-semibold truncate flex items-center gap-2">
               {{ agent.name || '(unnamed)' }}
+              <UBadge
+                v-if="agent.isDefault"
+                color="neutral"
+                variant="subtle"
+                size="sm"
+              >
+                Default
+              </UBadge>
             </h1>
           </div>
-          <UBadge
-            v-if="agent.isDefault"
-            color="neutral"
-            variant="outline"
-            size="sm"
-            leading-icon="i-lucide-star"
-            class="ml-auto shrink-0"
-          >
-            Default
-          </UBadge>
         </div>
 
         <div class="flex flex-col gap-3">
@@ -182,7 +180,7 @@ const visionModel = computed<ProviderModel>(() => {
           <UCard>
             <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-7">
             <dt class="text-toned text-right">
-              Model
+              Text model
             </dt>
             <dd class="min-w-0">
               <div class="flex items-center gap-1.5 min-w-0">
@@ -226,12 +224,6 @@ const visionModel = computed<ProviderModel>(() => {
                   />
                 </NuxtLink>
               </div>
-            </dd>
-            <dt class="text-toned text-right">
-              ID
-            </dt>
-            <dd class="text-highlighted break-all">
-              {{ agent.id }}
             </dd>
             <dt class="text-toned text-right">
               Created
