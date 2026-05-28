@@ -55,24 +55,26 @@ const filteredBots = computed(() => {
           <h1 class="text-2xl font-semibold">
             Bots <span class="text-toned font-normal">({{ used }})</span>
           </h1>
-          <UTooltip
-            v-if="atLimit"
-            :text="limitMessage"
-          >
+          <template v-if="bots?.length">
+            <UTooltip
+              v-if="atLimit"
+              :text="limitMessage"
+            >
+              <UButton
+                icon="i-lucide-plus"
+                disabled
+              >
+                Connect bot
+              </UButton>
+            </UTooltip>
             <UButton
+              v-else
               icon="i-lucide-plus"
-              disabled
+              to="/dashboard/bots/new"
             >
               Connect bot
             </UButton>
-          </UTooltip>
-          <UButton
-            v-else
-            icon="i-lucide-plus"
-            to="/dashboard/bots/new"
-          >
-            Connect bot
-          </UButton>
+          </template>
         </div>
 
         <div class="flex flex-col gap-4">
