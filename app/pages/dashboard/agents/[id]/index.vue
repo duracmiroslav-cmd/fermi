@@ -111,9 +111,10 @@ const visionModel = computed<ProviderModel>(() => {
           <template #header>
             <div class="flex items-center justify-between gap-4">
               <p class="font-medium">
-                Details
+                System prompt
               </p>
               <UButton
+                v-if="agent.systemPrompt"
                 :to="`/dashboard/agents/${agent.id}/edit`"
                 icon="i-lucide-pencil"
                 color="neutral"
@@ -123,6 +124,35 @@ const visionModel = computed<ProviderModel>(() => {
                 Edit
               </UButton>
             </div>
+          </template>
+          <p
+            v-if="agent.systemPrompt"
+            class="text-sm text-highlighted whitespace-pre-wrap break-words leading-relaxed"
+          >
+            {{ agent.systemPrompt }}
+          </p>
+          <div
+            v-else
+            class="flex flex-col items-start gap-3"
+          >
+            <p class="text-sm text-toned">
+              No system prompt set. This agent replies with default behavior.
+            </p>
+            <UButton
+              :to="`/dashboard/agents/${agent.id}/edit`"
+              icon="i-lucide-plus"
+              size="sm"
+            >
+              Add system prompt
+            </UButton>
+          </div>
+        </UCard>
+
+        <UCard>
+          <template #header>
+            <p class="font-medium">
+              Details
+            </p>
           </template>
           <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-7">
             <dt class="text-toned text-right">
@@ -199,23 +229,6 @@ const visionModel = computed<ProviderModel>(() => {
           <p class="text-xs text-toned mt-2">
             Conversations that include an image are answered by the vision model, whatever the text model is set to.
           </p>
-          <div class="mt-4 border-t border-default pt-4">
-            <p class="text-sm text-toned mb-1.5">
-              System prompt
-            </p>
-            <p
-              v-if="agent.systemPrompt"
-              class="text-sm text-highlighted whitespace-pre-wrap break-words leading-relaxed"
-            >
-              {{ agent.systemPrompt }}
-            </p>
-            <p
-              v-else
-              class="text-sm text-toned"
-            >
-              No system prompt set. This agent replies with default behavior.
-            </p>
-          </div>
         </UCard>
 
         <AgentCapabilitiesReadonly :agent-id="agent.id" />
