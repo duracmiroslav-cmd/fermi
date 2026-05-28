@@ -92,6 +92,21 @@ const selectedVisionModel = computed(() =>
   (models.value ?? []).find(m => m.id === state.defaultVisionModel) ?? null,
 );
 
+// Empty pickers (the Default agent ships with no model) inherit the
+// worker fallback. Surfacing the fallback model's name + icon in the
+// placeholder tells the user what a run will use, instead of a blank
+// "Select a model" that reads as unset — while keeping the field truly
+// empty so saving preserves the null.
+const defaultTextModelInfo = computed(() =>
+  (models.value ?? []).find(m => m.id === DEFAULT_TEXT_MODEL)
+  ?? { id: DEFAULT_TEXT_MODEL, name: DEFAULT_TEXT_MODEL, avatar: { icon: 'i-lucide-sparkles' } },
+);
+
+const defaultVisionModelInfo = computed(() =>
+  (models.value ?? []).find(m => m.id === DEFAULT_VISION_MODEL)
+  ?? { id: DEFAULT_VISION_MODEL, name: DEFAULT_VISION_MODEL, avatar: { icon: 'i-lucide-sparkles' } },
+);
+
 const promptCharCount = computed(() => state.systemPrompt.length);
 
 const onSubmit = () => {
@@ -145,9 +160,9 @@ const onSubmit = () => {
         v-model="displayModelId"
         :items="modelItems"
         value-key="value"
-        placeholder="Select a model"
+        :placeholder="`${defaultTextModelInfo.name} (default)`"
         :loading="modelsPending || isModelPickerOpening"
-        :ui="{ itemTrailingIcon: 'size-4' }"
+        :ui="{ itemTrailingIcon: 'hidden' }"
         @pointerdown="isModelPickerOpening = true"
         @update:open="isModelPickerOpening = false"
       >
@@ -166,6 +181,11 @@ const onSubmit = () => {
           <UIcon
             v-else-if="selectedModel"
             :name="selectedModel.avatar.icon"
+            class="size-5 text-toned"
+          />
+          <UIcon
+            v-else
+            :name="defaultTextModelInfo.avatar.icon"
             class="size-5 text-toned"
           />
         </template>
@@ -188,6 +208,14 @@ const onSubmit = () => {
           </span>
         </template>
         <template #item-trailing="{ item }">
+          <!-- size-7 box aligns the check with the trailing button -->
+          <span class="flex items-center justify-center size-7 shrink-0">
+            <UIcon
+              v-if="state.defaultTextModel === item.value"
+              name="i-lucide-check"
+              class="size-4"
+            />
+          </span>
           <UTooltip text="View on OpenRouter">
             <UButton
               :to="`https://openrouter.ai/${item.value}`"
@@ -203,11 +231,6 @@ const onSubmit = () => {
               @pointerdown.stop
             />
           </UTooltip>
-          <div
-            v-if="state.defaultTextModel !== item.value"
-            class="size-4 shrink-0"
-            aria-hidden="true"
-          />
         </template>
       </USelectMenu>
     </UFormField>
@@ -221,9 +244,9 @@ const onSubmit = () => {
         v-model="displayVisionModelId"
         :items="visionModelItems"
         value-key="value"
-        placeholder="Select a model"
+        :placeholder="`${defaultVisionModelInfo.name} (default)`"
         :loading="modelsPending || isVisionPickerOpening"
-        :ui="{ itemTrailingIcon: 'size-4' }"
+        :ui="{ itemTrailingIcon: 'hidden' }"
         @pointerdown="isVisionPickerOpening = true"
         @update:open="isVisionPickerOpening = false"
       >
@@ -242,6 +265,11 @@ const onSubmit = () => {
           <UIcon
             v-else-if="selectedVisionModel"
             :name="selectedVisionModel.avatar.icon"
+            class="size-5 text-toned"
+          />
+          <UIcon
+            v-else
+            :name="defaultVisionModelInfo.avatar.icon"
             class="size-5 text-toned"
           />
         </template>
@@ -264,6 +292,14 @@ const onSubmit = () => {
           </span>
         </template>
         <template #item-trailing="{ item }">
+          <!-- size-7 box aligns the check with the trailing button -->
+          <span class="flex items-center justify-center size-7 shrink-0">
+            <UIcon
+              v-if="state.defaultVisionModel === item.value"
+              name="i-lucide-check"
+              class="size-4"
+            />
+          </span>
           <UTooltip text="View on OpenRouter">
             <UButton
               :to="`https://openrouter.ai/${item.value}`"
@@ -279,11 +315,6 @@ const onSubmit = () => {
               @pointerdown.stop
             />
           </UTooltip>
-          <div
-            v-if="state.defaultVisionModel !== item.value"
-            class="size-4 shrink-0"
-            aria-hidden="true"
-          />
         </template>
       </USelectMenu>
     </UFormField>

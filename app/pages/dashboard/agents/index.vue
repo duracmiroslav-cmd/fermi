@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { resolveTextModel } from '~~/shared/constants/models';
+
 definePageMeta({ layout: false });
 
 interface AgentRow {
@@ -37,6 +39,13 @@ const modelsById = computed(
 // Falls back to the raw slug while the catalog loads or if it's unlisted.
 const modelFor = (id: string): ProviderModel =>
   modelsById.value.get(id) ?? { id, name: id, avatar: { icon: 'i-lucide-sparkles' } };
+
+// The effective text model a run uses (own pick or platform default),
+// resolved to its catalog entry, with the inherited-default flag.
+const textModelFor = (stored: string | null): ProviderModel & { isDefault: boolean } => {
+  const { id, isDefault } = resolveTextModel(stored);
+  return { ...modelFor(id), isDefault };
+};
 </script>
 
 <template>
@@ -136,24 +145,19 @@ const modelFor = (id: string): ProviderModel =>
                         Default
                       </UBadge>
                     </div>
-                    <div
-                      v-if="agent.defaultTextModel"
-                      class="flex items-center gap-1.5 text-sm text-toned min-w-0"
-                    >
+                    <div class="flex items-center gap-1.5 text-sm text-toned min-w-0">
                       <UIcon
-                        :name="modelFor(agent.defaultTextModel).avatar.icon"
+                        :name="textModelFor(agent.defaultTextModel).avatar.icon"
                         class="size-5 shrink-0"
                       />
                       <span class="truncate">
-                        {{ modelFor(agent.defaultTextModel).name }}
+                        {{ textModelFor(agent.defaultTextModel).name }}
+                        <span
+                          v-if="textModelFor(agent.defaultTextModel).isDefault"
+                          class="text-toned"
+                        >(default)</span>
                       </span>
                     </div>
-                    <p
-                      v-else
-                      class="text-sm text-toned"
-                    >
-                      —
-                    </p>
                   </div>
                   <span class="text-xs text-toned shrink-0">
                     Edited <TimeAgo :date="agent.updatedAt" />

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DEFAULT_VISION_MODEL } from '~~/shared/constants/models';
+import { DEFAULT_VISION_MODEL, resolveTextModel } from '~~/shared/constants/models';
 
 definePageMeta({ layout: false });
 
@@ -35,13 +35,14 @@ const { data: agent, error, pending } = useApiFetch<AgentDetail>(
 );
 const { data: models } = useApiFetch<ProviderModel[]>('/api/providers/openrouter/models');
 
-// Resolve the stored model slug to its friendly name + provider logo.
-// Falls back to the raw slug while the catalog loads or if it's unlisted.
-const model = computed<ProviderModel | null>(() => {
-  const id = agent.value?.defaultTextModel;
-  if (!id) return null;
-  return (models.value ?? []).find(m => m.id === id)
+// The effective text model a run uses: the agent's own pick, or the
+// platform default when unset (the Default agent ships with none).
+// Mirrors the vision row below, which already surfaces its fallback.
+const model = computed<ProviderModel & { isDefault: boolean }>(() => {
+  const { id, isDefault } = resolveTextModel(agent.value?.defaultTextModel ?? null);
+  const found = (models.value ?? []).find(m => m.id === id)
     ?? { id, name: id, avatar: { icon: 'i-lucide-sparkles' } };
+  return { ...found, isDefault };
 });
 
 // The worker swaps to this whenever a conversation includes an image.
@@ -128,10 +129,7 @@ const visionModel = computed<ProviderModel>(() => {
               Model
             </dt>
             <dd class="min-w-0">
-              <div
-                v-if="model"
-                class="flex items-center gap-1.5 min-w-0"
-              >
+              <div class="flex items-center gap-1.5 min-w-0">
                 <UIcon
                   :name="model.avatar.icon"
                   class="size-5 text-toned shrink-0"
@@ -148,13 +146,13 @@ const visionModel = computed<ProviderModel>(() => {
                   name="i-lucide-external-link"
                   class="size-3.5 shrink-0 text-toned"
                 />
+                <span
+                  v-if="model.isDefault"
+                  class="text-toned shrink-0"
+                >
+                  (default)
+                </span>
               </div>
-              <span
-                v-else
-                class="text-toned"
-              >
-                No model configured
-              </span>
             </dd>
             <dt class="text-toned text-right">
               Vision model

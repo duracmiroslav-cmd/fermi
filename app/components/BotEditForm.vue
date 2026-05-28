@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { resolveTextModel } from '~~/shared/constants/models';
 import { updateBotInputSchema } from '~~/shared/schemas/bots';
 
 interface BotEditFormValue {
@@ -23,7 +24,7 @@ const emit = defineEmits<{
   submit: [value: BotEditFormValue];
 }>();
 
-const { data: agents, pending: agentsPending } = useApiFetch<AgentOption[]>('/api/agents');
+const { data: agents, pending: agentsPending, refresh: refreshAgents } = useApiFetch<AgentOption[]>('/api/agents');
 
 const state = reactive<BotEditFormValue>({
   agentId:    props.initialValue.agentId,
@@ -31,6 +32,7 @@ const state = reactive<BotEditFormValue>({
 });
 
 const isAgentPickerOpening = ref(false);
+const isRefreshing = ref(false);
 
 // Hide the selected value while items are loading, otherwise the trigger
 // flashes the raw UUID before the matching label is resolved.
@@ -40,13 +42,16 @@ const displayAgentId = computed<string | undefined>({
 });
 
 const agentItems = computed(() =>
-  (agents.value ?? []).map(a => ({
-    label:       a.name,
-    value:       a.id,
-    description: a.defaultTextModel ?? '—',
-    avatarUrl:   a.avatarUrl,
-    isDefault:   a.isDefault,
-  })),
+  (agents.value ?? []).map((a) => {
+    const model = resolveTextModel(a.defaultTextModel);
+    return {
+      label:       a.name,
+      value:       a.id,
+      description: model.isDefault ? `${model.id} (default)` : model.id,
+      avatarUrl:   a.avatarUrl,
+      isDefault:   a.isDefault,
+    };
+  }),
 );
 
 const selectedAgent = computed(() =>
@@ -59,6 +64,17 @@ const enabled = computed({
   get: () => state.disabledAt === null,
   set: (next) => { state.disabledAt = next ? null : new Date().toISOString(); },
 });
+
+// The agent list can change in another tab (create/rename/delete) while
+// this picker is open; refresh re-pulls /api/agents without closing it.
+const onRefresh = async () => {
+  isRefreshing.value = true;
+  try {
+    await refreshAgents();
+  } finally {
+    isRefreshing.value = false;
+  }
+};
 
 const onSubmit = () => {
   emit('submit', { agentId: state.agentId, disabledAt: state.disabledAt });
@@ -83,10 +99,43 @@ const onSubmit = () => {
         value-key="value"
         placeholder="Select an agent"
         :loading="agentsPending || isAgentPickerOpening"
-        :ui="{ itemTrailingIcon: 'size-4' }"
+        :ui="{ itemTrailingIcon: 'hidden' }"
         @pointerdown="isAgentPickerOpening = true"
         @update:open="isAgentPickerOpening = false"
       >
+        <template #content-top>
+          <div
+            class="flex items-center justify-between gap-2 px-2 py-1.5 border-b border-default"
+            @pointerdown.stop
+          >
+            <span class="text-xs text-toned">
+              {{ agents?.length ?? 0 }} agent{{ (agents?.length ?? 0) === 1 ? '' : 's' }}
+            </span>
+            <div class="flex items-center gap-1">
+              <UButton
+                icon="i-lucide-refresh-cw"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                label="Refresh"
+                :loading="isRefreshing"
+                @click.stop="onRefresh"
+                @pointerdown.stop
+              />
+              <UButton
+                to="/dashboard/agents/new"
+                target="_blank"
+                rel="noopener"
+                icon="i-lucide-plus"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                label="New agent"
+                @pointerdown.stop
+              />
+            </div>
+          </div>
+        </template>
         <template #leading>
           <UIcon
             v-if="isAgentPickerOpening"
@@ -123,6 +172,14 @@ const onSubmit = () => {
           </span>
         </template>
         <template #item-trailing="{ item }">
+          <!-- size-7 box aligns the check with the trailing button -->
+          <span class="flex items-center justify-center size-7 shrink-0">
+            <UIcon
+              v-if="state.agentId === item.value"
+              name="i-lucide-check"
+              class="size-4"
+            />
+          </span>
           <UTooltip text="View agent">
             <UButton
               :to="`/dashboard/agents/${item.value}`"
@@ -138,28 +195,11 @@ const onSubmit = () => {
               @pointerdown.stop
             />
           </UTooltip>
-          <div
-            v-if="state.agentId !== item.value"
-            class="size-4 shrink-0"
-            aria-hidden="true"
-          />
         </template>
       </USelectMenu>
 
       <template #help>
-        <div class="flex items-center justify-between gap-4">
-          <span>The persona that drives this bot's replies.</span>
-          <NuxtLink
-            to="/dashboard/agents/new"
-            class="shrink-0 text-primary hover:underline inline-flex items-center gap-1"
-          >
-            <UIcon
-              name="i-lucide-plus"
-              class="size-3"
-            />
-            New agent
-          </NuxtLink>
-        </div>
+        The persona that drives this bot's replies.
       </template>
     </UFormField>
 
