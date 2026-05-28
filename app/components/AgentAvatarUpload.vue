@@ -17,6 +17,10 @@ const user = useSupabaseUser();
 const notify = useNotify();
 const uploading = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
+// Local override so the new image renders the instant upload finishes,
+// without waiting for the parent's PATCH round-trip to update the prop.
+const localUrl = ref<string | null>(null);
+const displayUrl = computed(() => localUrl.value ?? props.currentUrl);
 
 const openPicker = () => fileInputRef.value?.click();
 
@@ -48,17 +52,19 @@ const onFileChange = async (event: Event) => {
 
   uploading.value = true;
   try {
-    if (!user.value) throw new Error('Not signed in');
-    await removeExistingForAgent(user.value.id);
+    if (!user.value?.sub) throw new Error('Not signed in');
+    await removeExistingForAgent(user.value.sub);
     const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
-    const path = `${user.value.id}/${props.agentId}.${ext}`;
+    const path = `${user.value.sub}/${props.agentId}.${ext}`;
     const { error: uploadErr } = await supabase.storage.from(BUCKET).upload(path, file, {
       contentType: file.type,
       upsert:      true,
     });
     if (uploadErr) throw uploadErr;
     const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
-    emit('change', publicUrl);
+    const url = `${publicUrl}?v=${Date.now()}`;
+    localUrl.value = url;
+    emit('change', url);
   } catch (e) {
     notify.error('Upload failed', e);
   } finally {
@@ -69,7 +75,7 @@ const onFileChange = async (event: Event) => {
 </script>
 
 <template>
-  <UTooltip :text="currentUrl ? 'Replace avatar' : 'Upload avatar'">
+  <UTooltip :text="displayUrl ? 'Replace avatar' : 'Upload avatar'">
     <button
       type="button"
       :disabled="uploading"
@@ -77,8 +83,8 @@ const onFileChange = async (event: Event) => {
       @click="openPicker"
     >
       <img
-        v-if="currentUrl && !uploading"
-        :src="currentUrl"
+        v-if="displayUrl && !uploading"
+        :src="displayUrl"
         alt=""
         class="absolute inset-0 size-full object-cover transition-opacity group-hover:opacity-50"
       >
@@ -89,7 +95,7 @@ const onFileChange = async (event: Event) => {
       />
       <template v-else>
         <AgentAvatar
-          v-if="!currentUrl"
+          v-if="!displayUrl"
           :name="null"
           :seed="agentId"
           size="3xl"
