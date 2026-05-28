@@ -81,3 +81,12 @@ A **capability** is a tool the LLM chooses to call inside its reasoning loop (`t
 A **core function** is how the agent perceives input and delivers its reply across modalities — its senses and voice: read images (vision), transcribe audio (STT), speak replies (TTS), write text. The worker runs these automatically *around* the loop, driven by the message's media type or the agent's delivery settings; the LLM never invokes them. Their models are hardcoded constants or always-on `agents` columns, never capabilities.
 
 **The test:** does the LLM decide to invoke it mid-conversation (capability), or does the worker do it automatically before/after the loop based on modality (core function)? Output type doesn't decide it — `image-gen` *produces* an image yet is a capability, while TTS *produces* audio yet is a core function — *who triggers it and when* does.
+
+## In-process tool vs MCP capability
+
+A capability wires one of two ways. Discriminator: `CapabilityConfig.url` (`shared/agentCapabilities.ts`) — present → MCP, absent → in-process.
+
+- **In-process tool** (`web-search`, `web-fetch`, `time`, `image-gen`): fermi owns the schema — stable, needs `ToolContext` (admin / KEK / `attachments` sink), often wraps fermi logic (tier policy, SSRF-safe fetch). A static `Tool` in `tools/`; zero handshake, zero extra deploy.
+- **MCP capability** (`github`, `notion`, `google-calendar`, BYO URL): a third party owns the schema — large, changing; fermi allowlists a read-only subset and sends a stored OAuth token as bearer. Connected via `McpClient`, tools namespaced `slug__name`.
+
+**The test:** is the tool schema fermi's or someone else's? Ours → in-process (a per-connection handshake to reach a schema we already hold and won't change buys nothing). Theirs → MCP (the fixed handshake cost buys not owning or maintaining a schema that changes under us).
