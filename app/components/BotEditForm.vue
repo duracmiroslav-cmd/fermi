@@ -16,8 +16,9 @@ interface AgentOption {
 }
 
 const props = defineProps<{
-  formId:       string;
-  initialValue: BotEditFormValue;
+  formId:          string;
+  initialValue:    BotEditFormValue;
+  isSetupComplete: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -204,6 +205,7 @@ const onSubmit = () => {
     </UFormField>
 
     <SettingsToggle
+      v-if="props.isSetupComplete"
       v-model="enabled"
       label="Enabled"
       description="When off, the bot won't reply."

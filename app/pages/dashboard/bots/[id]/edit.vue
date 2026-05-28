@@ -22,7 +22,7 @@ const notify = useNotify();
 const { data: bot, error, pending } = useApiFetch<BotDetail>(
   () => `/api/bots/${route.params.id}`,
 );
-const { status } = useBotStatus(bot);
+const { status, isSetupComplete } = useBotStatus(bot);
 
 const saving = ref(false);
 const deleting = ref(false);
@@ -150,6 +150,7 @@ const onDelete = async () => {
               agentId: bot.agentId,
               disabledAt: bot.disabledAt,
             }"
+            :is-setup-complete="isSetupComplete"
             @submit="onSubmit"
           />
         </UCard>

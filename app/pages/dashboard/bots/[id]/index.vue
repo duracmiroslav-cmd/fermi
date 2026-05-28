@@ -25,62 +25,48 @@ interface BotDetail {
   };
 }
 
-type CelebrationStage = 'idle' | 'flash' | 'success' | 'done';
-
 const route = useRoute();
-const notify = useNotify();
 
 const { data: bot, error, refresh, pending } = useApiFetch<BotDetail>(
   () => `/api/bots/${route.params.id}`,
 );
-const { status, openrouterPending, isOpenrouterConnected } = useBotStatus(bot);
+const {
+  status,
+  isOpenrouterConnected,
+  isWebhookVerified,
+  isSetupComplete,
+  refreshOpenrouter,
+} = useBotStatus(bot);
 
 const { syncingId, sync: syncFromLine } = useBotAvatar(refresh);
 
 const webhookCopied = ref(false);
-const webhookSettingUp = ref(false);
-const celebrationStage = ref<CelebrationStage>('idle');
-const celebrationTimeouts: ReturnType<typeof setTimeout>[] = [];
 
 const syncing = computed(() => syncingId.value !== null);
 
-const isWebhookVerified = computed(() => !!bot.value?.webhookVerifiedAt);
-const isSetupComplete = computed(() => isOpenrouterConnected.value && isWebhookVerified.value);
+const isBotActive = computed(() => !!bot.value && !bot.value.disabledAt);
 const hasFirstReplied = computed(() => !!bot.value?.firstRepliedAt);
 
-const friendAddUrl = computed(() =>
-  bot.value?.handle ? `https://line.me/R/ti/p/${bot.value.handle}` : null,
-);
-const qrImageUrl = computed(() => {
-  if (!bot.value?.handle) return null;
-  const id = bot.value.handle.replace(/^@/, '');
-  return `https://qr-official.line.me/sid/L/${id}.png`;
+// Poll OpenRouter status while not yet connected. OAuth runs in a
+// separate tab with no callback to this one, so polling is how we
+// surface the change here. Stop once connected.
+const openrouterPoll = useIntervalFn(() => refreshOpenrouter(), 4000, { immediate: false });
+watchEffect(() => {
+  const shouldPoll = !isOpenrouterConnected.value;
+  if (shouldPoll && !openrouterPoll.isActive.value) openrouterPoll.resume();
+  if (!shouldPoll && openrouterPoll.isActive.value) openrouterPoll.pause();
 });
 
 // Poll bot detail while setup is complete but we're still waiting for
 // the first reply. The worker writes `first_replied_at` after a
 // successful push, so polling is just to surface that to the UI. Stop
-// once detected (or if setup regresses, e.g. user disables the bot).
+// once detected (or if the bot is paused, since a paused bot never
+// pushes).
 const firstReplyPoll = useIntervalFn(() => refresh(), 4000, { immediate: false });
 watchEffect(() => {
-  const shouldPoll = isSetupComplete.value && !hasFirstReplied.value;
+  const shouldPoll = isBotActive.value && isSetupComplete.value && !hasFirstReplied.value;
   if (shouldPoll && !firstReplyPoll.isActive.value) firstReplyPoll.resume();
   if (!shouldPoll && firstReplyPoll.isActive.value) firstReplyPoll.pause();
-});
-
-// Distinguish "bot just powered on while user is watching" from "page
-// loaded with reply already in the DB", only the first deserves a
-// celebration. Captures the snapshot at first bot fetch; later refetch
-// transitions are compared against this baseline.
-const wasPendingOnLoad = ref<boolean | null>(null);
-watch(bot, (loaded) => {
-  if (loaded && wasPendingOnLoad.value === null) {
-    wasPendingOnLoad.value = !loaded.firstRepliedAt;
-  }
-}, { immediate: true });
-
-watch(hasFirstReplied, (now, prev) => {
-  if (now && !prev && wasPendingOnLoad.value === true) celebrate();
 });
 
 const copyWebhook = async () => {
@@ -91,55 +77,6 @@ const copyWebhook = async () => {
     webhookCopied.value = false;
   }, 1500);
 };
-
-const setupWebhook = async () => {
-  if (!bot.value) return;
-  webhookSettingUp.value = true;
-  try {
-    await $fetch(`/api/bots/${bot.value.id}/webhook/endpoint`, { method: 'PUT' });
-    const result = await $fetch<{
-      success:     boolean;
-      statusCode?: number;
-      reason?:     string;
-      detail?:     string;
-    }>(`/api/bots/${bot.value.id}/webhook/test`, { method: 'POST' });
-    if (!result.success) {
-      notify.error('Webhook test failed', new Error(result.detail ?? result.reason ?? 'Unknown error'));
-      return;
-    }
-    notify.success('Webhook connected');
-    await refresh();
-  } catch (e) {
-    notify.error('Webhook setup failed', e);
-  } finally {
-    webhookSettingUp.value = false;
-  }
-};
-
-const celebrate = async () => {
-  if (!bot.value) return;
-  celebrationStage.value = 'flash';
-
-  const { default: confetti } = await import('canvas-confetti');
-  celebrationTimeouts.push(setTimeout(() => {
-    confetti({
-      particleCount: 80,
-      spread:        70,
-      origin:        { y: 0.4 },
-      colors:        ['#10b981', '#3b82f6', '#f59e0b', '#ec4899'],
-    });
-    celebrationStage.value = 'success';
-  }, 400));
-};
-
-const dismissCelebration = () => {
-  celebrationStage.value = 'done';
-};
-
-onBeforeUnmount(() => {
-  celebrationTimeouts.forEach(clearTimeout);
-  celebrationTimeouts.length = 0;
-});
 </script>
 
 <template>
@@ -220,146 +157,14 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <Transition
-          enter-active-class="transition-opacity duration-200 ease-out"
-          enter-from-class="opacity-0"
-          leave-active-class="transition-opacity duration-200 ease-in"
-          leave-to-class="opacity-0"
-          mode="out-in"
-        >
-          <div
-            v-if="!openrouterPending && !isSetupComplete && !bot.disabledAt"
-            key="checklist"
-            class="p-4 rounded-md ring ring-inset ring-warning/40 bg-warning/5"
-          >
-            <p class="text-base font-medium text-warning flex items-center gap-3 mb-5">
-              <UIcon
-                name="i-lucide-circle-alert"
-                class="size-5"
-              />
-              Finish setting up
-            </p>
-            <ul class="flex flex-col gap-3">
-              <li class="flex items-start gap-3">
-                <UIcon
-                  :name="isOpenrouterConnected ? 'i-lucide-circle-check' : 'i-lucide-circle'"
-                  :class="['size-5 mt-0.5 shrink-0', isOpenrouterConnected ? 'text-success' : 'text-toned']"
-                />
-                <div class="flex-1 min-w-0">
-                  <p :class="['text-sm', isOpenrouterConnected && 'text-toned']">
-                    Connect OpenRouter
-                  </p>
-                  <p class="text-xs text-toned mt-1">
-                    Bots reply through OpenRouter. One signup unlocks Claude, GPT, Gemini, and 200+ other LLMs.
-                  </p>
-                  <UButton
-                    v-if="!isOpenrouterConnected"
-                    size="sm"
-                    to="/dashboard/connections"
-                    trailing-icon="i-lucide-arrow-right"
-                    class="mt-2"
-                  >
-                    Go to Connections
-                  </UButton>
-                </div>
-              </li>
-              <li class="flex items-start gap-3">
-                <UIcon
-                  :name="isWebhookVerified ? 'i-lucide-circle-check' : 'i-lucide-circle'"
-                  :class="['size-5 mt-0.5 shrink-0', isWebhookVerified ? 'text-success' : 'text-toned']"
-                />
-                <div class="flex-1 min-w-0">
-                  <p :class="['text-sm', isWebhookVerified && 'text-toned']">
-                    Connect webhook to LINE
-                  </p>
-                  <p class="text-xs text-toned mt-1">
-                    fermi pushes the webhook URL to your LINE channel and runs a verify request. No need to touch LINE Developer Console.
-                  </p>
-                  <UButton
-                    v-if="!isWebhookVerified"
-                    size="sm"
-                    class="mt-2"
-                    :loading="webhookSettingUp"
-                    :disabled="!isOpenrouterConnected"
-                    @click="setupWebhook"
-                  >
-                    Set up webhook
-                  </UButton>
-                </div>
-              </li>
-            </ul>
-          </div>
-
-          <div
-            v-else-if="isSetupComplete && !hasFirstReplied && (celebrationStage === 'idle' || celebrationStage === 'flash')"
-            key="ready"
-            :class="['flex items-start gap-4 p-4 rounded-md ring ring-inset transition-colors duration-700',
-                     celebrationStage === 'flash'
-                       ? 'ring-success/60 bg-success/20'
-                       : 'ring-success/40 bg-success/5']"
-          >
-            <div class="flex-1 min-w-0">
-              <p class="text-base font-medium text-success flex items-center gap-3">
-                <UIcon
-                  name="i-lucide-circle-check"
-                  class="size-5"
-                />
-                Setup complete
-              </p>
-              <p class="text-sm text-toned mt-1">
-                Add the bot on LINE and send it a message. fermi will celebrate the first reply.
-              </p>
-              <p class="text-xs text-toned mt-3 flex items-center gap-2">
-                <UIcon
-                  name="i-lucide-loader-circle"
-                  class="size-3.5 animate-spin"
-                />
-                Listening for the first reply...
-              </p>
-            </div>
-            <a
-              v-if="qrImageUrl && friendAddUrl"
-              :href="friendAddUrl"
-              target="_blank"
-              rel="noopener"
-              class="flex flex-col items-center gap-1 shrink-0"
-            >
-              <img
-                :src="qrImageUrl"
-                alt="Scan to add bot on LINE"
-                class="size-24 rounded-md bg-white p-1"
-              >
-              <span class="text-xs">Scan to add</span>
-            </a>
-          </div>
-
-          <div
-            v-else-if="celebrationStage === 'success'"
-            key="success"
-            class="p-4 rounded-md ring ring-inset ring-success/40 bg-success/5"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <p class="text-base font-medium flex items-center gap-3">
-                <UIcon
-                  name="i-lucide-party-popper"
-                  class="size-5 text-success"
-                />
-                You&apos;re all set
-              </p>
-              <UButton
-                icon="i-lucide-x"
-                size="sm"
-                color="neutral"
-                variant="ghost"
-                aria-label="Dismiss"
-                @click="dismissCelebration"
-              />
-            </div>
-            <p class="text-sm text-toned mt-1">
-              Your bot is live and replying.
-            </p>
-          </div>
-        </Transition>
+        <LineBotSetupBanner
+          v-if="status && status !== 'paused'"
+          :bot="bot"
+          :is-openrouter-connected="isOpenrouterConnected"
+          :is-webhook-verified="isWebhookVerified"
+          :is-setup-complete="isSetupComplete"
+          @refresh="refresh"
+        />
 
         <UCard>
           <template #header>

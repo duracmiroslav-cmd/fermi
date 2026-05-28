@@ -12,7 +12,7 @@ export const BOT_STATUS_LABEL: Record<BotStatus, string> = {
 
 export const BOT_STATUS_DOT: Record<BotStatus, string> = {
   ready:        'bg-success',
-  paused:       'bg-zinc-400',
+  paused:       'bg-muted',
   unconfigured: 'bg-warning',
 };
 
@@ -40,11 +40,15 @@ export const deriveBotStatus = (
 };
 
 export const useBotStatus = (bot: Ref<StatusBot | null | undefined>) => {
-  const { data: openrouter, pending: openrouterPending } = useApiFetch<{ connected: boolean }>(
-    '/api/oauth/openrouter',
-  );
+  const {
+    data: openrouter,
+    pending: openrouterPending,
+    refresh: refreshOpenrouter,
+  } = useApiFetch<{ connected: boolean }>('/api/oauth/openrouter');
 
   const isOpenrouterConnected = computed(() => !!openrouter.value?.connected);
+  const isWebhookVerified = computed(() => !!bot.value?.webhookVerifiedAt);
+  const isSetupComplete = computed(() => isOpenrouterConnected.value && isWebhookVerified.value);
 
   const status = computed<BotStatus | null>(() => deriveBotStatus(
     bot.value,
@@ -52,5 +56,13 @@ export const useBotStatus = (bot: Ref<StatusBot | null | undefined>) => {
     openrouterPending.value && openrouter.value === undefined,
   ));
 
-  return { status, openrouter, openrouterPending, isOpenrouterConnected };
+  return {
+    status,
+    openrouter,
+    openrouterPending,
+    isOpenrouterConnected,
+    isWebhookVerified,
+    isSetupComplete,
+    refreshOpenrouter,
+  };
 };
