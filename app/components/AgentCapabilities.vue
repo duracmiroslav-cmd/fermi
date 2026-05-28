@@ -44,7 +44,7 @@ const lockedHint = (cap: AgentCapabilityRow): { text: string; to?: string } | nu
   if (cap.credentialType === 'coming_soon') {
     return { text: 'Coming soon' };
   }
-  return { text: 'Connect on Connections', to: '/dashboard/connections' };
+  return { text: 'Connect on Connections', to: `/dashboard/connections/${cap.slug}` };
 };
 
 const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
