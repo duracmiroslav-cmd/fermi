@@ -36,6 +36,7 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultText
       },
     });
     notify.success('Agent updated');
+    await refreshNuxtData(route.params.id as string);
     await navigateTo(`/dashboard/agents/${route.params.id}`);
   } catch (e) {
     notify.error('Update failed', e);

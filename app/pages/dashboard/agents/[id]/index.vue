@@ -36,6 +36,7 @@ const route = useRoute();
 
 const { data: agent, error, pending } = useApiFetch<AgentDetail>(
   () => `/api/agents/${route.params.id}`,
+  { key: route.params.id as string },
 );
 const { data: models } = useApiFetch<ProviderModel[]>('/api/providers/openrouter/models');
 const { data: openrouter, pending: openrouterPending } = useApiFetch<{ connected: boolean }>(

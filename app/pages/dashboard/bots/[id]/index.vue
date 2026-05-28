@@ -29,6 +29,7 @@ const route = useRoute();
 
 const { data: bot, error, refresh, pending } = useApiFetch<BotDetail>(
   () => `/api/bots/${route.params.id}`,
+  { key: route.params.id as string },
 );
 const {
   status,

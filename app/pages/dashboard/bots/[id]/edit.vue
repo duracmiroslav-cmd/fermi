@@ -36,6 +36,7 @@ const onSubmit = async (value: { agentId: string; disabledAt: string | null }) =
       body:   value,
     });
     notify.success('Bot updated');
+    await refreshNuxtData(route.params.id as string);
     await navigateTo(`/dashboard/bots/${route.params.id}`);
   } catch (e) {
     notify.error('Update failed', e);
