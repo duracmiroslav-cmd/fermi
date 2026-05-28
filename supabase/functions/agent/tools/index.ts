@@ -71,10 +71,10 @@ export interface Toolset {
 // Key = url only; the tool list is server-side static, independent of which PAT
 // calls it. TTL handles server-side deploys; per-user isolation is unnecessary.
 interface CachedTools {
-  list:      McpTool[];
+  tools:     McpTool[];
   expiresAt: number;
 }
-const toolSchemaCache = new Map<string, CachedTools>();
+const mcpToolCache = new Map<string, CachedTools>();
 // 5 min keeps tool lists fresh across rapid successive runs without re-handshaking.
 const TOOL_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -139,19 +139,19 @@ export const buildToolset = async (
             return connectionPromise;
           };
 
-          const cached = toolSchemaCache.get(cacheKey);
+          const cached = mcpToolCache.get(cacheKey);
           let mcpTools: McpTool[];
           if (cached && cached.expiresAt > Date.now()) {
-            mcpTools = cached.list;
+            mcpTools = cached.tools;
           } else {
             const client = await getClient();
             mcpTools = await client.listTools();
-            toolSchemaCache.set(cacheKey, { list: mcpTools, expiresAt: Date.now() + TOOL_CACHE_TTL_MS });
+            mcpToolCache.set(cacheKey, { tools: mcpTools, expiresAt: Date.now() + TOOL_CACHE_TTL_MS });
           }
 
-          const allow = cap.config.toolAllowlist ? new Set(cap.config.toolAllowlist) : null;
+          const allowlist = cap.config.toolAllowlist ? new Set(cap.config.toolAllowlist) : null;
           for (const t of mcpTools) {
-            if (allow && !allow.has(t.name)) continue;
+            if (allowlist && !allowlist.has(t.name)) continue;
             const llmName = `${cap.slug}__${t.name}`;
             schemas.push({
               type: 'function',
