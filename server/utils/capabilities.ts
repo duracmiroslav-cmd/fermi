@@ -67,7 +67,8 @@ export interface CapabilityRow {
 }
 
 export type AgentCapabilityRow = CapabilityRow & {
-  attached: boolean;
+  attached:    boolean;
+  agentConfig: Record<string, unknown>;
 };
 
 // Lists capabilities visible to a user, joined with provider

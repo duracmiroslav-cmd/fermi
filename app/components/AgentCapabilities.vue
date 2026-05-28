@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AgentCapabilityRow } from '~~/server/utils/capabilities';
+import { CAPABILITY_TOOL_GROUPS, DEFAULT_TOOL_ALLOWLISTS } from '~~/shared/capabilityTools';
 
 const props = defineProps<{
   agentId: string;
@@ -11,15 +12,11 @@ const { data: rows, pending } = useApiFetch<AgentCapabilityRow[]>(
   () => `/api/agents/${props.agentId}/capabilities`,
 );
 
-const pendingIds = ref(new Set<string>());
-
 const CAP_WIDTHS = ['w-24', 'w-32', 'w-20', 'w-28'];
 const CAP_DESC_WIDTHS = ['w-48', 'w-40', 'w-52', 'w-44'];
 
-// Toggle is locked when the capability has no live credential to call
-// against, coming-soon entries, or providers-backed entries where the
-// user hasn't connected any provider. Already-attached rows stay
-// togglable so the user can always detach.
+const hasToolGroups = (slug: string) => !!CAPABILITY_TOOL_GROUPS[slug];
+
 const isLocked = (cap: AgentCapabilityRow): boolean => {
   if (cap.attached) return false;
   if (cap.credentialType === 'coming_soon') return true;
@@ -37,8 +34,35 @@ const getLockedHint = (cap: AgentCapabilityRow): { text: string; to?: string } |
   return { text: 'Connect', to: `/dashboard/connections/${cap.slug}` };
 };
 
+const pendingIds = ref(new Set<string>());
+const expandedCapId = ref<string | null>(null);
+const pendingToolSave = ref(new Set<string>());
+const localAllowlists = ref<Record<string, string[]>>({});
+
+const getEffectiveAllowlist = (cap: AgentCapabilityRow): Set<string> => {
+  const local = localAllowlists.value[cap.id];
+  if (local !== undefined) return new Set(local);
+  const saved = cap.agentConfig?.toolAllowlist as string[] | undefined;
+  return new Set(saved ?? DEFAULT_TOOL_ALLOWLISTS[cap.slug] ?? []);
+};
+
+const isToolEnabled = (cap: AgentCapabilityRow, tool: string) =>
+  getEffectiveAllowlist(cap).has(tool);
+
+const hasWriteEnabled = (cap: AgentCapabilityRow): boolean => {
+  const groups = CAPABILITY_TOOL_GROUPS[cap.slug];
+  if (!groups) return false;
+  const allowlist = getEffectiveAllowlist(cap);
+  return groups
+    .filter(g => g.label.startsWith('Write'))
+    .some(g => g.tools.some(t => allowlist.has(t)));
+};
+
+const getToolCount = (cap: AgentCapabilityRow) => getEffectiveAllowlist(cap).size;
+
 const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
   if (pendingIds.value.has(cap.id)) return;
+  if (!next && expandedCapId.value === cap.id) expandedCapId.value = null;
   const original = cap.attached;
   cap.attached = next;
   pendingIds.value.add(cap.id);
@@ -60,6 +84,49 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
     notify.error(next ? 'Attach failed' : 'Detach failed', e);
   } finally {
     pendingIds.value.delete(cap.id);
+  }
+};
+
+const onToggleExpand = (cap: AgentCapabilityRow) => {
+  if (expandedCapId.value === cap.id) {
+    expandedCapId.value = null;
+    return;
+  }
+  if (localAllowlists.value[cap.id] === undefined) {
+    const saved = cap.agentConfig?.toolAllowlist as string[] | undefined;
+    localAllowlists.value[cap.id] = [...(saved ?? DEFAULT_TOOL_ALLOWLISTS[cap.slug] ?? [])];
+  }
+  expandedCapId.value = cap.id;
+};
+
+const onToggleTool = (cap: AgentCapabilityRow, tool: string, enabled: boolean) => {
+  const current = [...getEffectiveAllowlist(cap)];
+  if (enabled) {
+    if (!current.includes(tool)) current.push(tool);
+  } else {
+    const idx = current.indexOf(tool);
+    if (idx !== -1) current.splice(idx, 1);
+  }
+  localAllowlists.value[cap.id] = current;
+};
+
+const onSaveTools = async (cap: AgentCapabilityRow) => {
+  const list = localAllowlists.value[cap.id];
+  if (!list || pendingToolSave.value.has(cap.id)) return;
+  pendingToolSave.value.add(cap.id);
+  try {
+    await $fetch(`/api/agents/${props.agentId}/capabilities/${cap.id}`, {
+      method: 'PATCH',
+      body:   { config: { toolAllowlist: list } },
+    });
+    cap.agentConfig = { ...cap.agentConfig, toolAllowlist: list };
+    delete localAllowlists.value[cap.id];
+    notify.success('Tools saved');
+    expandedCapId.value = null;
+  } catch (e) {
+    notify.error('Save failed', e);
+  } finally {
+    pendingToolSave.value.delete(cap.id);
   }
 };
 </script>
@@ -120,52 +187,115 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
         <div
           v-for="cap in rows ?? []"
           :key="cap.id"
-          class="flex items-center gap-4 p-4"
         >
-          <UIcon
-            :name="getCapabilityIcon(cap.slug)"
-            class="size-5 text-toned shrink-0"
-          />
+          <div class="flex items-center gap-4 p-4">
+            <UIcon
+              :name="getCapabilityIcon(cap.slug)"
+              class="size-5 text-toned shrink-0"
+            />
 
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium truncate">
-              {{ cap.displayName }}
-            </p>
-            <p
-              v-if="cap.description"
-              class="text-xs text-toned"
-            >
-              {{ cap.description }}
-            </p>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium truncate">
+                {{ cap.displayName }}
+              </p>
+              <p
+                v-if="cap.description"
+                class="text-xs text-toned"
+              >
+                {{ cap.description }}
+              </p>
+            </div>
+
+            <div class="flex items-center gap-3 shrink-0">
+              <UBadge
+                v-if="cap.credentialType === 'coming_soon'"
+                color="neutral"
+                variant="subtle"
+                size="sm"
+              >
+                Coming soon
+              </UBadge>
+              <NuxtLink
+                v-if="getLockedHint(cap)?.to"
+                :to="getLockedHint(cap)!.to"
+                target="_blank"
+                rel="noopener"
+                class="text-xs text-toned hover:text-highlighted hidden sm:inline-flex items-center gap-1"
+              >
+                {{ getLockedHint(cap)!.text }}
+                <UIcon
+                  name="i-lucide-external-link"
+                  class="size-3"
+                />
+              </NuxtLink>
+              <UButton
+                v-if="cap.attached && hasToolGroups(cap.slug)"
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                :icon="expandedCapId === cap.id ? 'i-lucide-chevron-up' : 'i-lucide-sliders-horizontal'"
+                :class="{ 'text-primary': hasWriteEnabled(cap) }"
+                @click="onToggleExpand(cap)"
+              />
+              <USwitch
+                :model-value="cap.attached"
+                :disabled="isLocked(cap) || pendingIds.has(cap.id)"
+                @update:model-value="onToggle(cap, $event)"
+              />
+            </div>
           </div>
 
-          <div class="flex items-center gap-3 shrink-0">
-            <UBadge
-              v-if="cap.credentialType === 'coming_soon'"
-              color="neutral"
-              variant="subtle"
-              size="sm"
+          <div
+            v-if="expandedCapId === cap.id && cap.attached"
+            class="border-t border-default px-4 pb-4 pt-3 bg-muted/50"
+          >
+            <div
+              v-for="(group, gi) in CAPABILITY_TOOL_GROUPS[cap.slug]"
+              :key="group.label"
+              :class="gi > 0 ? 'mt-4' : ''"
             >
-              Coming soon
-            </UBadge>
-            <NuxtLink
-              v-if="getLockedHint(cap)?.to"
-              :to="getLockedHint(cap)!.to"
-              target="_blank"
-              rel="noopener"
-              class="text-xs text-toned hover:text-highlighted hidden sm:inline-flex items-center gap-1"
-            >
-              {{ getLockedHint(cap)!.text }}
-              <UIcon
-                name="i-lucide-external-link"
-                class="size-3"
-              />
-            </NuxtLink>
-            <USwitch
-              :model-value="cap.attached"
-              :disabled="isLocked(cap) || pendingIds.has(cap.id)"
-              @update:model-value="onToggle(cap, $event)"
-            />
+              <p class="text-xs text-toned font-medium mb-2">
+                {{ group.label }}
+              </p>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-y-1 gap-x-2">
+                <label
+                  v-for="tool in group.tools"
+                  :key="tool"
+                  class="flex items-center gap-2 py-0.5 cursor-pointer group/tool"
+                >
+                  <UCheckbox
+                    :model-value="isToolEnabled(cap, tool)"
+                    @update:model-value="onToggleTool(cap, tool, $event)"
+                  />
+                  <span class="font-mono text-xs text-toned group-hover/tool:text-highlighted transition-colors truncate">
+                    {{ tool }}
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between mt-4 pt-3 border-t border-default">
+              <p class="text-xs text-toned">
+                {{ getToolCount(cap) }} tools enabled
+              </p>
+              <div class="flex items-center gap-2">
+                <UButton
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  @click="expandedCapId = null"
+                >
+                  Cancel
+                </UButton>
+                <UButton
+                  size="xs"
+                  :loading="pendingToolSave.has(cap.id)"
+                  @click="onSaveTools(cap)"
+                >
+                  Save
+                </UButton>
+              </div>
+            </div>
           </div>
         </div>
       </div>

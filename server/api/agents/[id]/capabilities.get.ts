@@ -24,13 +24,19 @@ export default defineEventHandler(async (event): Promise<AgentCapabilityRow[]> =
     listCapabilitiesForUser(admin, user.id),
     admin
       .from('agent_capabilities')
-      .select('capability_id')
+      .select('capability_id, config')
       .eq('agent_id', agentId)
       .is('disabled_at', null),
   ]);
   if (bindings.error) throw bindings.error;
 
-  const attachedIds = new Set((bindings.data ?? []).map(b => b.capability_id));
+  const bindingMap = new Map(
+    (bindings.data ?? []).map(b => [b.capability_id, b]),
+  );
 
-  return catalog.map(row => ({ ...row, attached: attachedIds.has(row.id) }));
+  return catalog.map(row => ({
+    ...row,
+    attached:    bindingMap.has(row.id),
+    agentConfig: (bindingMap.get(row.id)?.config ?? {}) as Record<string, unknown>,
+  }));
 });
