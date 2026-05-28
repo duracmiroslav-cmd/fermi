@@ -38,17 +38,17 @@ const iconFor = (slug: string) => iconBySlug[slug] ?? 'i-lucide-puzzle';
           />
         </template>
         <template v-else-if="attached.length">
-          <div
+          <UBadge
             v-for="cap in attached"
             :key="cap.id"
-            class="flex items-center gap-1.5 text-sm bg-muted rounded-full px-3 py-1"
+            color="neutral"
+            variant="soft"
+            size="md"
+            :icon="iconFor(cap.slug)"
+            class="bg-accented"
           >
-            <UIcon
-              :name="iconFor(cap.slug)"
-              class="size-3.5 text-toned shrink-0"
-            />
-            <span>{{ cap.displayName }}</span>
-          </div>
+            {{ cap.displayName }}
+          </UBadge>
         </template>
         <p
           v-else
