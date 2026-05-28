@@ -72,9 +72,7 @@ const onDelete = async () => {
         />
       </template>
 
-      <DashboardDetailSkeleton
-        v-if="pending && !bot"
-      />
+      <DashboardDetailSkeleton v-if="pending && !bot" />
 
       <DashboardContainer v-else-if="error">
         <UEmpty

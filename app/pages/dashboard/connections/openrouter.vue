@@ -34,9 +34,7 @@ const onConnect = () => {
         />
       </template>
 
-      <DashboardDetailSkeleton
-        v-if="pending && !openrouter"
-      />
+      <DashboardDetailSkeleton v-if="pending && !openrouter" />
 
       <DashboardContainer v-else>
         <header class="flex items-center gap-4">

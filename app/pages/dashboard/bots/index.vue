@@ -82,9 +82,7 @@ const filteredBots = computed(() => {
             </template>
           </UInput>
 
-          <DashboardListSkeleton
-            v-if="pending && !bots?.length"
-          />
+          <DashboardListSkeleton v-if="pending && !bots?.length" />
 
           <UEmpty
             v-else-if="!bots?.length"

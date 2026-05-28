@@ -109,9 +109,7 @@ const onGithubDisconnect = async () => {
         />
       </template>
 
-      <DashboardDetailSkeleton
-        v-if="pending && !capabilities"
-      />
+      <DashboardDetailSkeleton v-if="pending && !capabilities" />
 
       <DashboardContainer v-else-if="capability">
         <header class="flex items-center gap-4">
