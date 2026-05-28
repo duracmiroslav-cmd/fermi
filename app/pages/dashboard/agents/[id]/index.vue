@@ -4,9 +4,13 @@ import { DEFAULT_VISION_MODEL, resolveTextModel } from '~~/shared/constants/mode
 definePageMeta({ layout: false });
 
 interface BotRef {
-  id:          string;
-  displayName: string | null;
-  platform:    string;
+  id:                string;
+  displayName:       string | null;
+  platform:          string;
+  avatarUrl:         string | null;
+  disabledAt:        string | null;
+  webhookVerifiedAt: string | null;
+  lastRepliedAt:     string | null;
 }
 
 interface AgentDetail {
@@ -34,6 +38,27 @@ const { data: agent, error, pending } = useApiFetch<AgentDetail>(
   () => `/api/agents/${route.params.id}`,
 );
 const { data: models } = useApiFetch<ProviderModel[]>('/api/providers/openrouter/models');
+const { data: openrouter, pending: openrouterPending } = useApiFetch<{ connected: boolean }>(
+  '/api/oauth/openrouter',
+);
+
+const statusOf = (bot: BotRef) => deriveBotStatus(
+  bot,
+  !!openrouter.value?.connected,
+  openrouterPending.value && openrouter.value === undefined,
+);
+const statusDot = (bot: BotRef) => {
+  const s = statusOf(bot);
+  return s ? BOT_STATUS_DOT[s] : 'bg-muted animate-pulse';
+};
+const statusAria = (bot: BotRef) => {
+  const s = statusOf(bot);
+  return s ? BOT_STATUS_LABEL[s] : 'Loading status';
+};
+
+// OpenRouter names come as "Provider: Model"; the provider logo already
+// carries the provider so we strip the prefix to avoid duplicating it.
+const stripProviderPrefix = (name: string) => name.replace(/^[^:]+:\s*/, '');
 
 // The effective text model a run uses: the agent's own pick, or the
 // platform default when unset (the Default agent ships with none).
@@ -42,15 +67,16 @@ const model = computed<ProviderModel & { isDefault: boolean }>(() => {
   const { id, isDefault } = resolveTextModel(agent.value?.defaultTextModel ?? null);
   const found = (models.value ?? []).find(m => m.id === id)
     ?? { id, name: id, avatar: { icon: 'i-lucide-sparkles' } };
-  return { ...found, isDefault };
+  return { ...found, name: stripProviderPrefix(found.name), isDefault };
 });
 
 // The worker swaps to this whenever a conversation includes an image.
 // Falls back to the hardcoded default when the agent hasn't set one.
 const visionModel = computed<ProviderModel>(() => {
   const id = agent.value?.defaultVisionModel ?? DEFAULT_VISION_MODEL;
-  return (models.value ?? []).find(m => m.id === id)
+  const found = (models.value ?? []).find(m => m.id === id)
     ?? { id, name: id, avatar: { icon: 'i-lucide-eye' } };
+  return { ...found, name: stripProviderPrefix(found.name) };
 });
 </script>
 
@@ -168,20 +194,14 @@ const visionModel = computed<ProviderModel>(() => {
                   :to="`https://openrouter.ai/${model.id}`"
                   target="_blank"
                   rel="noopener"
-                  class="truncate min-w-0 text-primary hover:underline"
+                  class="flex items-center gap-1.5 min-w-0 text-primary hover:underline"
                 >
-                  {{ model.name }}
+                  <span class="truncate">{{ model.isDefault ? `${model.name} (default)` : model.name }}</span>
+                  <UIcon
+                    name="i-lucide-external-link"
+                    class="size-3.5 shrink-0 text-toned"
+                  />
                 </NuxtLink>
-                <UIcon
-                  name="i-lucide-external-link"
-                  class="size-3.5 shrink-0 text-toned"
-                />
-                <span
-                  v-if="model.isDefault"
-                  class="text-toned shrink-0"
-                >
-                  (default)
-                </span>
               </div>
             </dd>
             <dt class="text-toned text-right">
@@ -197,14 +217,14 @@ const visionModel = computed<ProviderModel>(() => {
                   :to="`https://openrouter.ai/${visionModel.id}`"
                   target="_blank"
                   rel="noopener"
-                  class="truncate min-w-0 text-primary hover:underline"
+                  class="flex items-center gap-1.5 min-w-0 text-primary hover:underline"
                 >
-                  {{ visionModel.name }}
+                  <span class="truncate">{{ visionModel.name }}</span>
+                  <UIcon
+                    name="i-lucide-external-link"
+                    class="size-3.5 shrink-0 text-toned"
+                  />
                 </NuxtLink>
-                <UIcon
-                  name="i-lucide-external-link"
-                  class="size-3.5 shrink-0 text-toned"
-                />
               </div>
             </dd>
             <dt class="text-toned text-right">
@@ -226,39 +246,72 @@ const visionModel = computed<ProviderModel>(() => {
               <TimeAgo :date="agent.updatedAt" />
             </dd>
           </dl>
-          <p class="text-xs text-toned mt-2">
-            Conversations that include an image are answered by the vision model, whatever the text model is set to.
-          </p>
         </UCard>
 
         <AgentCapabilitiesReadonly :agent-id="agent.id" />
 
-        <UCard v-if="agent.bots.length">
-          <template #header>
-            <p class="font-medium">
-              Bots using this agent
-            </p>
-          </template>
-          <div class="divide-y divide-default -mx-4 sm:-mx-6">
+        <div
+          v-if="agent.bots.length"
+          class="flex flex-col gap-4"
+        >
+          <h2 class="font-semibold">
+            Bots using this agent
+          </h2>
+          <div class="space-y-2">
             <NuxtLink
               v-for="bot in agent.bots"
               :key="bot.id"
               :to="`/dashboard/bots/${bot.id}`"
-              class="flex items-center gap-3 px-4 sm:px-6 py-3 hover:bg-elevated transition-colors"
+              class="block"
             >
-              <UIcon
-                name="i-lucide-bot"
-                class="size-4 text-toned shrink-0 mt-0.5"
-              />
-              <span class="text-sm flex-1 min-w-0 truncate">
-                {{ bot.displayName || '(unnamed)' }}
-              </span>
-              <span class="text-xs text-toned shrink-0">
-                {{ bot.platform }}
-              </span>
+              <UCard class="hover:bg-elevated transition-colors">
+                <div class="flex items-center gap-4">
+                  <div class="relative shrink-0">
+                    <UAvatar
+                      v-if="bot.avatarUrl"
+                      :src="bot.avatarUrl"
+                      size="lg"
+                    />
+                    <div
+                      v-else
+                      class="size-9 rounded-full bg-primary/10 flex items-center justify-center font-mono text-sm font-semibold text-primary"
+                    >
+                      {{ (bot.displayName ?? '?').charAt(0).toUpperCase() }}
+                    </div>
+                    <span
+                      class="absolute bottom-0 right-0 size-3 rounded-full ring-2 ring-default"
+                      :class="statusDot(bot)"
+                      :aria-label="statusAria(bot)"
+                    />
+                  </div>
+                  <div class="flex-1 min-w-0 flex flex-col gap-0.5">
+                    <p class="font-medium truncate">
+                      {{ bot.displayName || '(unnamed)' }}
+                    </p>
+                    <div class="flex items-center gap-3 min-w-0 text-sm text-toned">
+                      <PlatformLabel
+                        :platform="bot.platform"
+                        class="shrink-0"
+                      />
+                    </div>
+                  </div>
+                  <span
+                    v-if="bot.lastRepliedAt"
+                    class="text-xs text-toned shrink-0"
+                  >
+                    Replied <TimeAgo :date="bot.lastRepliedAt" />
+                  </span>
+                  <span
+                    v-else
+                    class="text-xs text-toned shrink-0"
+                  >
+                    No replies yet
+                  </span>
+                </div>
+              </UCard>
             </NuxtLink>
           </div>
-        </UCard>
+        </div>
       </DashboardContainer>
     </NuxtLayout>
   </div>

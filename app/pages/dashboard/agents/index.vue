@@ -37,8 +37,12 @@ const modelsById = computed(
 
 // Resolve the stored model slug to its friendly name + provider logo.
 // Falls back to the raw slug while the catalog loads or if it's unlisted.
-const modelFor = (id: string): ProviderModel =>
-  modelsById.value.get(id) ?? { id, name: id, avatar: { icon: 'i-lucide-sparkles' } };
+// OpenRouter names come as "Provider: Model"; the logo already carries
+// the provider so we strip the prefix to avoid duplicating it.
+const modelFor = (id: string): ProviderModel => {
+  const m = modelsById.value.get(id) ?? { id, name: id, avatar: { icon: 'i-lucide-sparkles' } };
+  return { ...m, name: m.name.replace(/^[^:]+:\s*/, '') };
+};
 
 // The effective text model a run uses (own pick or platform default),
 // resolved to its catalog entry, with the inherited-default flag.

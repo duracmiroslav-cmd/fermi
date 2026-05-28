@@ -58,7 +58,7 @@ const filteredCards = computed(() => {
 
         <section class="flex flex-col gap-3">
           <div class="flex flex-col gap-0.5">
-            <h2 class="text-base font-semibold">
+            <h2 class="font-semibold">
               Model providers
             </h2>
             <p class="text-sm text-toned">
@@ -125,7 +125,7 @@ const filteredCards = computed(() => {
 
         <section class="flex flex-col gap-3">
           <div class="flex flex-col gap-0.5">
-            <h2 class="text-base font-semibold">
+            <h2 class="font-semibold">
               Capabilities
             </h2>
             <p class="text-sm text-toned">

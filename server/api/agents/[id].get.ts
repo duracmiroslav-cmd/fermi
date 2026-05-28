@@ -20,11 +20,20 @@ export default defineEventHandler(async (event) => {
 
   const { data: bots, error: botErr } = await admin
     .from('bots')
-    .select('id, display_name, platform')
+    .select('id, display_name, platform, avatar_url, disabled_at, webhook_verified_at')
     .eq('agent_id', id)
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
   if (botErr) throw botErr;
+
+  // Most-recent successful reply per bot, derived from agent_runs.
+  // Mirrors the bot list endpoint; not a column on bots.
+  const { data: lastReplied, error: lastRepliedErr } = await admin
+    .rpc('get_bots_last_replied', { p_owner_id: user.id });
+  if (lastRepliedErr) throw lastRepliedErr;
+  const lastRepliedByBot = new Map<string, string>(
+    (lastReplied ?? []).map(r => [r.bot_id, r.last_replied_at]),
+  );
 
   return {
     id:                 data.id,
@@ -38,9 +47,13 @@ export default defineEventHandler(async (event) => {
     createdAt:          data.created_at,
     updatedAt:          data.updated_at,
     bots:               (bots ?? []).map(b => ({
-      id:          b.id,
-      displayName: b.display_name,
-      platform:    b.platform,
+      id:                b.id,
+      displayName:       b.display_name,
+      platform:          b.platform,
+      avatarUrl:         b.avatar_url,
+      disabledAt:        b.disabled_at,
+      webhookVerifiedAt: b.webhook_verified_at,
+      lastRepliedAt:     lastRepliedByBot.get(b.id) ?? null,
     })),
   };
 });
