@@ -29,15 +29,15 @@ const attached = computed(() => (rows.value ?? []).filter(c => c.attached));
         </template>
         <template v-else-if="attached.length">
           <UBadge
-            v-for="cap in attached"
-            :key="cap.id"
+            v-for="capability in attached"
+            :key="capability.id"
             color="neutral"
             variant="soft"
             size="md"
-            :icon="getCapabilityIcon(cap.slug)"
+            :icon="getCapabilityIcon(capability.slug)"
             class="bg-accented"
           >
-            {{ cap.displayName }}
+            {{ capability.displayName }}
           </UBadge>
         </template>
         <p

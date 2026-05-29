@@ -78,14 +78,14 @@ export const listCapabilitiesForUser = async (
   admin: SupabaseClient,
   userId: string,
 ): Promise<CapabilityRow[]> => {
-  const { data: caps, error: capsErr } = await admin
+  const { data: capabilities, error: capabilityErr } = await admin
     .from('capabilities')
     .select('id, slug, display_name, description, owner_id')
     .is('deleted_at', null)
     .or(`owner_id.is.null,owner_id.eq.${userId}`)
     .order('owner_id', { ascending: true, nullsFirst: true })
     .order('slug', { ascending: true });
-  if (capsErr) throw capsErr;
+  if (capabilityErr) throw capabilityErr;
 
   const { data: creds, error: credsErr } = await admin
     .from('encrypted_credentials')
@@ -96,13 +96,13 @@ export const listCapabilitiesForUser = async (
 
   const credByKeyType = new Map((creds ?? []).map(c => [c.key_type, c]));
 
-  return (caps ?? []).map((cap) => {
-    const meta = getCapabilityMeta(cap.slug);
+  return (capabilities ?? []).map((capability) => {
+    const meta = getCapabilityMeta(capability.slug);
     const row: CapabilityRow = {
-      id:             cap.id,
-      slug:           cap.slug,
-      displayName:    cap.display_name,
-      description:    cap.description,
+      id:             capability.id,
+      slug:           capability.slug,
+      displayName:    capability.display_name,
+      description:    capability.description,
       credentialType: meta.credentialType,
     };
     if (meta.credentialType !== 'providers' || !meta.providers) return row;

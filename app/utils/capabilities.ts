@@ -27,21 +27,21 @@ export const getCapabilityIcon = (slug: string): string =>
   iconBySlug[slug] ?? 'i-lucide-puzzle';
 
 export const flattenCapabilities = (list: CapabilityRow[]): FlatCard[] => {
-  const out = list.map((cap): FlatCard => {
-    const providerNames = (cap.providers ?? []).map(p => p.displayName).join(' ');
-    const searchHaystack = [cap.displayName, cap.description ?? '', providerNames]
+  const out = list.map((capability): FlatCard => {
+    const providerNames = (capability.providers ?? []).map(p => p.displayName).join(' ');
+    const searchHaystack = [capability.displayName, capability.description ?? '', providerNames]
       .join(' ')
       .toLowerCase();
     const base = {
-      routeSlug:   cap.slug,
-      title:       cap.displayName,
-      description: cap.description,
-      icon:        getCapabilityIcon(cap.slug),
+      routeSlug:   capability.slug,
+      title:       capability.displayName,
+      description: capability.description,
+      icon:        getCapabilityIcon(capability.slug),
       searchHaystack,
     };
-    if (cap.credentialType === 'coming_soon') return { ...base, status: 'coming_soon' };
-    if (cap.credentialType === 'none') return { ...base, status: 'none' };
-    const anyConnected = (cap.providers ?? []).some(p => p.status === 'connected');
+    if (capability.credentialType === 'coming_soon') return { ...base, status: 'coming_soon' };
+    if (capability.credentialType === 'none') return { ...base, status: 'none' };
+    const anyConnected = (capability.providers ?? []).some(p => p.status === 'connected');
     return { ...base, status: anyConnected ? 'connected' : 'available' };
   });
   return out.sort((a, b) => {

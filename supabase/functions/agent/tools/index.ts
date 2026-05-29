@@ -100,7 +100,7 @@ const loadToken = async (
 // MCP servers that are unreachable or unauthorized are skipped rather than
 // failing the whole run.
 export const buildToolset = async (
-  caps: AttachedCapability[],
+  capabilities: AttachedCapability[],
   base: { admin: SupabaseClient; kek: CryptoKey; ownerId: string },
 ): Promise<Toolset> => {
   const schemas: ToolSchema[] = [];
@@ -109,31 +109,31 @@ export const buildToolset = async (
     (args: Record<string, unknown>, ctx: ToolContext) => unknown | Promise<unknown>
   >();
 
-  for (const cap of caps.filter(c => !c.config.url)) {
-    for (const tool of tools.filter(t => t.capabilitySlug === cap.slug)) {
+  for (const capability of capabilities.filter(c => !c.config.url)) {
+    for (const tool of tools.filter(t => t.capabilitySlug === capability.slug)) {
       schemas.push(toSchema(tool));
       routers.set(tool.name, (args, ctx) => tool.execute(args, ctx));
     }
   }
 
   await Promise.all(
-    caps
-      .filter(cap => !!cap.config.url)
-      .map(async (cap) => {
+    capabilities
+      .filter(capability => !!capability.config.url)
+      .map(async (capability) => {
         try {
-          const token = cap.config.authKeyType
-            ? await loadToken(base, cap.config.authKeyType)
+          const token = capability.config.authKeyType
+            ? await loadToken(base, capability.config.authKeyType)
             : undefined;
 
-          const cacheKey = cap.config.url!;
+          const cacheKey = capability.config.url!;
 
-          // Promise-coalesced lazy connect: all tools on this cap share one
+          // Promise-coalesced lazy connect: all tools on this capability share one
           // McpClient. On a cache hit the connect is deferred to the first
           // actual tool call, saving the 3-RTT handshake on warm runs.
           let connectionPromise: Promise<McpClient> | undefined;
           const getClient = (): Promise<McpClient> => {
             connectionPromise ??= (async () => {
-              const c = new McpClient({ url: cap.config.url!, token });
+              const c = new McpClient({ url: capability.config.url!, token });
               await c.connect();
               return c;
             })();
@@ -150,10 +150,10 @@ export const buildToolset = async (
             mcpToolCache.set(cacheKey, { tools: mcpTools, expiresAt: Date.now() + TOOL_CACHE_TTL_MS });
           }
 
-          const allowlist = cap.config.toolAllowlist ? new Set(cap.config.toolAllowlist) : null;
+          const allowlist = capability.config.toolAllowlist ? new Set(capability.config.toolAllowlist) : null;
           for (const t of mcpTools) {
             if (allowlist && !allowlist.has(t.name)) continue;
-            const llmName = `${cap.slug}__${t.name}`;
+            const llmName = `${capability.slug}__${t.name}`;
             schemas.push({
               type: 'function',
               function: { name: llmName, description: t.description ?? '', parameters: t.inputSchema },
@@ -172,7 +172,7 @@ export const buildToolset = async (
           }
         } catch (err) {
           console.error(
-            `MCP capability "${cap.slug}" skipped:`,
+            `MCP capability "${capability.slug}" skipped:`,
             err instanceof Error ? err.message : String(err),
           );
         }
