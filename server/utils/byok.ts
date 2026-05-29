@@ -23,14 +23,14 @@ const bodySchema = z.object({
 
 type VerifyFn = (apiKey: string) => Promise<void>;
 
-const badKeyError = (vendor: string): never => {
+const throwBadKey = (vendor: string): never => {
   throw createError({
     statusCode:    401,
     statusMessage: `Invalid ${vendor} API key`,
   });
 };
 
-const upstreamError = (vendor: string, status: number): never => {
+const throwUpstream = (vendor: string, status: number): never => {
   throw createError({
     statusCode:    400,
     statusMessage: `${vendor} verification failed (${status})`,
@@ -42,8 +42,8 @@ const verifyOpenaiKey: VerifyFn = async (apiKey) => {
     headers: { Authorization: `Bearer ${apiKey}` },
   });
   if (res.ok) return;
-  if (res.status === 401 || res.status === 403) badKeyError('OpenAI');
-  upstreamError('OpenAI', res.status);
+  if (res.status === 401 || res.status === 403) throwBadKey('OpenAI');
+  throwUpstream('OpenAI', res.status);
 };
 
 const verifyAnthropicKey: VerifyFn = async (apiKey) => {
@@ -57,8 +57,8 @@ const verifyAnthropicKey: VerifyFn = async (apiKey) => {
     },
   });
   if (res.ok) return;
-  if (res.status === 401 || res.status === 403) badKeyError('Anthropic');
-  upstreamError('Anthropic', res.status);
+  if (res.status === 401 || res.status === 403) throwBadKey('Anthropic');
+  throwUpstream('Anthropic', res.status);
 };
 
 const verifyGeminiKey: VerifyFn = async (apiKey) => {
@@ -69,8 +69,8 @@ const verifyGeminiKey: VerifyFn = async (apiKey) => {
     `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
   );
   if (res.ok) return;
-  if (res.status === 400 || res.status === 401 || res.status === 403) badKeyError('Gemini');
-  upstreamError('Gemini', res.status);
+  if (res.status === 400 || res.status === 401 || res.status === 403) throwBadKey('Gemini');
+  throwUpstream('Gemini', res.status);
 };
 
 const VERIFY_BY_KEY_TYPE: Record<ByokKeyType, VerifyFn> = {

@@ -64,7 +64,7 @@ export const RATE_WINDOWS: readonly RateWindow[] = [
 // Bucket math uses unix epoch seconds floored to window size, then
 // formatted as a 0-padded ISO-like string for readability when grepping
 // Redis / Postgres.
-export const rateLimitKey = (input: {
+export const buildRateLimitKey = (input: {
   botId:          string;
   externalUserId: string;
   window:         RateWindow;
@@ -79,7 +79,7 @@ export const rateLimitKey = (input: {
 // fermi's billing month doesn't have to align with any user's local
 // month — the boundary just needs to be deterministic and globally
 // shared so Upstash / Postgres impls agree on key ownership.
-export const usageQuotaKey = (input: {
+export const buildUsageQuotaKey = (input: {
   ownerId: string;
   purpose: Purpose;
   now?:    Date;
@@ -90,8 +90,8 @@ export const usageQuotaKey = (input: {
 };
 
 // Period string ('YYYY-MM') stored alongside the count in the Postgres
-// impl. Same derivation as usageQuotaKey above.
-export const monthlyPeriod = (now: Date = new Date()): string =>
+// impl. Same derivation as buildUsageQuotaKey above.
+export const getMonthlyPeriod = (now: Date = new Date()): string =>
   `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
 
 // Bucket suffix derivation kept inline rather than imported so this

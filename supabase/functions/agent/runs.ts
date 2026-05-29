@@ -49,7 +49,7 @@ export const startRun = async (
 // Closes a run. `totalCostUsd` is the sum of all step costs the
 // caller accumulated; we trust the caller's tally rather than
 // re-querying. `errorCode` only matters when status === 'failed';
-// pass it via errorCodeFromStatus to keep buckets in sync with the
+// pass it via deriveErrorCode to keep buckets in sync with the
 // SQL backfill. Idempotent enough, a second call just overwrites
 // status/cost/finished_at/error_code.
 export const finishRun = async (
@@ -80,7 +80,7 @@ export const finishRun = async (
 // `agent_run_steps.type` convention (`error_occurred`, `push_failed`).
 // Mirrors the SQL backfill in 20260525060000_add_agent_runs_error_code.sql
 //, keep the two in sync.
-export const errorCodeFromStatus = (status: number | undefined): string => {
+export const deriveErrorCode = (status: number | undefined): string => {
   if (status === 429) return 'rate_limited';
   if (status === 408 || status === 504) return 'timed_out';
   if (status !== undefined && status >= 500 && status < 600) return 'upstream_failed';

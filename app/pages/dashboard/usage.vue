@@ -21,7 +21,7 @@ const periodLabel = computed(() => {
   return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
 });
 
-const percentOf = (item: UsageItem): number => (
+const getPercent = (item: UsageItem): number => (
   item.cap <= 0 ? 0 : Math.min(100, Math.round((item.used / item.cap) * 100))
 );
 </script>
@@ -82,7 +82,7 @@ const percentOf = (item: UsageItem): number => (
                 {{ item.used }} / {{ item.cap }}
               </span>
             </div>
-            <UProgress :model-value="percentOf(item)" />
+            <UProgress :model-value="getPercent(item)" />
           </BaseCard>
         </section>
 

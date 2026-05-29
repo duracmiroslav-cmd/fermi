@@ -36,7 +36,7 @@ DB enum strings (CHECK-constrained `text` columns) and their TS unions use `<sub
    - **Pre-launch**: edit the base `create_*` migration in place and `supabase db reset` the hosted dev DB. Precedent: `77ac448` Squash 12 pre-launch fix-up migrations; `8209c6a` exposed the footgun of incremental `DROP CONSTRAINT; ADD CONSTRAINT` (rebuilding the CHECK silently drops any value added since base).
    - **Post-launch**: add a NEW migration with `ALTER TABLE ... DROP CONSTRAINT ...; ADD CONSTRAINT ... CHECK (...)`. The new CHECK list must be **complete** (re-state every prior value); do not assume the rebuild merges with the old constraint.
 2. **TS**: extend the union in `supabase/functions/agent/runs.ts` (`StepType` / `RunStatus`)
-3. **Mapping helpers**: if a SQL `case` mapping (e.g. backfill in `_add_agent_runs_error_code.sql`) and a TS helper (e.g. `errorCodeFromStatus`) both produce these values, **they must stay in sync** — each cites the other in a comment
+3. **Mapping helpers**: if a SQL `case` mapping (e.g. backfill in `_add_agent_runs_error_code.sql`) and a TS helper (e.g. `deriveErrorCode`) both produce these values, **they must stay in sync** — each cites the other in a comment
 
 ## Discriminator suffix: `Type`, not `Kind`
 

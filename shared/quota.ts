@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { MONTHLY_QUOTA, type Purpose, usageQuotaKey } from './constants/limits.ts';
+import { MONTHLY_QUOTA, type Purpose, buildUsageQuotaKey } from './constants/limits.ts';
 import type { Tier } from './constants/tiers.ts';
 import { type CounterEnv, createUsageCounter } from './counters/factory.ts';
 
@@ -43,7 +43,7 @@ export const consumeQuota = async (
   const cap = await resolveCap(admin, input.ownerId, input.purpose);
   const counter = createUsageCounter(admin, env);
   return await counter.consume({
-    key:    usageQuotaKey({ ownerId: input.ownerId, purpose: input.purpose }),
+    key:    buildUsageQuotaKey({ ownerId: input.ownerId, purpose: input.purpose }),
     cap,
     ttlSec: MONTHLY_TTL_SEC,
   });
@@ -58,7 +58,7 @@ export const peekQuota = async (
   const cap = await resolveCap(admin, input.ownerId, input.purpose);
   const counter = createUsageCounter(admin, env);
   const count = await counter.peek({
-    key: usageQuotaKey({ ownerId: input.ownerId, purpose: input.purpose }),
+    key: buildUsageQuotaKey({ ownerId: input.ownerId, purpose: input.purpose }),
   });
   return {
     allowed:   count <= cap,

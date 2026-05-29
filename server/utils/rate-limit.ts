@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { RATE_WINDOWS, type RateWindow, rateLimitKey } from '~~/shared/constants/limits';
+import { RATE_WINDOWS, type RateWindow, buildRateLimitKey } from '~~/shared/constants/limits';
 import { type CounterEnv, createRateLimiter } from '~~/shared/counters/factory';
 
 export interface RateLimitOutcome {
@@ -25,7 +25,7 @@ export const checkBotUserRateLimit = async (
 
   const windowsWithScope = RATE_WINDOWS.map(w => ({
     scope:  w.scope,
-    key:    rateLimitKey({ botId: input.botId, externalUserId: input.externalUserId, window: w }),
+    key:    buildRateLimitKey({ botId: input.botId, externalUserId: input.externalUserId, window: w }),
     ttlSec: w.ttlSec,
     cap:    w.cap,
   }));

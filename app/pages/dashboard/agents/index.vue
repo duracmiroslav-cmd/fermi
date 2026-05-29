@@ -39,16 +39,16 @@ const modelsById = computed(
 // Falls back to the raw slug while the catalog loads or if it's unlisted.
 // OpenRouter names come as "Provider: Model"; the logo already carries
 // the provider so we strip the prefix to avoid duplicating it.
-const modelFor = (id: string): ProviderModel => {
+const getModel = (id: string): ProviderModel => {
   const m = modelsById.value.get(id) ?? { id, name: id, avatar: { icon: 'i-lucide-sparkles' } };
   return { ...m, name: m.name.replace(/^[^:]+:\s*/, '') };
 };
 
 // The effective text model a run uses (own pick or platform default),
 // resolved to its catalog entry, with the inherited-default flag.
-const textModelFor = (stored: string | null): ProviderModel & { isDefault: boolean } => {
+const getTextModel = (stored: string | null): ProviderModel & { isDefault: boolean } => {
   const { id, isDefault } = resolveTextModel(stored);
-  return { ...modelFor(id), isDefault };
+  return { ...getModel(id), isDefault };
 };
 </script>
 
@@ -150,13 +150,13 @@ const textModelFor = (stored: string | null): ProviderModel & { isDefault: boole
                     </div>
                     <div class="flex items-center gap-1.5 text-sm text-toned min-w-0">
                       <UIcon
-                        :name="textModelFor(agent.defaultTextModel).avatar.icon"
+                        :name="getTextModel(agent.defaultTextModel).avatar.icon"
                         class="size-5 shrink-0"
                       />
                       <span class="truncate">
-                        {{ textModelFor(agent.defaultTextModel).name }}
+                        {{ getTextModel(agent.defaultTextModel).name }}
                         <span
-                          v-if="textModelFor(agent.defaultTextModel).isDefault"
+                          v-if="getTextModel(agent.defaultTextModel).isDefault"
                           class="text-toned"
                         >(default)</span>
                       </span>

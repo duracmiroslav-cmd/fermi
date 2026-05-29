@@ -31,7 +31,7 @@ import {
 } from './channels/line.ts';
 import { OpenRouterError, completeChat, type ChatMessage } from './openrouter.ts';
 import { COUNTER_ENV, consumeQuota } from './quota.ts';
-import { errorCodeFromStatus, finishRun, logStep, startRun } from './runs.ts';
+import { deriveErrorCode, finishRun, logStep, startRun } from './runs.ts';
 import { STTError, transcribeAudio } from './stt.ts';
 import { synthesizeSpeech } from './tts.ts';
 import {
@@ -582,7 +582,7 @@ const runAgentLoop = async (params: {
         type: 'push_failed',
         payload,
       });
-      await finishRun(admin, runId, 'failed', totalCostUsd, errorCodeFromStatus(pushStatus));
+      await finishRun(admin, runId, 'failed', totalCostUsd, deriveErrorCode(pushStatus));
       // Both Reply 400 (fallback to Push already tried) and Push 4xx
       // are terminal for this event. Retrying via pgmq would just
       // duplicate the failure or, worse, re-charge a successful Push.
@@ -618,7 +618,7 @@ const runAgentLoop = async (params: {
     } catch (notifyErr) {
       console.error('error notice delivery failed', notifyErr);
     }
-    await finishRun(admin, runId, 'failed', totalCostUsd, errorCodeFromStatus(errStatus));
+    await finishRun(admin, runId, 'failed', totalCostUsd, deriveErrorCode(errStatus));
     // Retry semantics flip on whether the user saw the error: once
     // notified, throwing would have pgmq redeliver and we'd spam the
     // chat with a duplicate ⚠️ every visibility-timeout (~30s). If

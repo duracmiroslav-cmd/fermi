@@ -115,7 +115,7 @@ const onGithubDisconnect = async () => {
         <header class="flex items-center gap-4">
           <div class="size-12 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
             <UIcon
-              :name="capabilityIcon(capability.slug)"
+              :name="getCapabilityIcon(capability.slug)"
               class="size-6 text-primary"
             />
           </div>

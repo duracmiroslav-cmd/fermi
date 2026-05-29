@@ -19,7 +19,7 @@ interface BotRow {
 const { items: bots, used, atLimit, pending, refresh, limitMessage } = useTierLimit<BotRow>('bots');
 const { syncingId, sync: syncAvatar } = useBotAvatar(refresh);
 
-const initial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
+const getInitial = (name: string | null) => (name ?? '?').charAt(0).toUpperCase();
 
 const search = ref('');
 const filteredBots = computed(() => {
@@ -117,7 +117,7 @@ const filteredBots = computed(() => {
                     />
                     <template v-else>
                       <span class="absolute inset-0 flex items-center justify-center font-mono text-sm font-semibold text-primary transition-opacity group-hover:opacity-0">
-                        {{ initial(bot.displayName) }}
+                        {{ getInitial(bot.displayName) }}
                       </span>
                       <UIcon
                         name="i-lucide-refresh-cw"

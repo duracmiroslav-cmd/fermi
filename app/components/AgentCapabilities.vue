@@ -13,16 +13,6 @@ const { data: rows, pending } = useApiFetch<AgentCapabilityRow[]>(
 
 const pendingIds = ref(new Set<string>());
 
-const iconBySlug: Record<string, string> = {
-  'time':            'i-lucide-clock',
-  'web-search':      'i-lucide-search',
-  'web-fetch':       'i-lucide-globe',
-  'github':          'i-simple-icons-github',
-  'google-calendar': 'i-simple-icons-googlecalendar',
-  'notion':          'i-simple-icons-notion',
-};
-const iconFor = (slug: string) => iconBySlug[slug] ?? 'i-lucide-puzzle';
-
 const CAP_WIDTHS = ['w-24', 'w-32', 'w-20', 'w-28'];
 const CAP_DESC_WIDTHS = ['w-48', 'w-40', 'w-52', 'w-44'];
 
@@ -39,7 +29,7 @@ const isLocked = (cap: AgentCapabilityRow): boolean => {
   return false;
 };
 
-const lockedHint = (cap: AgentCapabilityRow): { text: string; to?: string } | null => {
+const getLockedHint = (cap: AgentCapabilityRow): { text: string; to?: string } | null => {
   if (!isLocked(cap)) return null;
   if (cap.credentialType === 'coming_soon') {
     return { text: 'Coming soon' };
@@ -133,7 +123,7 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
           class="flex items-center gap-4 p-4"
         >
           <UIcon
-            :name="iconFor(cap.slug)"
+            :name="getCapabilityIcon(cap.slug)"
             class="size-5 text-toned shrink-0"
           />
 
@@ -159,13 +149,13 @@ const onToggle = async (cap: AgentCapabilityRow, next: boolean) => {
               Coming soon
             </UBadge>
             <NuxtLink
-              v-if="lockedHint(cap)?.to"
-              :to="lockedHint(cap)!.to"
+              v-if="getLockedHint(cap)?.to"
+              :to="getLockedHint(cap)!.to"
               target="_blank"
               rel="noopener"
               class="text-xs text-toned hover:text-highlighted hidden sm:inline-flex items-center gap-1"
             >
-              {{ lockedHint(cap)!.text }}
+              {{ getLockedHint(cap)!.text }}
               <UIcon
                 name="i-lucide-external-link"
                 class="size-3"

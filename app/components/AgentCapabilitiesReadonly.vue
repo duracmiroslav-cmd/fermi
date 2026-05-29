@@ -10,16 +10,6 @@ const { data: rows, pending } = useApiFetch<AgentCapabilityRow[]>(
 );
 
 const attached = computed(() => (rows.value ?? []).filter(c => c.attached));
-
-const iconBySlug: Record<string, string> = {
-  'time':            'i-lucide-clock',
-  'web-search':      'i-lucide-search',
-  'web-fetch':       'i-lucide-globe',
-  'github':          'i-simple-icons-github',
-  'google-calendar': 'i-simple-icons-googlecalendar',
-  'notion':          'i-simple-icons-notion',
-};
-const iconFor = (slug: string) => iconBySlug[slug] ?? 'i-lucide-puzzle';
 </script>
 
 <template>
@@ -44,7 +34,7 @@ const iconFor = (slug: string) => iconBySlug[slug] ?? 'i-lucide-puzzle';
             color="neutral"
             variant="soft"
             size="md"
-            :icon="iconFor(cap.slug)"
+            :icon="getCapabilityIcon(cap.slug)"
             class="bg-accented"
           >
             {{ cap.displayName }}

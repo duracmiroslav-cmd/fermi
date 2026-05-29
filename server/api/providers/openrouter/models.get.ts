@@ -60,7 +60,7 @@ const PROVIDER_ICONS: Record<string, string> = {
   'x-ai':       'i-simple-icons-x',
 };
 
-const avatarFor = (id: string): ModelAvatar => {
+const getAvatar = (id: string): ModelAvatar => {
   const prefix = id.split('/')[0] ?? '';
   return { icon: PROVIDER_ICONS[prefix] ?? 'i-lucide-cpu' };
 };
@@ -88,7 +88,7 @@ const fetchModels = async (): Promise<ProviderModel[]> => {
         promptCost,
         completionCost,
         modality:      m.architecture.modality,
-        avatar:        avatarFor(m.id),
+        avatar:        getAvatar(m.id),
       };
     })
     .sort((a, b) => {

@@ -23,7 +23,7 @@ const iconBySlug: Record<string, string> = {
   'notion':          'i-simple-icons-notion',
 };
 
-export const capabilityIcon = (slug: string): string =>
+export const getCapabilityIcon = (slug: string): string =>
   iconBySlug[slug] ?? 'i-lucide-puzzle';
 
 export const flattenCapabilities = (list: CapabilityRow[]): FlatCard[] => {
@@ -36,7 +36,7 @@ export const flattenCapabilities = (list: CapabilityRow[]): FlatCard[] => {
       routeSlug:   cap.slug,
       title:       cap.displayName,
       description: cap.description,
-      icon:        capabilityIcon(cap.slug),
+      icon:        getCapabilityIcon(cap.slug),
       searchHaystack,
     };
     if (cap.credentialType === 'coming_soon') return { ...base, status: 'coming_soon' };

@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   RATE_WINDOWS,
   type RateWindow,
-  monthlyPeriod,
-  rateLimitKey,
-  usageQuotaKey,
+  buildRateLimitKey,
+  buildUsageQuotaKey,
+  getMonthlyPeriod,
 } from '../../shared/constants/limits';
 
 const owner = '00000000-0000-0000-0000-000000000001';
@@ -15,14 +15,14 @@ const utc = (...args: [number, number, number, number?, number?, number?, number
   new Date(Date.UTC(...args));
 
 const qKey = (now: Date): string =>
-  usageQuotaKey({ ownerId: owner, purpose: 'tts', now });
+  buildUsageQuotaKey({ ownerId: owner, purpose: 'tts', now });
 
 const rlKey = (scope: RateWindow['scope'], now: Date): string => {
   const window = RATE_WINDOWS.find(w => w.scope === scope)!;
-  return rateLimitKey({ botId: bot, externalUserId: user, window, now });
+  return buildRateLimitKey({ botId: bot, externalUserId: user, window, now });
 };
 
-describe('monthlyPeriod', () => {
+describe('getMonthlyPeriod', () => {
   it.each([
     [utc(2026, 0, 1), '2026-01', 'january pads to 01'],
     [utc(2026, 8, 1), '2026-09', 'september pads to 09'],
@@ -30,18 +30,18 @@ describe('monthlyPeriod', () => {
     [utc(2026, 11, 31, 23, 59), '2026-12', 'last minute of december'],
     [utc(2027, 0, 1, 0, 0), '2027-01', 'first minute of next year'],
   ])('returns %s suffix (%s)', (date, expected) => {
-    expect(monthlyPeriod(date)).toBe(expected);
+    expect(getMonthlyPeriod(date)).toBe(expected);
   });
 
   it('reads UTC, not local time', () => {
     // 23:30Z on May 31 is still May UTC even where local clock has flipped to June.
-    expect(monthlyPeriod(utc(2026, 4, 31, 23, 30))).toBe('2026-05');
+    expect(getMonthlyPeriod(utc(2026, 4, 31, 23, 30))).toBe('2026-05');
   });
 });
 
-describe('usageQuotaKey', () => {
+describe('buildUsageQuotaKey', () => {
   it('composes owner, purpose, and period', () => {
-    expect(usageQuotaKey({ ownerId: owner, purpose: 'image_gen', now: utc(2026, 4, 28, 12) }))
+    expect(buildUsageQuotaKey({ ownerId: owner, purpose: 'image_gen', now: utc(2026, 4, 28, 12) }))
       .toBe(`quota:${owner}:image_gen:2026-05`);
   });
 
@@ -58,7 +58,7 @@ describe('usageQuotaKey', () => {
   });
 });
 
-describe('rateLimitKey', () => {
+describe('buildRateLimitKey', () => {
   it('composes bot, user, scope, and time bucket', () => {
     expect(rlKey('minute', utc(2026, 4, 28, 14, 7)))
       .toBe(`rl:bot:${bot}:user:${user}:minute:202605281407`);
