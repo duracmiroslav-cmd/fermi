@@ -4,8 +4,10 @@
     aria-live="polite"
   >
     <div class="flex items-center gap-4">
-      <USkeleton class="size-12 rounded-full bg-elevated shrink-0" />
-      <USkeleton class="h-7 w-48 bg-elevated" />
+      <USkeleton class="size-12 rounded-full shrink-0" />
+      <div class="h-8 flex items-center">
+        <USkeleton class="h-5 w-48" />
+      </div>
     </div>
 
     <div
@@ -13,13 +15,17 @@
       :key="i"
       class="space-y-2"
     >
-      <USkeleton class="h-4 w-24 bg-elevated" />
-      <USkeleton class="h-9 w-full bg-elevated" />
+      <div class="h-5 flex items-center">
+        <USkeleton class="h-3 w-24" />
+      </div>
+      <USkeleton class="h-9 w-full rounded-md bg-muted/40" />
     </div>
 
     <div class="space-y-2">
-      <USkeleton class="h-4 w-16 bg-elevated" />
-      <USkeleton class="h-24 w-full bg-elevated" />
+      <div class="h-5 flex items-center">
+        <USkeleton class="h-3 w-16" />
+      </div>
+      <USkeleton class="h-24 w-full rounded-md bg-muted/40" />
     </div>
   </DashboardContainer>
 </template>
