@@ -8,7 +8,7 @@ const props = defineProps<{
 
 const notify = useNotify();
 
-const { data: rows, pending } = useApiFetch<AgentCapabilityRow[]>(
+const { data: rows, pending, refresh: refreshCapabilities } = useApiFetch<AgentCapabilityRow[]>(
   () => `/api/agents/${props.agentId}/capabilities`,
 );
 
@@ -38,6 +38,7 @@ const pendingIds = ref(new Set<string>());
 const expandedCapId = ref<string | null>(null);
 const pendingToolSave = ref(new Set<string>());
 const localAllowlists = ref<Record<string, string[]>>({});
+const isRefreshing = ref(false);
 
 const getEffectiveAllowlist = (capability: AgentCapabilityRow): Set<string> => {
   const local = localAllowlists.value[capability.id];
@@ -81,7 +82,10 @@ const onToggle = async (capability: AgentCapabilityRow, next: boolean) => {
 // UCollapsible only emits update:open when its trigger is clicked (not on
 // external prop changes), so the close branch only fires for this row's
 // own collapse — single-open behavior is coordinated via expandedCapId.
+// Gating here instead of via UCollapsible's :disabled avoids a reactivity
+// quirk where toggling attached false→true left the trigger inert.
 const onToggleExpand = (capability: AgentCapabilityRow, open: boolean) => {
+  if (!capability.attached || !hasToolGroups(capability.slug)) return;
   if (open) {
     if (localAllowlists.value[capability.id] === undefined) {
       const saved = capability.agentConfig?.toolAllowlist as string[] | undefined;
@@ -129,6 +133,17 @@ const onSaveTools = async (capability: AgentCapabilityRow) => {
     pendingToolSave.value.delete(capability.id);
   }
 };
+
+// Credentials or providers can flip on Connections in another tab;
+// refresh re-pulls the capability rows so locked/connected state matches.
+const onRefresh = async () => {
+  isRefreshing.value = true;
+  try {
+    await refreshCapabilities();
+  } finally {
+    isRefreshing.value = false;
+  }
+};
 </script>
 
 <template>
@@ -137,18 +152,29 @@ const onSaveTools = async (capability: AgentCapabilityRow) => {
       <h2 class="font-semibold">
         Capabilities
       </h2>
-      <NuxtLink
-        to="/dashboard/connections"
-        target="_blank"
-        rel="noopener"
-        class="text-xs text-toned hover:text-highlighted inline-flex items-center gap-1"
-      >
-        Manage credentials
-        <UIcon
-          name="i-lucide-external-link"
-          class="size-3"
+      <div class="flex items-center gap-3">
+        <NuxtLink
+          to="/dashboard/connections"
+          target="_blank"
+          rel="noopener"
+          class="text-xs text-toned hover:text-highlighted inline-flex items-center gap-1"
+        >
+          Manage credentials
+          <UIcon
+            name="i-lucide-external-link"
+            class="size-3"
+          />
+        </NuxtLink>
+        <UButton
+          icon="i-lucide-refresh-cw"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          label="Refresh"
+          :loading="isRefreshing"
+          @click="onRefresh"
         />
-      </NuxtLink>
+      </div>
     </div>
     <div
       class="rounded-md border border-muted bg-muted/50 divide-y divide-default overflow-hidden"
@@ -184,7 +210,7 @@ const onSaveTools = async (capability: AgentCapabilityRow) => {
           v-for="capability in rows ?? []"
           :key="capability.id"
           :open="expandedCapId === capability.id"
-          :disabled="!capability.attached || !hasToolGroups(capability.slug)"
+          :unmount-on-hide="false"
           @update:open="(open) => onToggleExpand(capability, open)"
         >
           <div
@@ -235,7 +261,7 @@ const onSaveTools = async (capability: AgentCapabilityRow) => {
               </NuxtLink>
               <UIcon
                 v-if="capability.attached && hasToolGroups(capability.slug)"
-                :name="expandedCapId === capability.id ? 'i-lucide-chevron-up' : 'i-lucide-sliders-horizontal'"
+                :name="expandedCapId === capability.id ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
                 class="size-4 text-toned"
               />
               <USwitch
