@@ -168,9 +168,9 @@ const onSaveTools = async (capability: AgentCapabilityRow) => {
                 :class="CAP_WIDTHS[(i - 1) % CAP_WIDTHS.length]"
               />
             </div>
-            <div class="h-5 flex items-center">
+            <div class="h-4 flex items-center">
               <USkeleton
-                class="h-3 bg-muted/70"
+                class="h-2.5 bg-muted/70"
                 :class="CAP_DESC_WIDTHS[(i - 1) % CAP_DESC_WIDTHS.length]"
               />
             </div>

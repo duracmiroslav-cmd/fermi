@@ -30,8 +30,8 @@ const SUBTITLE_WIDTHS = ['w-24', 'w-28', 'w-20'];
           />
         </div>
       </div>
-      <div class="h-5 flex items-center shrink-0">
-        <USkeleton class="h-3 w-20 bg-muted/70" />
+      <div class="h-4 flex items-center shrink-0">
+        <USkeleton class="h-2.5 w-20 bg-muted/70" />
       </div>
     </div>
   </div>

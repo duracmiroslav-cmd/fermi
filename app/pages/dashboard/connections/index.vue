@@ -81,7 +81,7 @@ const filteredCards = computed(() => {
                   <USkeleton class="h-2.5 w-64 bg-muted/70" />
                 </div>
               </div>
-              <USkeleton class="h-3 w-20 bg-muted/70 shrink-0" />
+              <USkeleton class="h-5 w-20 rounded-sm shrink-0" />
             </div>
           </div>
 
@@ -164,7 +164,7 @@ const filteredCards = computed(() => {
                   <USkeleton class="h-2.5 w-64 bg-muted/70" />
                 </div>
               </div>
-              <USkeleton class="h-3 w-20 bg-muted/70 shrink-0" />
+              <USkeleton class="h-5 w-20 rounded-sm shrink-0" />
             </div>
           </div>
 
