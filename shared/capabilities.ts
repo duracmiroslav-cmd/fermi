@@ -219,7 +219,7 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     },
     credentialType: 'providers',
     providers:      [
-      { slug: 'twinkle', displayName: 'Twinkle Hub', keyType: 'twinkle', status: 'live' },
+      { slug: 'twinkle-hub', displayName: 'Twinkle Hub', keyType: 'twinkle', status: 'live' },
     ],
   },
 };

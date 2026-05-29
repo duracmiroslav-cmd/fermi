@@ -81,6 +81,7 @@ const makeAction = (endpoint: string, label: string, bodyKey: string) => {
 
 const tavily = makeAction('/api/connectors/tavily', 'Tavily', 'apiKey');
 const github = makeAction('/api/connectors/github', 'GitHub', 'token');
+const twinkleHub = makeAction('/api/connectors/twinkle-hub', 'Twinkle Hub', 'token');
 </script>
 
 <template>
@@ -164,6 +165,36 @@ const github = makeAction('/api/connectors/github', 'GitHub', 'token');
                     rel="noopener"
                     class="underline"
                   >github.com/settings</a>. Pick the repos and grant read access.
+                </template>
+              </ConnectorCredentialCard>
+            </UCard>
+          </template>
+
+          <template v-else-if="selfProvider!.slug === 'twinkle-hub'">
+            <p class="text-sm text-toned">
+              Twinkle Hub bundles 50+ Taiwan-specific lookup tools and the full data.gov.tw open-data catalog behind a single MCP endpoint. Free during alpha.
+            </p>
+            <UCard>
+              <ConnectorCredentialCard
+                label="Bearer token"
+                mode="key"
+                :status="selfProvider!.status"
+                :masked-key="selfProvider!.maskedKey"
+                :placeholder="selfProvider!.status === 'connected' ? 'Reconnect to view token' : 'sk-...'"
+                :connecting="twinkleHub.connecting.value"
+                :disconnecting="twinkleHub.disconnecting.value"
+                @connect="twinkleHub.connect"
+                @disconnect="twinkleHub.disconnect"
+              >
+                <template #help>
+                  Sign in at
+                  <a
+                    href="https://hub.twinkleai.tw"
+                    target="_blank"
+                    rel="noopener"
+                    class="underline"
+                  >hub.twinkleai.tw</a>
+                  with Google or GitHub, then copy your token from the dashboard.
                 </template>
               </ConnectorCredentialCard>
             </UCard>
