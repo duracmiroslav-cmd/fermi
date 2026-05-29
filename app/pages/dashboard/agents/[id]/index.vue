@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { VoiceReplyMode } from '~~/shared/agents';
 import { DEFAULT_VISION_MODEL, resolveTextModel } from '~~/shared/constants/models';
+import { DEFAULT_TTS_MODEL, DEFAULT_TTS_VOICE, type TtsModel, type TtsVoice } from '~~/shared/tts';
 
 definePageMeta({ layout: false });
 
@@ -20,6 +21,9 @@ interface AgentDetail {
   systemPrompt:       string | null;
   defaultTextModel:   string | null;
   defaultVisionModel: string | null;
+  defaultTtsModel:    TtsModel | null;
+  defaultTtsVoice:    TtsVoice | null;
+  ttsInstructions:    string | null;
   voiceReplyMode:     VoiceReplyMode;
   avatarUrl:          string | null;
   isDefault:          boolean;
@@ -218,6 +222,39 @@ const visionModel = computed<ProviderModel>(() => {
               </dt>
               <dd>
                 {{ VOICE_REPLY_LABELS[agent.voiceReplyMode] }}
+              </dd>
+              <dt class="text-toned text-right">
+                Voice model
+              </dt>
+              <dd>
+                <span v-if="agent.defaultTtsModel">{{ agent.defaultTtsModel }}</span>
+                <span
+                  v-else
+                  class="text-toned"
+                >{{ DEFAULT_TTS_MODEL }} (default)</span>
+              </dd>
+              <dt class="text-toned text-right">
+                Voice
+              </dt>
+              <dd>
+                <span v-if="agent.defaultTtsVoice">{{ agent.defaultTtsVoice }}</span>
+                <span
+                  v-else
+                  class="text-toned"
+                >{{ DEFAULT_TTS_VOICE }} (default)</span>
+              </dd>
+              <dt class="text-toned text-right">
+                Voice instructions
+              </dt>
+              <dd class="min-w-0">
+                <span
+                  v-if="agent.ttsInstructions"
+                  class="whitespace-pre-wrap"
+                >{{ agent.ttsInstructions }}</span>
+                <span
+                  v-else
+                  class="text-muted"
+                >—</span>
               </dd>
               <dt class="text-toned text-right">
                 Created

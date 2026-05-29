@@ -1,10 +1,20 @@
 <script setup lang="ts">
+import type { TtsModel, TtsVoice } from '~~/shared/tts';
+
 definePageMeta({ layout: false });
 
 const notify = useNotify();
 const saving = ref(false);
 
-const onSubmit = async (value: { name: string; systemPrompt: string; defaultTextModel: string; defaultVisionModel: string }) => {
+const onSubmit = async (value: {
+  name:               string;
+  systemPrompt:       string;
+  defaultTextModel:   string;
+  defaultVisionModel: string;
+  defaultTtsModel:    TtsModel | null;
+  defaultTtsVoice:    TtsVoice | null;
+  ttsInstructions:    string;
+}) => {
   saving.value = true;
   try {
     const created = await $fetch<{ id: string }>('/api/agents', {
@@ -14,6 +24,9 @@ const onSubmit = async (value: { name: string; systemPrompt: string; defaultText
         systemPrompt:       value.systemPrompt || null,
         defaultTextModel:   value.defaultTextModel || null,
         defaultVisionModel: value.defaultVisionModel || null,
+        defaultTtsModel:    value.defaultTtsModel || null,
+        defaultTtsVoice:    value.defaultTtsVoice || null,
+        ttsInstructions:    value.ttsInstructions || null,
       },
     });
     notify.success('Agent created');

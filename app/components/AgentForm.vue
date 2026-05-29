@@ -2,12 +2,30 @@
 import type { VoiceReplyMode } from '~~/shared/agents';
 import { DEFAULT_TEXT_MODEL, DEFAULT_VISION_MODEL } from '~~/shared/constants/models';
 import { createAgentInputSchema } from '~~/shared/schemas/agents';
+import {
+  DEFAULT_TTS_MODEL,
+  DEFAULT_TTS_VOICE,
+  TTS_MODELS,
+  TTS_VOICES,
+  type TtsModel,
+  type TtsVoice,
+  supportsTtsInstructions,
+} from '~~/shared/tts';
 
+// Narrow unions for the TTS columns let USelect's v-model typing
+// stay strict end-to-end. `null` is the "unset, use worker fallback"
+// sentinel — string '' would collide with USelect's empty-state
+// detection. The text + vision model fields stay loose `string`
+// because their catalog is OpenRouter (200+ entries, schema-checked
+// only by length on the server, not enum membership).
 interface AgentFormValue {
   name:               string;
   systemPrompt:       string;
   defaultTextModel:   string;
   defaultVisionModel: string;
+  defaultTtsModel:    TtsModel | null;
+  defaultTtsVoice:    TtsVoice | null;
+  ttsInstructions:    string;
   voiceReplyMode:     VoiceReplyMode;
 }
 
@@ -31,6 +49,8 @@ const emit = defineEmits<{
   submit: [value: AgentFormValue];
 }>();
 
+const notify = useNotify();
+
 const { data: models, pending: modelsPending, refresh: refreshModels } = useApiFetch<ProviderModel[]>('/api/providers/openrouter/models');
 
 const formatContext = (n: number) =>
@@ -46,12 +66,20 @@ const state = reactive<AgentFormValue>({
   defaultVisionModel: props.initialValue
     ? (props.initialValue.defaultVisionModel ?? '')
     : DEFAULT_VISION_MODEL,
-  voiceReplyMode: props.initialValue?.voiceReplyMode ?? 'off',
+  // TTS fields stay null on new agents so the worker fallback wins;
+  // the placeholder copy surfaces what that fallback resolves to.
+  defaultTtsModel: props.initialValue?.defaultTtsModel ?? null,
+  defaultTtsVoice: props.initialValue?.defaultTtsVoice ?? null,
+  ttsInstructions: props.initialValue?.ttsInstructions ?? '',
+  voiceReplyMode:  props.initialValue?.voiceReplyMode ?? 'off',
 });
 
 const isTextModelPickerOpening = ref(false);
 const isVisionModelPickerOpening = ref(false);
 const isRefreshing = ref(false);
+const isPreviewing = ref(false);
+const previewAudioUrl = ref<string | null>(null);
+const previewAudioRef = ref<HTMLAudioElement | null>(null);
 
 // Same UUID-flash-avoidance trick as the agent picker: hide value while loading.
 const displayTextModelId = computed<string | undefined>({
@@ -113,6 +141,47 @@ const defaultVisionModelInfo = computed(() =>
 
 const promptCharCount = computed(() => state.systemPrompt.length);
 
+// "(default)" suffix flags the recommended baseline so users browsing
+// the dropdown see which pick they'd land on by leaving it blank.
+const ttsModelItems = computed(() =>
+  TTS_MODELS.map(m => ({
+    label: m === DEFAULT_TTS_MODEL ? `${m} (default)` : m,
+    value: m,
+  })),
+);
+
+const ttsVoiceItems = computed(() =>
+  TTS_VOICES.map(v => ({
+    label: v === DEFAULT_TTS_VOICE ? `${v} (default)` : v,
+    value: v,
+  })),
+);
+
+const effectiveTtsModel = computed<TtsModel>(
+  () => state.defaultTtsModel ?? DEFAULT_TTS_MODEL,
+);
+
+// USelect's v-model uses `undefined` for "no selection," matching
+// the existing text / vision pickers' display computeds. Translate
+// null ↔ undefined at the boundary so `state` keeps the null
+// sentinel that matches the API + schema.
+const displayTtsModel = computed<TtsModel | undefined>({
+  get: () => state.defaultTtsModel ?? undefined,
+  set: (v) => { state.defaultTtsModel = v ?? null; },
+});
+
+const displayTtsVoice = computed<TtsVoice | undefined>({
+  get: () => state.defaultTtsVoice ?? undefined,
+  set: (v) => { state.defaultTtsVoice = v ?? null; },
+});
+
+// Instructions only flow through to OpenAI for gpt-4o-mini-tts;
+// older models silently drop them. Disabling the field signals that
+// the value won't be honored without us throwing it away on submit.
+const isInstructionsSupported = computed(() =>
+  supportsTtsInstructions(effectiveTtsModel.value),
+);
+
 // Models come from OpenRouter; refresh re-pulls the catalog (e.g. after a
 // failed initial load) without closing the picker.
 const onRefresh = async () => {
@@ -124,9 +193,44 @@ const onRefresh = async () => {
   }
 };
 
+const onPreview = async () => {
+  if (isPreviewing.value) return;
+  isPreviewing.value = true;
+  // Revoke prior blob so accumulated previews don't leak memory
+  // across an editing session.
+  if (previewAudioUrl.value) {
+    URL.revokeObjectURL(previewAudioUrl.value);
+    previewAudioUrl.value = null;
+  }
+  try {
+    const blob = await $fetch<Blob>('/api/agents/preview-tts', {
+      method: 'POST',
+      body:   {
+        model:        effectiveTtsModel.value,
+        voice:        state.defaultTtsVoice || DEFAULT_TTS_VOICE,
+        instructions: state.ttsInstructions || null,
+      },
+      responseType: 'blob',
+    });
+    previewAudioUrl.value = URL.createObjectURL(blob);
+    // Player auto-plays via the `autoplay` attribute on a fresh
+    // mount; the :key bound to the blob URL forces remount per
+    // preview so each click triggers playback even when the
+    // element was already on screen.
+  } catch (e) {
+    notify.error('Preview failed', e);
+  } finally {
+    isPreviewing.value = false;
+  }
+};
+
 const onSubmit = () => {
   emit('submit', { ...state });
 };
+
+onUnmounted(() => {
+  if (previewAudioUrl.value) URL.revokeObjectURL(previewAudioUrl.value);
+});
 </script>
 
 <template>
@@ -386,6 +490,67 @@ const onSubmit = () => {
           { label: 'Auto', value: 'auto', description: 'Mirror the user — speak only when the user sent voice.' },
           { label: 'Always', value: 'always', description: 'Always speak, regardless of how the user wrote.' },
         ]"
+      />
+    </UFormField>
+
+    <UFormField
+      label="Voice model"
+      name="defaultTtsModel"
+      help="The OpenAI TTS engine. gpt-4o-mini-tts is cheaper, higher quality, and the only one that honors voice instructions."
+    >
+      <USelect
+        v-model="displayTtsModel"
+        :items="ttsModelItems"
+        value-key="value"
+        :placeholder="`${DEFAULT_TTS_MODEL} (default)`"
+      />
+    </UFormField>
+
+    <UFormField
+      label="Voice"
+      name="defaultTtsVoice"
+      help="The character the agent speaks in. Hit play to hear a short sample."
+    >
+      <div class="flex items-center gap-2">
+        <USelect
+          v-model="displayTtsVoice"
+          :items="ttsVoiceItems"
+          value-key="value"
+          :placeholder="`${DEFAULT_TTS_VOICE} (default)`"
+          class="flex-1"
+        />
+        <UButton
+          icon="i-lucide-play"
+          color="neutral"
+          variant="outline"
+          :loading="isPreviewing"
+          aria-label="Preview voice"
+          @click="onPreview"
+        />
+      </div>
+      <audio
+        v-if="previewAudioUrl"
+        :key="previewAudioUrl"
+        ref="previewAudioRef"
+        :src="previewAudioUrl"
+        controls
+        autoplay
+        class="mt-2 w-full"
+      />
+    </UFormField>
+
+    <UFormField
+      label="Voice instructions"
+      name="ttsInstructions"
+      :help="isInstructionsSupported
+        ? `Optional tone / pace / accent direction (e.g. 'speak calmly and warmly').`
+        : 'Only honored when voice model is gpt-4o-mini-tts.'"
+    >
+      <UTextarea
+        v-model.trim="state.ttsInstructions"
+        :rows="3"
+        :disabled="!isInstructionsSupported"
+        placeholder="speak calmly and warmly"
       />
     </UFormField>
   </UForm>
