@@ -11,23 +11,23 @@ export default defineEventHandler(async (event) => {
   const error = typeof query.error === 'string' ? query.error : null;
   if (error) {
     clearPkceCookie(event);
-    return sendRedirect(event, `/dashboard/connections?openrouter=error&reason=${encodeURIComponent(error)}`, 302);
+    return sendRedirect(event, `/dashboard/connectors?openrouter=error&reason=${encodeURIComponent(error)}`, 302);
   }
 
   const code = typeof query.code === 'string' ? query.code : null;
   const state = typeof query.state === 'string' ? query.state : null;
   if (!code || !state) {
     clearPkceCookie(event);
-    return sendRedirect(event, '/dashboard/connections?openrouter=error&reason=missing_params', 302);
+    return sendRedirect(event, '/dashboard/connectors?openrouter=error&reason=missing_params', 302);
   }
 
   const cookie = readPkceCookie(event);
   if (!cookie) {
-    return sendRedirect(event, '/dashboard/connections?openrouter=error&reason=expired_session', 302);
+    return sendRedirect(event, '/dashboard/connectors?openrouter=error&reason=expired_session', 302);
   }
   if (state !== cookie.state) {
     clearPkceCookie(event);
-    return sendRedirect(event, '/dashboard/connections?openrouter=error&reason=state_mismatch', 302);
+    return sendRedirect(event, '/dashboard/connectors?openrouter=error&reason=state_mismatch', 302);
   }
 
   // Clear before the network call so a failure mid-exchange still
@@ -38,14 +38,14 @@ export default defineEventHandler(async (event) => {
   try {
     exchange = await exchangeCodeForKey(code, cookie.codeVerifier);
   } catch {
-    return sendRedirect(event, '/dashboard/connections?openrouter=error&reason=exchange_failed', 302);
+    return sendRedirect(event, '/dashboard/connectors?openrouter=error&reason=exchange_failed', 302);
   }
 
   const { fermiKek } = useRuntimeConfig(event);
   const kek = await getKek(fermiKek);
   const admin = useSupabaseAdmin();
 
-  // Stripe-style masked preview lets `/dashboard/connections` show
+  // Stripe-style masked preview lets `/dashboard/connectors` show
   // which OpenRouter key fermi is holding so the owner can match it
   // against their OpenRouter dashboard and revoke any orphaned keys
   // from previous connect/disconnect cycles.
@@ -64,10 +64,10 @@ export default defineEventHandler(async (event) => {
     });
   } catch (err: unknown) {
     if ((err as { code?: string }).code === '23505') {
-      return sendRedirect(event, '/dashboard/connections?openrouter=error&reason=already_connected', 302);
+      return sendRedirect(event, '/dashboard/connectors?openrouter=error&reason=already_connected', 302);
     }
     throw err;
   }
 
-  return sendRedirect(event, '/dashboard/connections?openrouter=connected', 302);
+  return sendRedirect(event, '/dashboard/connectors?openrouter=connected', 302);
 });

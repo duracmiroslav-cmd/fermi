@@ -48,13 +48,13 @@ const filteredCards = computed(() => {
   <div>
     <NuxtLayout name="dashboard">
       <template #title>
-        <DashboardBreadcrumb :items="[{ label: 'Connections' }]" />
+        <DashboardBreadcrumb :items="[{ label: 'Connectors' }]" />
       </template>
 
       <DashboardContainer>
         <header class="flex flex-col gap-2">
           <h1 class="text-2xl font-semibold">
-            Connections
+            Connectors
           </h1>
           <p class="text-sm text-toned">
             Wire up the LLM and capabilities your agents can reach for. Credentials live here. Attach per-agent on each agent's page.
@@ -95,7 +95,7 @@ const filteredCards = computed(() => {
             class="rounded-md border border-muted bg-muted/50 divide-y divide-default overflow-hidden"
           >
             <NuxtLink
-              to="/dashboard/connections/openrouter"
+              to="/dashboard/connectors/openrouter"
               class="flex items-center gap-4 p-4 hover:bg-muted transition-colors"
             >
               <UIcon
@@ -187,7 +187,7 @@ const filteredCards = computed(() => {
               :is="isLinkable(card) ? NuxtLink : 'div'"
               v-for="card in filteredCards"
               :key="card.routeSlug"
-              :to="isLinkable(card) ? `/dashboard/connections/${card.routeSlug}` : undefined"
+              :to="isLinkable(card) ? `/dashboard/connectors/${card.routeSlug}` : undefined"
               class="flex items-center gap-4 p-4"
               :class="isLinkable(card) ? 'hover:bg-muted transition-colors' : ''"
             >

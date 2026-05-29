@@ -28,7 +28,7 @@ const onConnect = () => {
       <template #title>
         <DashboardBreadcrumb
           :items="[
-            { label: 'Connections', to: '/dashboard/connections' },
+            { label: 'Connectors', to: '/dashboard/connectors' },
             { label: 'OpenRouter' },
           ]"
         />

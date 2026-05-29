@@ -19,9 +19,9 @@
         label="Agents"
       />
       <DashboardNavItem
-        to="/dashboard/connections"
+        to="/dashboard/connectors"
         icon="i-lucide-cable"
-        label="Connections"
+        label="Connectors"
       />
       <DashboardNavItem
         to="/dashboard/usage"

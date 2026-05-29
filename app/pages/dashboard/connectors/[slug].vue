@@ -102,7 +102,7 @@ const onGithubDisconnect = async () => {
       <template #title>
         <DashboardBreadcrumb
           :items="[
-            { label: 'Connections', to: '/dashboard/connections' },
+            { label: 'Connectors', to: '/dashboard/connectors' },
             { label: capability?.displayName ?? '' },
           ]"
           :loading="!capability"
@@ -326,7 +326,7 @@ const onGithubDisconnect = async () => {
           icon="i-lucide-search-x"
           title="Capability not found"
           description="This page may have been removed, or the link is wrong."
-          :actions="[{ label: 'Back to Connections', icon: 'i-lucide-arrow-left', to: '/dashboard/connections' }]"
+          :actions="[{ label: 'Back to Connectors', icon: 'i-lucide-arrow-left', to: '/dashboard/connectors' }]"
         />
       </DashboardContainer>
     </NuxtLayout>

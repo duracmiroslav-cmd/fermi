@@ -31,7 +31,7 @@ const getLockedHint = (capability: AgentCapabilityRow): { text: string; to?: str
   if (capability.credentialType === 'coming_soon') {
     return { text: 'Coming soon' };
   }
-  return { text: 'Connect', to: `/dashboard/connections/${capability.slug}` };
+  return { text: 'Connect', to: `/dashboard/connectors/${capability.slug}` };
 };
 
 const pendingIds = ref(new Set<string>());
@@ -134,7 +134,7 @@ const onSaveTools = async (capability: AgentCapabilityRow) => {
   }
 };
 
-// Credentials or providers can flip on Connections in another tab;
+// Credentials or providers can flip on Connectors in another tab;
 // refresh re-pulls the capability rows so locked/connected state matches.
 const onRefresh = async () => {
   isRefreshing.value = true;
@@ -154,7 +154,7 @@ const onRefresh = async () => {
       </h2>
       <div class="flex items-center gap-3">
         <NuxtLink
-          to="/dashboard/connections"
+          to="/dashboard/connectors"
           target="_blank"
           rel="noopener"
           class="text-xs text-toned hover:text-highlighted inline-flex items-center gap-1"
