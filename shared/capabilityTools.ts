@@ -4,10 +4,10 @@
 // glance (write column collapses to empty for read-only resources) while
 // preserving structural parallelism across resources.
 //
-// `DEFAULT_TOOL_ALLOWLISTS` flattens every `read` column to form the
-// secure baseline; its set membership must match the `toolAllowlist`
-// seeded in the capabilities migration (order is irrelevant — allowlists
-// are sets).
+// `DEFAULT_TOOLS` flattens every `read` column to form the secure
+// baseline; its set membership must match the `tools` array seeded in
+// the capabilities migration (order is irrelevant — both sides are
+// treated as sets at runtime).
 
 export interface ResourceGroup {
   resource: string;
@@ -61,6 +61,6 @@ export const CAPABILITY_TOOL_GROUPS: Record<string, ResourceGroup[]> = {
   ],
 };
 
-export const DEFAULT_TOOL_ALLOWLISTS: Record<string, readonly string[]> = {
+export const DEFAULT_TOOLS: Record<string, readonly string[]> = {
   github: CAPABILITY_TOOL_GROUPS.github!.flatMap(g => g.read),
 };

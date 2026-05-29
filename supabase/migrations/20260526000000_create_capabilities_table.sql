@@ -88,7 +88,7 @@ insert into public.capabilities (slug, display_name, description) values
 -- MCP wiring for the github capability: a capability whose `config.url`
 -- is set is treated as MCP by the agent runtime, which connects to that
 -- remote server, sends the owner's `authKeyType` credential as a bearer
--- token, and surfaces only the tools in `toolAllowlist`.
+-- token, and surfaces only the tools in `tools`.
 --
 -- GitHub's MCP server exposes ~42 tools including destructive writes
 -- (create_or_update_file, delete_file, create_pull_request, ...). The
@@ -101,7 +101,7 @@ update public.capabilities
 set config = jsonb_build_object(
   'url', 'https://api.githubcopilot.com/mcp/',
   'authKeyType', 'github',
-  'toolAllowlist', jsonb_build_array(
+  'tools', jsonb_build_array(
     'get_commit',
     'get_file_contents',
     'get_label',

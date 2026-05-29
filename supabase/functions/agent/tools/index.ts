@@ -150,7 +150,7 @@ export const buildToolset = async (
             mcpToolCache.set(cacheKey, { tools: mcpTools, expiresAt: Date.now() + TOOL_CACHE_TTL_MS });
           }
 
-          const allowlist = capability.config.toolAllowlist ? new Set(capability.config.toolAllowlist) : null;
+          const allowlist = capability.config.tools ? new Set(capability.config.tools) : null;
           for (const t of mcpTools) {
             if (allowlist && !allowlist.has(t.name)) continue;
             const llmName = `${capability.slug}__${t.name}`;

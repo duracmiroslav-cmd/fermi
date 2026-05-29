@@ -7,14 +7,14 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // and is required for MCP anyway.
 export interface CapabilityConfig {
   // Remote MCP server endpoint (Streamable HTTP). Presence => MCP capability.
-  url?:           string;
+  url?:         string;
   // Which stored credential (KeyType) to send as the bearer token, if the
   // server needs auth (e.g. 'github' for the GitHub MCP server).
-  authKeyType?:   string;
+  authKeyType?: string;
   // Read-only allowlist: only these tool names are surfaced to the LLM. The
   // server may expose far more (incl. destructive writes); everything not
   // listed is hidden.
-  toolAllowlist?: string[];
+  tools?:       string[];
 }
 
 export interface AttachedCapability {

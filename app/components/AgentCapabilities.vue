@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { AgentCapabilityRow } from '~~/server/utils/capabilities';
-import { CAPABILITY_TOOL_GROUPS, DEFAULT_TOOL_ALLOWLISTS } from '~~/shared/capabilityTools';
+import { CAPABILITY_TOOL_GROUPS, DEFAULT_TOOLS } from '~~/shared/capabilityTools';
 
 const props = defineProps<{
   agentId: string;
@@ -37,20 +37,20 @@ const getLockedHint = (capability: AgentCapabilityRow): { text: string; to?: str
 const pendingIds = ref(new Set<string>());
 const expandedCapId = ref<string | null>(null);
 const pendingToolSave = ref(new Set<string>());
-const localAllowlists = ref<Record<string, string[]>>({});
+const localTools = ref<Record<string, string[]>>({});
 const isRefreshing = ref(false);
 
-const getEffectiveAllowlist = (capability: AgentCapabilityRow): Set<string> => {
-  const local = localAllowlists.value[capability.id];
+const getEffectiveTools = (capability: AgentCapabilityRow): Set<string> => {
+  const local = localTools.value[capability.id];
   if (local !== undefined) return new Set(local);
-  const saved = capability.agentConfig?.toolAllowlist as string[] | undefined;
-  return new Set(saved ?? DEFAULT_TOOL_ALLOWLISTS[capability.slug] ?? []);
+  const saved = capability.agentConfig?.tools as string[] | undefined;
+  return new Set(saved ?? DEFAULT_TOOLS[capability.slug] ?? []);
 };
 
 const isToolEnabled = (capability: AgentCapabilityRow, tool: string) =>
-  getEffectiveAllowlist(capability).has(tool);
+  getEffectiveTools(capability).has(tool);
 
-const getToolCount = (capability: AgentCapabilityRow) => getEffectiveAllowlist(capability).size;
+const getToolCount = (capability: AgentCapabilityRow) => getEffectiveTools(capability).size;
 
 const onToggle = async (capability: AgentCapabilityRow, next: boolean) => {
   if (pendingIds.value.has(capability.id)) return;
@@ -87,9 +87,9 @@ const onToggle = async (capability: AgentCapabilityRow, next: boolean) => {
 const onToggleExpand = (capability: AgentCapabilityRow, open: boolean) => {
   if (!capability.attached || !hasToolGroups(capability.slug)) return;
   if (open) {
-    if (localAllowlists.value[capability.id] === undefined) {
-      const saved = capability.agentConfig?.toolAllowlist as string[] | undefined;
-      localAllowlists.value[capability.id] = [...(saved ?? DEFAULT_TOOL_ALLOWLISTS[capability.slug] ?? [])];
+    if (localTools.value[capability.id] === undefined) {
+      const saved = capability.agentConfig?.tools as string[] | undefined;
+      localTools.value[capability.id] = [...(saved ?? DEFAULT_TOOLS[capability.slug] ?? [])];
     }
     expandedCapId.value = capability.id;
   } else if (expandedCapId.value === capability.id) {
@@ -99,32 +99,32 @@ const onToggleExpand = (capability: AgentCapabilityRow, open: boolean) => {
 
 const onToggleTool = (capability: AgentCapabilityRow, tool: string, enabled: boolean | 'indeterminate') => {
   if (enabled === 'indeterminate') return;
-  const current = [...getEffectiveAllowlist(capability)];
+  const current = [...getEffectiveTools(capability)];
   if (enabled) {
     if (!current.includes(tool)) current.push(tool);
   } else {
     const idx = current.indexOf(tool);
     if (idx !== -1) current.splice(idx, 1);
   }
-  localAllowlists.value[capability.id] = current;
+  localTools.value[capability.id] = current;
 };
 
 const onCancel = (capability: AgentCapabilityRow) => {
-  delete localAllowlists.value[capability.id];
+  delete localTools.value[capability.id];
   expandedCapId.value = null;
 };
 
 const onSaveTools = async (capability: AgentCapabilityRow) => {
-  const list = localAllowlists.value[capability.id];
+  const list = localTools.value[capability.id];
   if (!list || pendingToolSave.value.has(capability.id)) return;
   pendingToolSave.value.add(capability.id);
   try {
     await $fetch(`/api/agents/${props.agentId}/capabilities/${capability.id}`, {
       method: 'PATCH',
-      body:   { config: { toolAllowlist: list } },
+      body:   { config: { tools: list } },
     });
-    capability.agentConfig = { ...capability.agentConfig, toolAllowlist: list };
-    delete localAllowlists.value[capability.id];
+    capability.agentConfig = { ...capability.agentConfig, tools: list };
+    delete localTools.value[capability.id];
     notify.success('Tools saved');
     expandedCapId.value = null;
   } catch (e) {
