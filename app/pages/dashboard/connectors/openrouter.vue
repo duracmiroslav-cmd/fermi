@@ -68,40 +68,20 @@ const onConnect = () => {
         </p>
 
         <UCard>
-          <UFormField label="API key">
-            <div class="flex items-end gap-4">
-              <UInput
-                :model-value="openrouter?.maskedKey ?? ''"
-                readonly
-                icon="i-lucide-key-round"
-                :placeholder="openrouter?.connected ? 'Reconnect to view key' : 'Not connected'"
-                autocomplete="off"
-                class="flex-1 min-w-0"
-              />
-              <UButton
-                v-if="openrouter?.connected"
-                color="error"
-                variant="outline"
-                :loading="isDisconnecting"
-                @click="disconnect"
-              >
-                Disconnect
-              </UButton>
-              <UButton
-                v-else
-                trailing-icon="i-lucide-arrow-up-right"
-                @click="onConnect"
-              >
-                Connect
-              </UButton>
-            </div>
-            <template
-              v-if="!openrouter?.connected"
-              #help
-            >
+          <ConnectorCredentialCard
+            label="API key"
+            mode="oauth"
+            :status="openrouter?.connected ? 'connected' : 'available'"
+            :masked-key="openrouter?.maskedKey"
+            :placeholder="openrouter?.connected ? 'Reconnect to view key' : 'Not connected'"
+            :disconnecting="isDisconnecting"
+            @connect="onConnect"
+            @disconnect="disconnect"
+          >
+            <template #help>
               New to OpenRouter? Free signup, takes a minute.
             </template>
-          </UFormField>
+          </ConnectorCredentialCard>
         </UCard>
       </DashboardContainer>
     </NuxtLayout>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CapabilityRow } from '~~/server/utils/capabilities';
+import type { CapabilityProviderRow, CapabilityRow } from '~~/server/utils/capabilities';
 
 definePageMeta({ layout: false });
 
@@ -16,84 +16,71 @@ const capability = computed(() =>
   (capabilities.value ?? []).find(c => c.slug === route.params.slug),
 );
 
+// "Self provider" = a one-provider capability whose only provider IS the
+// capability (slug match). github=github is the canonical case. Render
+// these flat like /connectors/openrouter, skipping the "Providers" list
+// and the per-provider name/badge header that would otherwise repeat
+// the capability name verbatim.
+const isSelfProvider = computed(() => {
+  const cap = capability.value;
+  if (!cap || cap.credentialType !== 'providers') return false;
+  const ps = cap.providers ?? [];
+  return ps.length === 1 && ps[0]!.slug === cap.slug;
+});
+
+const selfProvider = computed<CapabilityProviderRow | null>(() =>
+  isSelfProvider.value ? capability.value!.providers![0]! : null,
+);
+
 const headline = computed(() => {
   const cap = capability.value;
   if (!cap) return null;
   if (cap.credentialType === 'coming_soon') return 'Coming soon';
   if (cap.credentialType === 'none') return 'Built-in';
+  // Self-provider hero uses TimeAgo, rendered inline in template.
+  if (isSelfProvider.value) return null;
   const anyConnected = (cap.providers ?? []).some(p => p.status === 'connected');
   return anyConnected ? 'Connected' : 'Available';
 });
 
-const tavilyKey = ref('');
-const tavilyConnecting = ref(false);
-const tavilyDisconnecting = ref(false);
+// Per-provider connect/disconnect action. Status comes from the parent
+// /api/capabilities fetch, so this skips the GET that useConnector does.
+const makeAction = (endpoint: string, label: string, bodyKey: string) => {
+  const connecting = ref(false);
+  const disconnecting = ref(false);
 
-const onTavilyConnect = async () => {
-  if (!tavilyKey.value) return;
-  tavilyConnecting.value = true;
-  try {
-    await $fetch('/api/connectors/tavily', {
-      method: 'POST',
-      body:   { apiKey: tavilyKey.value },
-    });
-    tavilyKey.value = '';
-    await refreshCapabilities();
-    notify.success('Tavily connected');
-  } catch (e) {
-    notify.error('Failed to connect Tavily', e);
-  } finally {
-    tavilyConnecting.value = false;
-  }
+  const connect = async (value: string) => {
+    if (!value) return;
+    connecting.value = true;
+    try {
+      await $fetch(endpoint, { method: 'POST', body: { [bodyKey]: value } });
+      await refreshCapabilities();
+      notify.success(`${label} connected`);
+    } catch (e) {
+      notify.error(`Failed to connect ${label}`, e);
+    } finally {
+      connecting.value = false;
+    }
+  };
+
+  const disconnect = async () => {
+    disconnecting.value = true;
+    try {
+      await $fetch(endpoint, { method: 'DELETE' });
+      await refreshCapabilities();
+      notify.success(`${label} disconnected`);
+    } catch (e) {
+      notify.error('Disconnect failed', e);
+    } finally {
+      disconnecting.value = false;
+    }
+  };
+
+  return { connecting, disconnecting, connect, disconnect };
 };
 
-const onTavilyDisconnect = async () => {
-  tavilyDisconnecting.value = true;
-  try {
-    await $fetch('/api/connectors/tavily', { method: 'DELETE' });
-    await refreshCapabilities();
-    notify.success('Tavily disconnected');
-  } catch (e) {
-    notify.error('Disconnect failed', e);
-  } finally {
-    tavilyDisconnecting.value = false;
-  }
-};
-
-const githubToken = ref('');
-const githubConnecting = ref(false);
-const githubDisconnecting = ref(false);
-
-const onGithubConnect = async () => {
-  if (!githubToken.value) return;
-  githubConnecting.value = true;
-  try {
-    await $fetch('/api/connectors/github', {
-      method: 'POST',
-      body:   { token: githubToken.value },
-    });
-    githubToken.value = '';
-    await refreshCapabilities();
-    notify.success('GitHub connected');
-  } catch (e) {
-    notify.error('Failed to connect GitHub', e);
-  } finally {
-    githubConnecting.value = false;
-  }
-};
-
-const onGithubDisconnect = async () => {
-  githubDisconnecting.value = true;
-  try {
-    await $fetch('/api/connectors/github', { method: 'DELETE' });
-    await refreshCapabilities();
-    notify.success('GitHub disconnected');
-  } catch (e) {
-    notify.error('Disconnect failed', e);
-  } finally {
-    githubDisconnecting.value = false;
-  }
-};
+const tavily = makeAction('/api/connectors/tavily', 'Tavily', 'apiKey');
+const github = makeAction('/api/connectors/github', 'GitHub', 'token');
 </script>
 
 <template>
@@ -124,7 +111,19 @@ const onGithubDisconnect = async () => {
               {{ capability.displayName }}
             </h1>
             <p
-              v-if="headline"
+              v-if="isSelfProvider && selfProvider?.status === 'connected' && selfProvider.connectedAt"
+              class="text-sm text-toned mt-1"
+            >
+              Connected <TimeAgo :date="selfProvider.connectedAt" />
+            </p>
+            <p
+              v-else-if="isSelfProvider"
+              class="text-sm text-toned mt-1"
+            >
+              Not connected
+            </p>
+            <p
+              v-else-if="headline"
               class="text-sm text-toned mt-1"
             >
               {{ headline }}
@@ -139,7 +138,40 @@ const onGithubDisconnect = async () => {
           {{ capability.description }}
         </p>
 
-        <template v-if="capability.credentialType === 'providers' && capability.providers?.length">
+        <!-- Self-provider: flat openrouter-style layout -->
+        <template v-if="isSelfProvider && selfProvider!.status !== 'coming_soon'">
+          <template v-if="selfProvider!.slug === 'github'">
+            <p class="text-sm text-toned">
+              Connect a fine-grained personal access token. fermi only exposes read-only GitHub tools regardless of the token's scope, so granting read access on the repos you want the agent to see is enough.
+            </p>
+            <UCard>
+              <ConnectorCredentialCard
+                label="Personal access token"
+                mode="key"
+                :status="selfProvider!.status"
+                :masked-key="selfProvider!.maskedKey"
+                :placeholder="selfProvider!.status === 'connected' ? 'Reconnect to view token' : 'github_pat_...'"
+                :connecting="github.connecting.value"
+                :disconnecting="github.disconnecting.value"
+                @connect="github.connect"
+                @disconnect="github.disconnect"
+              >
+                <template #help>
+                  Create a fine-grained PAT at
+                  <a
+                    href="https://github.com/settings/personal-access-tokens"
+                    target="_blank"
+                    rel="noopener"
+                    class="underline"
+                  >github.com/settings</a>. Pick the repos and grant read access.
+                </template>
+              </ConnectorCredentialCard>
+            </UCard>
+          </template>
+        </template>
+
+        <!-- Multi-provider: per-provider cards with name+status header -->
+        <template v-else-if="capability.credentialType === 'providers' && capability.providers?.length">
           <div class="flex flex-col gap-3">
             <h2 class="text-base font-semibold">
               Providers
@@ -171,59 +203,22 @@ const onGithubDisconnect = async () => {
               </template>
 
               <div class="flex flex-col gap-4">
-                <p
-                  v-if="provider.slug === 'tavily'"
-                  class="text-sm text-toned"
-                >
-                  Tavily is a web search API tuned for LLM agents. 1K searches a month free, no credit card.
-                </p>
-
-                <template v-if="provider.slug === 'tavily' && provider.status === 'connected'">
-                  <UFormField label="API key">
-                    <div class="flex items-end gap-4">
-                      <UInput
-                        :model-value="provider.maskedKey ?? ''"
-                        readonly
-                        icon="i-lucide-key-round"
-                        placeholder="Reconnect to view key"
-                        autocomplete="off"
-                        class="flex-1 min-w-0"
-                      />
-                      <UButton
-                        color="error"
-                        variant="outline"
-                        :loading="tavilyDisconnecting"
-                        @click="onTavilyDisconnect"
-                      >
-                        Disconnect
-                      </UButton>
-                    </div>
-                  </UFormField>
-                </template>
-
-                <form
-                  v-else-if="provider.slug === 'tavily' && provider.status === 'available'"
-                  @submit.prevent="onTavilyConnect"
-                >
-                  <UFormField label="API key">
-                    <div class="flex items-end gap-4">
-                      <UInput
-                        v-model.trim="tavilyKey"
-                        icon="i-lucide-key-round"
-                        placeholder="tvly-..."
-                        type="password"
-                        autocomplete="off"
-                        class="flex-1 min-w-0"
-                      />
-                      <UButton
-                        type="submit"
-                        trailing-icon="i-lucide-arrow-right"
-                        :loading="tavilyConnecting"
-                        :disabled="!tavilyKey.trim()"
-                      >
-                        Connect
-                      </UButton>
-                    </div>
+                <template v-if="provider.slug === 'tavily'">
+                  <p class="text-sm text-toned">
+                    Tavily is a web search API tuned for LLM agents. 1K searches a month free, no credit card.
+                  </p>
+                  <ConnectorCredentialCard
+                    v-if="provider.status !== 'coming_soon'"
+                    label="API key"
+                    mode="key"
+                    :status="provider.status"
+                    :masked-key="provider.maskedKey"
+                    :placeholder="provider.status === 'connected' ? 'Reconnect to view key' : 'tvly-...'"
+                    :connecting="tavily.connecting.value"
+                    :disconnecting="tavily.disconnecting.value"
+                    @connect="tavily.connect"
+                    @disconnect="tavily.disconnect"
+                  >
                     <template #help>
                       Grab a key at
                       <a
@@ -233,73 +228,8 @@ const onGithubDisconnect = async () => {
                         class="underline"
                       >app.tavily.com</a>. 30 seconds, free, no credit card.
                     </template>
-                  </UFormField>
-                </form>
-
-                <p
-                  v-if="provider.slug === 'github'"
-                  class="text-sm text-toned"
-                >
-                  Connect a fine-grained personal access token. fermi only exposes read-only GitHub tools regardless of the token's scope, so granting read access on the repos you want the agent to see is enough.
-                </p>
-
-                <template v-if="provider.slug === 'github' && provider.status === 'connected'">
-                  <UFormField label="Personal access token">
-                    <div class="flex items-end gap-4">
-                      <UInput
-                        :model-value="provider.maskedKey ?? ''"
-                        readonly
-                        icon="i-lucide-key-round"
-                        placeholder="Reconnect to view token"
-                        autocomplete="off"
-                        class="flex-1 min-w-0"
-                      />
-                      <UButton
-                        color="error"
-                        variant="outline"
-                        :loading="githubDisconnecting"
-                        @click="onGithubDisconnect"
-                      >
-                        Disconnect
-                      </UButton>
-                    </div>
-                  </UFormField>
+                  </ConnectorCredentialCard>
                 </template>
-
-                <form
-                  v-else-if="provider.slug === 'github' && provider.status === 'available'"
-                  @submit.prevent="onGithubConnect"
-                >
-                  <UFormField label="Personal access token">
-                    <div class="flex items-end gap-4">
-                      <UInput
-                        v-model.trim="githubToken"
-                        icon="i-lucide-key-round"
-                        placeholder="github_pat_..."
-                        type="password"
-                        autocomplete="off"
-                        class="flex-1 min-w-0"
-                      />
-                      <UButton
-                        type="submit"
-                        trailing-icon="i-lucide-arrow-right"
-                        :loading="githubConnecting"
-                        :disabled="!githubToken.trim()"
-                      >
-                        Connect
-                      </UButton>
-                    </div>
-                    <template #help>
-                      Create a fine-grained PAT at
-                      <a
-                        href="https://github.com/settings/personal-access-tokens"
-                        target="_blank"
-                        rel="noopener"
-                        class="underline"
-                      >github.com/settings</a>. Pick the repos and grant read access.
-                    </template>
-                  </UFormField>
-                </form>
               </div>
             </UCard>
           </div>
