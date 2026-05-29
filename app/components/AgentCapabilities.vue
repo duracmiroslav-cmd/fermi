@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { CollapsibleRoot, CollapsibleTrigger, CollapsibleContent } from 'reka-ui';
 import type { AgentCapabilityRow } from '~~/server/utils/capabilities';
 import { CAPABILITY_TOOL_GROUPS, DEFAULT_TOOL_ALLOWLISTS } from '~~/shared/capabilityTools';
 
@@ -79,9 +78,9 @@ const onToggle = async (capability: AgentCapabilityRow, next: boolean) => {
   }
 };
 
-// Reka's Collapsible only emits update:open when the trigger is clicked
-// (not on external prop changes), so the close branch only fires for this
-// row's own collapse — single-open behavior is coordinated via expandedCapId.
+// UCollapsible only emits update:open when its trigger is clicked (not on
+// external prop changes), so the close branch only fires for this row's
+// own collapse — single-open behavior is coordinated via expandedCapId.
 const onToggleExpand = (capability: AgentCapabilityRow, open: boolean) => {
   if (open) {
     if (localAllowlists.value[capability.id] === undefined) {
@@ -184,13 +183,19 @@ const onSaveTools = async (capability: AgentCapabilityRow) => {
         v-else
         class="divide-y divide-default overflow-hidden"
       >
-        <CollapsibleRoot
+        <UCollapsible
           v-for="capability in rows ?? []"
           :key="capability.id"
           :open="expandedCapId === capability.id"
+          :disabled="!capability.attached || !hasToolGroups(capability.slug)"
           @update:open="(open) => onToggleExpand(capability, open)"
         >
-          <div class="flex items-center gap-4 p-4">
+          <div
+            class="flex items-center gap-4 p-4"
+            :class="capability.attached && hasToolGroups(capability.slug)
+              ? 'cursor-pointer hover:bg-muted transition-colors'
+              : ''"
+          >
             <UIcon
               :name="getCapabilityIcon(capability.slug)"
               class="size-5 text-toned shrink-0"
@@ -223,6 +228,7 @@ const onSaveTools = async (capability: AgentCapabilityRow) => {
                 target="_blank"
                 rel="noopener"
                 class="text-xs text-toned hover:text-highlighted hidden sm:inline-flex items-center gap-1"
+                @click.stop
               >
                 {{ getLockedHint(capability)!.text }}
                 <UIcon
@@ -230,26 +236,21 @@ const onSaveTools = async (capability: AgentCapabilityRow) => {
                   class="size-3"
                 />
               </NuxtLink>
-              <CollapsibleTrigger
+              <UIcon
                 v-if="capability.attached && hasToolGroups(capability.slug)"
-                as-child
-              >
-                <UButton
-                  size="xs"
-                  color="neutral"
-                  variant="ghost"
-                  :icon="expandedCapId === capability.id ? 'i-lucide-chevron-up' : 'i-lucide-sliders-horizontal'"
-                />
-              </CollapsibleTrigger>
+                :name="expandedCapId === capability.id ? 'i-lucide-chevron-up' : 'i-lucide-sliders-horizontal'"
+                class="size-4 text-toned"
+              />
               <USwitch
                 :model-value="capability.attached"
                 :disabled="isLocked(capability) || pendingIds.has(capability.id)"
                 @update:model-value="onToggle(capability, $event)"
+                @click.stop
               />
             </div>
           </div>
 
-          <CollapsibleContent class="collapse-content overflow-hidden">
+          <template #content>
             <div class="border-t border-default px-4 pb-4 pt-3 bg-muted/50">
             <div class="hidden sm:flex gap-4 pb-2 border-b border-default text-xs uppercase tracking-wider text-toned">
               <span class="w-32 shrink-0" />
@@ -333,18 +334,9 @@ const onSaveTools = async (capability: AgentCapabilityRow) => {
               </div>
             </div>
             </div>
-          </CollapsibleContent>
-        </CollapsibleRoot>
+          </template>
+        </UCollapsible>
       </div>
     </UCard>
   </div>
 </template>
-
-<style scoped>
-.collapse-content[data-state="open"] {
-  animation: collapsible-down 200ms ease-out;
-}
-.collapse-content[data-state="closed"] {
-  animation: collapsible-up 200ms ease-in;
-}
-</style>
