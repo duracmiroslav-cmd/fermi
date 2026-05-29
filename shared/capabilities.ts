@@ -9,15 +9,22 @@
 // (its tools come from a remote MCP server); in-process capabilities leave
 // this empty and have their tool defined under `supabase/functions/agent/tools/`.
 export interface CapabilityConfig {
-  url?:         string;
-  authKeyType?: string;
+  url?:                  string;
+  authKeyType?:          string;
   // Flat read-only allowlist used by capabilities that don't group tools
   // (e.g. github). Only listed names are surfaced to the LLM.
-  tools?:       string[];
+  tools?:                string[];
   // Grouped allowlist used by capabilities with too many tools to expose at
   // once (e.g. twinkle-hub). Effective allowlist is the union of
-  // `toolGroups[g].tools` for g in `agent_capability.config.enabledGroups`.
-  toolGroups?:  Record<string, ToolGroup>;
+  // `toolGroups[g].tools` for g in the agent's `enabledGroups`.
+  toolGroups?:           Record<string, ToolGroup>;
+  // Set on the capability's catalog config: which groups apply when the
+  // agent binding hasn't recorded an explicit `enabledGroups` yet.
+  defaultEnabledGroups?: string[];
+  // Set on the per-agent override (`agent_capabilities.config`): the user's
+  // current selection of groups for this binding. Shallow-merges onto the
+  // catalog config, overriding `defaultEnabledGroups`.
+  enabledGroups?:        string[];
 }
 
 export interface ToolGroup {
@@ -207,15 +214,16 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
             'twtools-format_chinese_numerals',
           ],
         },
-        // Filled in P6 from a real `list_tools` call against the upstream
-        // MCP server. Defaults off because opendata-* queries are heavier
-        // than utility lookups and likeliest to attract per-call pricing
-        // when Twinkle Hub leaves alpha.
+        // Filled from a real `list_tools` call against the upstream MCP
+        // server. Off by default (see `defaultEnabledGroups` below) because
+        // opendata-* queries are heavier than utility lookups and likeliest
+        // to attract per-call pricing when Twinkle Hub leaves alpha.
         opendata: {
           label: '政府開放資料查詢',
           tools: [],
         },
       },
+      defaultEnabledGroups: ['lookup', 'directory', 'utility'],
     },
     credentialType: 'providers',
     providers:      [

@@ -150,7 +150,24 @@ export const buildToolset = async (
             mcpToolCache.set(cacheKey, { tools: mcpTools, expiresAt: Date.now() + TOOL_CACHE_TTL_MS });
           }
 
-          const allowlist = capability.config.tools ? new Set(capability.config.tools) : null;
+          // Two allowlist shapes:
+          //   - `tools` flat: github's hardcoded read-only subset
+          //   - `toolGroups` + `enabledGroups`: each agent picks which groups
+          //     of a many-tool MCP it wants surfaced (e.g. twinkle-hub),
+          //     allowlist = union of the chosen groups' tools.
+          // `enabledGroups` is per-agent state and shallow-merges on top of
+          // the capability's `defaultEnabledGroups` at load time.
+          let allowlist: Set<string> | null = null;
+          if (capability.config.toolGroups) {
+            const enabled = capability.config.enabledGroups
+              ?? capability.config.defaultEnabledGroups
+              ?? [];
+            allowlist = new Set(
+              enabled.flatMap(g => capability.config.toolGroups?.[g]?.tools ?? []),
+            );
+          } else if (capability.config.tools) {
+            allowlist = new Set(capability.config.tools);
+          }
           for (const t of mcpTools) {
             if (allowlist && !allowlist.has(t.name)) continue;
             const llmName = `${capability.slug}__${t.name}`;
