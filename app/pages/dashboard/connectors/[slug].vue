@@ -41,7 +41,7 @@ const onTavilyConnect = async () => {
     await refreshCapabilities();
     notify.success('Tavily connected');
   } catch (e) {
-    notify.error('Tavily connection failed', e);
+    notify.error('Failed to connect Tavily', e);
   } finally {
     tavilyConnecting.value = false;
   }
@@ -76,7 +76,7 @@ const onGithubConnect = async () => {
     await refreshCapabilities();
     notify.success('GitHub connected');
   } catch (e) {
-    notify.error('GitHub connection failed', e);
+    notify.error('Failed to connect GitHub', e);
   } finally {
     githubConnecting.value = false;
   }

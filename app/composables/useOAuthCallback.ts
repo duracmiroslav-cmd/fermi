@@ -11,7 +11,7 @@ export const useOAuthCallback = (provider: string, label: string) => {
       notify.success(`${label} connected`);
     } else if (result === 'error') {
       const reason = typeof route.query.reason === 'string' ? route.query.reason : 'unknown';
-      notify.error(`${label} connection failed`, reason);
+      notify.error(`Failed to connect ${label}`, reason);
     }
     if (result) {
       router.replace({ query: {} });

@@ -1,7 +1,7 @@
-// Status fetch + connect/disconnect state for a Dashboard › Connections card.
+// Status fetch + connect/disconnect state for a Dashboard › Connectors card.
 // `connect()` is a no-op default; OAuth providers redirect inline, key-based
 // providers override it via the returned `runConnect` helper.
-export const useConnection = <T>(endpoint: string, label: string) => {
+export const useConnector = <T>(endpoint: string, label: string) => {
   const notify = useNotify();
   const { data, refresh, pending } = useApiFetch<T>(endpoint);
   const isConnecting = ref(false);
@@ -15,7 +15,7 @@ export const useConnection = <T>(endpoint: string, label: string) => {
       notify.success(`${label} connected`);
       return true;
     } catch (e) {
-      notify.error(`${label} connection failed`, e);
+      notify.error(`Failed to connect ${label}`, e);
       return false;
     } finally {
       isConnecting.value = false;

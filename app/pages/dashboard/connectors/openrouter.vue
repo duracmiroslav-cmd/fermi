@@ -13,7 +13,7 @@ const {
   pending,
   isDisconnecting,
   disconnect,
-} = useConnection<OpenRouterStatus>('/api/oauth/openrouter', 'OpenRouter');
+} = useConnector<OpenRouterStatus>('/api/oauth/openrouter', 'OpenRouter');
 
 useOAuthCallback('openrouter', 'OpenRouter');
 
