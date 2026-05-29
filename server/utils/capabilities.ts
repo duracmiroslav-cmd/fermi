@@ -17,13 +17,28 @@ export interface CapabilityProviderRow {
   connectedAt?: string;
 }
 
+// Surfaced to the capability config UI so each group can render as one
+// labelled checkbox. Tool names stay server-side: the client only needs the
+// human-readable label and a count for the "(N tools)" hint.
+export interface ToolGroupSummary {
+  label:     string;
+  toolCount: number;
+}
+
 export interface CapabilityRow {
-  id:             string;
-  slug:           string;
-  displayName:    string;
-  description:    string | null;
-  credentialType: CredentialType;
-  providers?:     CapabilityProviderRow[];
+  id:                    string;
+  slug:                  string;
+  displayName:           string;
+  description:           string | null;
+  credentialType:        CredentialType;
+  providers?:            CapabilityProviderRow[];
+  // When set, the capability uses group-level toggles (instead of per-tool
+  // checkboxes). The agent binding stores its selection as
+  // `agent_capabilities.config.enabledGroups` (array of group slugs).
+  toolGroups?:           Record<string, ToolGroupSummary>;
+  // Initial selection when no `enabledGroups` has been recorded for this
+  // agent yet. The UI uses this to pre-check the right boxes.
+  defaultEnabledGroups?: string[];
 }
 
 export type AgentCapabilityRow = CapabilityRow & {
@@ -71,6 +86,15 @@ export const listCapabilitiesForUser = async (
       description: builtIn?.description ?? capability.description,
       credentialType,
     };
+    if (builtIn?.config.toolGroups) {
+      row.toolGroups = Object.fromEntries(
+        Object.entries(builtIn.config.toolGroups).map(([slug, group]) => [
+          slug,
+          { label: group.label, toolCount: group.tools.length },
+        ]),
+      );
+      row.defaultEnabledGroups = builtIn.config.defaultEnabledGroups;
+    }
     if (credentialType !== 'providers' || !providers) return row;
 
     row.providers = providers.map((p): CapabilityProviderRow => {
