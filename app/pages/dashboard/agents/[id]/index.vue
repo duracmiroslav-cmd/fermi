@@ -216,7 +216,7 @@ const visionModel = computed<ProviderModel>(() => {
               <dt class="text-toned text-right">
                 Voice reply
               </dt>
-              <dd class="text-highlighted">
+              <dd>
                 {{ VOICE_REPLY_LABELS[agent.voiceReplyMode] }}
               </dd>
               <dt class="text-toned text-right">
