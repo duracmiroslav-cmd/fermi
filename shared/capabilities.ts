@@ -136,10 +136,11 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     config:         {},
     credentialType: 'coming_soon',
   },
-  // Twinkle Hub bundles 50+ Taiwan-specific lookup tools + data.gov.tw open
+  // Twinkle Hub bundles Taiwan-specific lookup tools + data.gov.tw open
   // data queries behind one MCP endpoint. The upstream surface is too large
-  // (53+ tools) to expose all at once: each agent picks `enabledGroups` and
-  // the dispatcher unions those groups' `tools` into the LLM allowlist.
+  // (65 tools as of 2026-05) to expose all at once: each agent picks
+  // `enabledGroups` and the dispatcher unions those groups' `tools` into
+  // the LLM allowlist.
   //
   // The 12 tools deliberately omitted across groups are: `current_time_in`
   // (overlaps fermi's in-process `time`), `fetch_url_as_markdown` (overlaps
@@ -214,13 +215,27 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
             'twtools-format_chinese_numerals',
           ],
         },
-        // Filled from a real `list_tools` call against the upstream MCP
-        // server. Off by default (see `defaultEnabledGroups` below) because
+        // Off by default (see `defaultEnabledGroups` below) because
         // opendata-* queries are heavier than utility lookups and likeliest
-        // to attract per-call pricing when Twinkle Hub leaves alpha.
+        // to attract per-call pricing when Twinkle Hub leaves alpha. Covers
+        // dataset discovery + the three vertical corpora Twinkle Hub indexes
+        // (考題 / 司法判決 / 專利).
         opendata: {
           label: '政府開放資料查詢',
-          tools: [],
+          tools: [
+            'opendata-list_domains',
+            'opendata-search_datasets',
+            'opendata-get_dataset',
+            'opendata-materialize_dataset',
+            'opendata-query_rows',
+            'opendata-search_exam',
+            'opendata-search_exam_questions',
+            'opendata-get_exam_paper',
+            'opendata-search_judicial',
+            'opendata-get_judicial_full',
+            'opendata-search_patents',
+            'opendata-get_patent_body',
+          ],
         },
       },
       defaultEnabledGroups: ['lookup', 'directory', 'utility'],
