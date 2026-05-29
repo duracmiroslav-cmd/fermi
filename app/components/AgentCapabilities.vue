@@ -49,13 +49,6 @@ const getEffectiveAllowlist = (capability: AgentCapabilityRow): Set<string> => {
 const isToolEnabled = (capability: AgentCapabilityRow, tool: string) =>
   getEffectiveAllowlist(capability).has(tool);
 
-const hasWriteEnabled = (capability: AgentCapabilityRow): boolean => {
-  const groups = CAPABILITY_TOOL_GROUPS[capability.slug];
-  if (!groups) return false;
-  const allowlist = getEffectiveAllowlist(capability);
-  return groups.some(g => g.write.some(t => allowlist.has(t)));
-};
-
 const getToolCount = (capability: AgentCapabilityRow) => getEffectiveAllowlist(capability).size;
 
 const onToggle = async (capability: AgentCapabilityRow, next: boolean) => {
@@ -237,7 +230,6 @@ const onSaveTools = async (capability: AgentCapabilityRow) => {
                 color="neutral"
                 variant="ghost"
                 :icon="expandedCapId === capability.id ? 'i-lucide-chevron-up' : 'i-lucide-sliders-horizontal'"
-                :class="{ 'text-primary': expandedCapId !== capability.id && hasWriteEnabled(capability) }"
                 @click="onToggleExpand(capability)"
               />
               <USwitch
