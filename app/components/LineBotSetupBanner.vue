@@ -75,10 +75,10 @@ const setupWebhook = async () => {
 const celebrate = async () => {
   const { default: confetti } = await import('canvas-confetti');
   confetti({
-    particleCount: 80,
-    spread:        70,
+    particleCount: 160,
+    spread:        140,
     origin:        { y: 0.4 },
-    colors:        ['#10b981', '#3b82f6', '#f59e0b', '#ec4899'],
+    colors:        ['#f48c6c', '#88bf68', '#ed9800', '#f03553'],
   });
   celebrationStage.value = 'success';
 };
