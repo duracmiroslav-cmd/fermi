@@ -62,7 +62,7 @@ Gold standard (all real, from `app/pages/dashboard/`):
 | Helper | `New to OpenRouter? Free signup, takes a minute.` |
 | Helper | `Grab a key at app.tavily.com. 30 seconds, free, no credit card.` |
 | Status | `No setup needed` · `No credential needed` · `Coming soon` |
-| Empty state | title `Capability not found` + body `This page may have been removed, or the link is wrong.` + action `Back to Connections` |
+| Empty state | title `Capability not found` + body `This page may have been removed, or the link is wrong.` + action `Back to Connectors` |
 | Toast | `{name} attached` · `Attach failed` · `Tavily connected` |
 
 ### B. Marketing & landing (+ transactional email)
@@ -136,7 +136,7 @@ failure; the ✓ side is a real fermi line.
 5. **Errors and empty states stay calm and give an exit.** No "Oops!", no
    blame, always a next step.
    - ✗ `Error: the requested capability could not be found.`
-   - ✓ `This page may have been removed, or the link is wrong.` + `Back to Connections`
+   - ✓ `This page may have been removed, or the link is wrong.` + `Back to Connectors`
 
 6. **Right register, right case.** Dashboard = sentence case. Marketing =
    lowercase mono. Never mix them on one surface.
@@ -177,7 +177,7 @@ feel unpolished.
   Connect; don't swap them.
 - **Capability** — a tool an agent can reach for (web search, Notion). Not
   "integration", "plugin", "skill".
-- **Connection** — a stored credential. The Connections page holds these.
+- **Connector** — a stored credential. The Connectors page holds these.
 - **Agent** — the configured bot. **provider** — an LLM/credential source
   (OpenRouter, a model vendor). Don't call a provider an "agent".
 - **agentic** — fine in marketing; don't gloss it in UI.

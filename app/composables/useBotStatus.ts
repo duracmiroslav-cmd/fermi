@@ -23,7 +23,7 @@ interface StatusBot {
 
 // Pure derivation shared by the list, detail, and edit surfaces so the
 // criteria never drift. `null` means the inputs are still resolving: the
-// ready/needs-setup split depends on the OpenRouter connection (a
+// ready/needs-setup split depends on the OpenRouter connector (a
 // separate request), and on navigation the bot is often cached while
 // OpenRouter is still loading, so deciding eagerly would flash a false
 // "Needs setup" before settling. Callers render a neutral placeholder

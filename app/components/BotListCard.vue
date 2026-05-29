@@ -22,7 +22,7 @@ const props = defineProps<{
   bot: Bot;
 }>();
 
-// Status derives from bot fields + global OpenRouter connection state.
+// Status derives from bot fields + global OpenRouter connector state.
 // Each card fetches /api/oauth/openrouter via useBotStatus; Nuxt dedupes
 // by URL, so N cards share one fetch.
 const botRef = computed(() => props.bot);
