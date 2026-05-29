@@ -1,51 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import {
+  BUILT_IN_CAPABILITIES,
+  type CredentialType,
+  type ProviderMeta,
+} from '~~/shared/capabilities';
 
-// Per-slug metadata that the `capabilities` DB row doesn't carry:
-// what credential each one needs and which providers back it.
-//
-// Adding a provider (e.g. Brave under web-search): extend the
-// `providers` array, add the matching key_type to the
-// encrypted_credentials enum, and add a connect endpoint under
-// /api/connectors/<provider>.
-
-export type CredentialType = 'none' | 'providers' | 'coming_soon';
-
-export interface ProviderMeta {
-  slug:        string;
-  displayName: string;
-  keyType:     string;
-  status:      'live' | 'coming_soon';
-}
-
-export interface CapabilityMeta {
-  credentialType: CredentialType;
-  providers?:     ProviderMeta[];
-}
-
-export const CAPABILITY_META: Record<string, CapabilityMeta> = {
-  'time':       { credentialType: 'none' },
-  'web-search': {
-    credentialType: 'providers',
-    providers:      [
-      { slug: 'tavily', displayName: 'Tavily', keyType: 'tavily', status: 'live' },
-    ],
-  },
-  'web-fetch': { credentialType: 'none' },
-  'github':    {
-    credentialType: 'providers',
-    providers:      [
-      { slug: 'github', displayName: 'GitHub', keyType: 'github', status: 'live' },
-    ],
-  },
-  'google-calendar': { credentialType: 'coming_soon' },
-  'notion':          { credentialType: 'coming_soon' },
-};
-
-// BYO capabilities (rows with owner_id IS NOT NULL) won't have an
-// entry here, so default to "no credential needed", the BYO MCP
-// server's own auth lives in its `capabilities.config` jsonb.
-export const getCapabilityMeta = (slug: string): CapabilityMeta =>
-  CAPABILITY_META[slug] ?? { credentialType: 'none' };
+export type { CredentialType, ProviderMeta } from '~~/shared/capabilities';
 
 export type ProviderStatus = 'connected' | 'available' | 'coming_soon';
 
@@ -71,9 +31,11 @@ export type AgentCapabilityRow = CapabilityRow & {
   agentConfig: Record<string, unknown>;
 };
 
-// Lists capabilities visible to a user, joined with provider
-// credential status read off the user's account-level
-// encrypted_credentials rows.
+// Lists capabilities visible to a user, joined with provider credential
+// status read off the user's account-level encrypted_credentials rows. For
+// built-in rows (owner_id NULL), display metadata comes from the code
+// registry; the DB row is just an FK target. BYO rows (owner_id set) carry
+// their own user-supplied metadata.
 export const listCapabilitiesForUser = async (
   admin: SupabaseClient,
   userId: string,
@@ -97,17 +59,21 @@ export const listCapabilitiesForUser = async (
   const credByKeyType = new Map((creds ?? []).map(c => [c.key_type, c]));
 
   return (capabilities ?? []).map((capability) => {
-    const meta = getCapabilityMeta(capability.slug);
+    const builtIn = capability.owner_id === null
+      ? BUILT_IN_CAPABILITIES[capability.slug]
+      : undefined;
+    const credentialType: CredentialType = builtIn?.credentialType ?? 'none';
+    const providers: ProviderMeta[] | undefined = builtIn?.providers;
     const row: CapabilityRow = {
-      id:             capability.id,
-      slug:           capability.slug,
-      displayName:    capability.display_name,
-      description:    capability.description,
-      credentialType: meta.credentialType,
+      id:          capability.id,
+      slug:        capability.slug,
+      displayName: builtIn?.displayName ?? capability.display_name,
+      description: builtIn?.description ?? capability.description,
+      credentialType,
     };
-    if (meta.credentialType !== 'providers' || !meta.providers) return row;
+    if (credentialType !== 'providers' || !providers) return row;
 
-    row.providers = meta.providers.map((p): CapabilityProviderRow => {
+    row.providers = providers.map((p): CapabilityProviderRow => {
       if (p.status === 'coming_soon') {
         return { slug: p.slug, displayName: p.displayName, status: 'coming_soon' };
       }

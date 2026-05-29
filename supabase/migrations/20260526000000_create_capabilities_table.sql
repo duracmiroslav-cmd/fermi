@@ -59,73 +59,23 @@ create policy "Users can view available capabilities." on public.capabilities
 -- this hold even if RLS were ever disabled on the table.
 revoke insert, update, delete on public.capabilities from authenticated;
 
--- Seed the builtin tools fermi ships with. `description` is what the
--- LLM reads to decide whether to invoke the tool, so keep it focused
--- on "when to use" rather than "what it does".
+-- Seed thin builtin rows. Each row is just an FK target for
+-- `agent_capabilities.capability_id`; display name, description, MCP url,
+-- authKeyType, and tool allowlist all live in `shared/capabilities.ts`
+-- `BUILT_IN_CAPABILITIES`. The seeded `display_name` is decorative — the
+-- code registry wins at read time. `description` and `config` stay at
+-- their column defaults (NULL / '{}').
 --
 -- Naming convention: nouns, not verbs (a capability is an integration,
 -- not an action). Use the provider name when there's one dominant
--- provider with its own OAuth (github, notion, google-calendar).
--- Apple Calendar would be a separate capability with its own OAuth flow.
--- Use the domain name when providers are swappable (web-search can be
+-- provider with its own OAuth (github, notion, google-calendar). Use
+-- the domain name when providers are swappable (web-search can be
 -- backed by Tavily / Brave / Bing without changing the surface).
-insert into public.capabilities (slug, display_name, description) values
-  ('time', 'Time',
-   'Get the current wall-clock time in any IANA timezone (e.g. "Asia/Taipei", "UTC"). Use whenever the answer depends on the current moment, today''s date, current time, age of a recent event.'),
-  ('web-search', 'Web search',
-   'Search the web for current information beyond the model''s training cutoff. Returns ranked titles, snippets, and URLs.'),
-  ('web-fetch', 'Web fetch',
-   'Fetch and return the text contents of a specific URL. Use after web-search returns a promising link, or when the user supplies a URL directly.'),
-  ('image-gen', 'Image generation',
-   'Generate an image from a natural-language prompt. Use when the user explicitly asks to "draw", "generate an image", "make a picture", or similar; do NOT use to fetch existing images from the web.'),
-  ('github', 'GitHub',
-   'Browse repositories, issues, pull requests, and source code on the connected GitHub account.'),
-  ('google-calendar', 'Google Calendar',
-   'Read and create events on the connected Google Calendar.'),
-  ('notion', 'Notion',
-   'Read and update pages and databases in the connected Notion workspace.');
-
--- MCP wiring for the github capability: a capability whose `config.url`
--- is set is treated as MCP by the agent runtime, which connects to that
--- remote server, sends the owner's `authKeyType` credential as a bearer
--- token, and surfaces only the tools in `tools`.
---
--- GitHub's MCP server exposes ~42 tools including destructive writes
--- (create_or_update_file, delete_file, create_pull_request, ...). The
--- allowlist deliberately keeps only read-only tools: the agent is driven
--- by untrusted LINE / web content, so it must never hold a write
--- capability it could be prompt-injected into using. (A fine-grained
--- PAT's read-only scope does NOT filter the server's tool list, so this
--- allowlist is the enforcement point, not the token.)
-update public.capabilities
-set config = jsonb_build_object(
-  'url', 'https://api.githubcopilot.com/mcp/',
-  'authKeyType', 'github',
-  'tools', jsonb_build_array(
-    'get_commit',
-    'get_file_contents',
-    'get_label',
-    'get_latest_release',
-    'get_me',
-    'get_release_by_tag',
-    'get_tag',
-    'get_team_members',
-    'get_teams',
-    'issue_read',
-    'list_branches',
-    'list_commits',
-    'list_issue_types',
-    'list_issues',
-    'list_pull_requests',
-    'list_releases',
-    'list_repository_collaborators',
-    'list_tags',
-    'pull_request_read',
-    'search_code',
-    'search_issues',
-    'search_pull_requests',
-    'search_repositories',
-    'search_users'
-  )
-)
-where slug = 'github' and owner_id is null;
+insert into public.capabilities (slug, display_name) values
+  ('time',            'Time'),
+  ('web-search',      'Web search'),
+  ('web-fetch',       'Web fetch'),
+  ('image-gen',       'Image generation'),
+  ('github',          'GitHub'),
+  ('google-calendar', 'Google Calendar'),
+  ('notion',          'Notion');
