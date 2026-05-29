@@ -20,10 +20,26 @@ Use semantic tokens. Never use raw color classes.
 - ✗ `text-gray-500`, `bg-white`, `border-gray-200`
 - ✓ `text-muted`, `bg-default`, `border-default`
 
-Text intensity (high to low):
-`text-highlighted` > `text-default` (omit class) > `text-toned` > `text-muted`
+Four gray tiers, each with a distinct semantic — not interchangeable "lighter/darker" knobs. Pick by **what the text means**, not by how prominent you want it.
 
-`text-muted` is **not** "softer toned" — it is a distinct semantic tier reserved for **absence**: empty-state characters (`—`), placeholder hints in inputs, disabled-look indicators. Reach for it only when the text represents "there is nothing here," not "this text is less important." General secondary copy (descriptions, metadata, helper text) stays on `text-toned`. Do not introduce additional shades like `text-dimmed` or opacity-tuned grays (`text-toned/60`); for hierarchy below `text-toned`, use size or weight, not new gray tiers.
+| Token | Tier | Use for |
+|---|---|---|
+| `text-highlighted` | Display | Hero `<h1>`, brand wordmark, hover state in three-tier pattern |
+| `text-default` (omit) | Body | Paragraphs, `<dd>` values, section headings (paired with `font-semibold`) |
+| `text-toned` | Metadata | `<dt>` labels, descriptions, helper text, subtitles, idle state |
+| `text-muted` | Absence | `—` placeholders, input placeholders, "nothing here" indicators |
+
+**Picking by context:**
+
+- **Static content** — pick from the table above by the text's role. Section headings (h2–h4) stay on `text-default` and use `font-semibold` for emphasis; do **not** push them to `text-highlighted` (that's reserved for hero / brand). For `<dl>` blocks: `<dt class="text-toned">` + `<dd>` on default.
+- **Interactive elements** — follow the three-tier state pattern under "Interactive surface states" below (idle `text-toned` → hover `text-highlighted` → active `text-primary`). This is the *only* place `text-highlighted` legitimately appears on non-display content.
+- **Semantic color** — `text-primary` / `text-error` / `text-success` / `text-warning` live outside the gray scale; use them for state/intent, not for emphasis.
+
+**When you want more emphasis than `text-default`:** add weight (`font-semibold`) or bump size (`text-base` → `text-lg`). Don't reach for `text-highlighted` — at fermi's dark-mode contrast it barely registers as brighter and reads as redundant against `font-semibold`.
+
+**When you want less than `text-toned`:** shrink size (`text-xs`) or reduce weight (`font-light`). `text-muted` is **not** "softer toned" — it is the absence tier, reserved for "this slot has nothing in it." Don't reach for it just because you want lighter copy; general secondary text stays on `text-toned`.
+
+**Never** introduce additional shades: no `text-dimmed`, no opacity-tuned grays (`text-toned/60`, `text-default/80`). The four tiers are the entire vocabulary.
 
 Background elevation (dark mode):
 `bg-default` (page) → `bg-muted/50` (card / list resting surface) → `bg-muted` (area hover) → `bg-accented` (modals / popovers)
