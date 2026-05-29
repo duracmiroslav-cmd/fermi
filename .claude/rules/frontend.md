@@ -144,11 +144,14 @@ Line-box reference (Tailwind default line-heights):
 
 | Text class | Line-height | Line box | Bar inside (≈60%) |
 |---|---|---|---|
+| `text-2xl` | 32px | `h-8` | `h-5` |
 | `text-base` | 24px | `h-6` | `h-3.5` |
 | `text-sm` | 20px | `h-5` | `h-3` |
 | `text-xs` | 16px | `h-4` | `h-2.5` |
 
 Stacked bars (e.g. title + subtitle) get line-box totals equal to the real content's intrinsic height, so swap has no vertical jump.
+
+**Trailing meta**: the "X ago" / "5 items" timestamp in a list row is almost always `text-xs`, not `text-sm`. A common drift is to wrap it in `h-5` (text-sm reference) — use `h-4` line-box + `h-2.5` bar.
 
 ### Mirror the real container
 
@@ -156,26 +159,38 @@ Use the real component's classes for outer shape and padding, so horizontal posi
 
 | Real element | Skeleton equivalent |
 |---|---|
-| `<UCard>` outer | `rounded-md ring ring-inset ring-muted bg-muted/50 divide-y divide-muted` |
+| `<UCard>` outer, single-section | `rounded-md ring ring-inset ring-muted bg-muted/50` |
+| `<UCard>` outer, multi-section | add `divide-y divide-muted` to the above |
 | `<UCard>` header padding | `p-4 sm:px-6` |
 | `<UCard>` body padding | `p-4 sm:p-6` |
 | List container | `rounded-md border border-muted bg-muted/50 divide-y divide-default` |
 | List row | `flex items-center gap-4 p-4` |
 | `<UAvatar size="lg">` | `<USkeleton class="size-9 rounded-full" />` |
-| `<UInput>` md | `<USkeleton class="h-9 rounded-md bg-muted/40" />` |
+| `<UInput>` md | `<USkeleton class="h-9 w-full rounded-md bg-muted/40" />` |
+| `<UTextarea>` (3 rows) | `<USkeleton class="h-24 w-full rounded-md bg-muted/40" />` |
 | `<UButton>` md | `<USkeleton class="h-9 w-X rounded-md bg-muted/60" />` |
+| `<UBadge size="sm">` | `<USkeleton class="h-5 w-X rounded-sm" />` |
+| `<UBadge size="md">` | `<USkeleton class="h-6 w-X rounded-md" />` |
+| `<USwitch>` | `<USkeleton class="h-5 w-9 rounded-full" />` |
+
+Skeleton's default bg is `bg-muted` (set globally in `app.config.ts`). Dark mode collapses `bg-elevated` to the same value, so an explicit `bg-elevated` override does nothing — just stick to the default. Only override bg when mimicking a specifically-tinted surface (input → `bg-muted/40`, secondary text → `bg-muted/70`).
 
 ### Deterministic widths for variety
 
-Vary bar widths via cycled tokens (`['w-40', 'w-32', 'w-48']` indexed by row number), not `Math.random`. Random widths break SSR/CSR hydration.
+Vary bar widths via cycled tokens (`['w-40', 'w-32', 'w-48']` indexed by row number), not `Math.random`. Random widths break SSR/CSR hydration. Identical widths across N skeleton rows reads as "the same row repeated" — cycle even if you only have 3 tokens for 6 rows.
 
 ### Biasing across uncertain final states
 
 When the loaded content can render at different sizes (connected vs disconnected card, has-data vs empty), bias the skeleton toward the **larger** state. Shrinking on load reads better than growing.
 
+### One generic skeleton ≠ "mirror the real container"
+
+A single generic skeleton shared across multiple structurally-different pages cannot mirror any one of them. The shift will manifest somewhere. Per-page skeletons that mirror that page's actual layout are the goal; a shared component is acceptable only when the pages it serves have genuinely identical structure.
+
 ### Existing patterns
 
-- `app/components/DashboardListSkeleton.vue` — list row with avatar + 2-line text + trailing meta
+- `app/components/DashboardListSkeleton.vue` — UCard-per-row list (avatar + 2-line text + trailing meta)
+- `app/components/DashboardDetailSkeleton.vue` — generic detail page (header avatar + title, 3 input fields, textarea); intentionally generic, does not mirror any single detail page perfectly
 
 ## `<script setup>` ordering
 
