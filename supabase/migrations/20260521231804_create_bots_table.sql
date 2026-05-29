@@ -17,7 +17,6 @@ create table public.bots (
   updated_at          timestamptz not null default now(),
   disabled_at         timestamptz,
   webhook_verified_at timestamptz,
-  first_replied_at    timestamptz,
   deleted_at          timestamptz
 );
 

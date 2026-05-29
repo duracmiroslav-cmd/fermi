@@ -280,7 +280,6 @@ export type Database = {
           disabled_at: string | null
           display_name: string | null
           external_id: string
-          first_replied_at: string | null
           handle: string | null
           id: string
           owner_id: string
@@ -296,7 +295,6 @@ export type Database = {
           disabled_at?: string | null
           display_name?: string | null
           external_id: string
-          first_replied_at?: string | null
           handle?: string | null
           id?: string
           owner_id: string
@@ -312,7 +310,6 @@ export type Database = {
           disabled_at?: string | null
           display_name?: string | null
           external_id?: string
-          first_replied_at?: string | null
           handle?: string | null
           id?: string
           owner_id?: string
@@ -703,6 +700,13 @@ export type Database = {
         Returns: undefined
       }
       enqueue_webhook_event: { Args: { payload: Json }; Returns: number }
+      get_bots_first_replied: {
+        Args: { p_owner_id: string }
+        Returns: {
+          bot_id: string
+          first_replied_at: string
+        }[]
+      }
       get_bots_last_replied: {
         Args: { p_owner_id: string }
         Returns: {
@@ -751,6 +755,15 @@ export type Database = {
       purge_orphaned_credentials: {
         Args: { older_than?: string }
         Returns: number
+      }
+      update_capability_config: {
+        Args: {
+          p_agent_id: string
+          p_capability_id: string
+          p_config: Json
+          p_owner_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

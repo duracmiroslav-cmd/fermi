@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const admin = useSupabaseAdmin();
   const { data, error } = await admin
     .from('bots')
-    .select('id, platform, external_id, handle, display_name, avatar_url, agent_id, disabled_at, webhook_verified_at, first_replied_at, created_at, updated_at')
+    .select('id, platform, external_id, handle, display_name, avatar_url, agent_id, disabled_at, webhook_verified_at, created_at, updated_at')
     .eq('id', id)
     .eq('owner_id', user.id)
     .is('deleted_at', null)
@@ -17,6 +17,14 @@ export default defineEventHandler(async (event) => {
   if (!data) {
     throw createError({ statusCode: 404, statusMessage: 'Bot not found' });
   }
+
+  // First successful reply, derived from agent_runs (the table is the
+  // single source of truth — see migration). The owner-scoped RPC mirrors
+  // the bot list's `get_bots_last_replied`; we pick out this bot's row.
+  const { data: firstReplied, error: firstRepliedErr } = await admin
+    .rpc('get_bots_first_replied', { p_owner_id: user.id });
+  if (firstRepliedErr) throw firstRepliedErr;
+  const firstRepliedAt = firstReplied?.find(r => r.bot_id === id)?.first_replied_at ?? null;
 
   let agent: {
     id:               string;
@@ -60,7 +68,7 @@ export default defineEventHandler(async (event) => {
     agentId:           data.agent_id,
     disabledAt:        data.disabled_at,
     webhookVerifiedAt: data.webhook_verified_at,
-    firstRepliedAt:    data.first_replied_at,
+    firstRepliedAt,
     createdAt:         data.created_at,
     updatedAt:         data.updated_at,
     webhookUrl:        `${origin}/api/webhook/${data.platform}`,

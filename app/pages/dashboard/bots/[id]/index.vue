@@ -59,10 +59,10 @@ watchEffect(() => {
 });
 
 // Poll bot detail while setup is complete but we're still waiting for
-// the first reply. The worker writes `first_replied_at` after a
-// successful push, so polling is just to surface that to the UI. Stop
-// once detected (or if the bot is paused, since a paused bot never
-// pushes).
+// the first reply. `firstRepliedAt` is derived from agent_runs, so it
+// flips as soon as the worker logs a succeeded run; polling just surfaces
+// it to the UI. Stop once detected (or if the bot is paused, since a
+// paused bot never pushes).
 const firstReplyPoll = useIntervalFn(() => refresh(), 4000, { immediate: false });
 watchEffect(() => {
   const shouldPoll = isBotActive.value && isSetupComplete.value && !hasFirstReplied.value;

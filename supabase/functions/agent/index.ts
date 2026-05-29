@@ -553,15 +553,6 @@ const runAgentLoop = async (params: {
         type: 'push_succeeded',
         payload: { method, elapsed_ms: elapsedMs },
       });
-      // Mark the moment this bot first delivered a reply end-to-end.
-      // Drives the "Setup complete" prompt on the info page. Only an
-      // actual reply (not LINE's verify ping) counts. Idempotent via
-      // .is(null) so subsequent replies leave the first timestamp.
-      await admin
-        .from('bots')
-        .update({ first_replied_at: new Date().toISOString() })
-        .eq('id', bot.id)
-        .is('first_replied_at', null);
       await finishRun(admin, runId, 'succeeded', totalCostUsd);
     } catch (err) {
       const pushStatus = err instanceof LineReplyError || err instanceof LinePushError
