@@ -4,12 +4,15 @@
 // playback. Distinct from the worker TTS path (worker drives LINE
 // replies; this drives dashboard UI), so it has its own key
 // resolution + rate limit and lives in server/, not the Edge Fn.
+//
+// Key sourcing is platform-only, not BYOK — see backend.md
+// "Dashboard try-outs vs production runtime." Cost per preview is
+// ~$0.000025 (42 chars × $0.60 / 1M for gpt-4o-mini-tts), and the
+// per-owner rate limit caps abuse at 1000 / day.
 
 import { z } from 'zod';
 import { getCurrentUser } from '~~/server/utils/auth';
 import { checkOwnerPreviewRateLimit } from '~~/server/utils/rate-limit';
-import { loadCredential } from '~~/shared/credentials';
-import { getKek } from '~~/shared/kek';
 import {
   DEFAULT_TTS_MODEL,
   DEFAULT_TTS_VOICE,
@@ -36,7 +39,7 @@ export default defineEventHandler(async (event) => {
   }
   const { model, voice, instructions } = parsed.data;
 
-  const { fermiKek, upstashUrl, upstashToken, openaiApiKey } = useRuntimeConfig(event);
+  const { upstashUrl, upstashToken, openaiApiKey } = useRuntimeConfig(event);
   const admin = useSupabaseAdmin();
 
   const outcome = await checkOwnerPreviewRateLimit(
@@ -51,26 +54,11 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Prefer owner BYOK OpenAI key. Fall back to platform key so an
-  // owner who hasn't connected their key yet can still audition
-  // voices — otherwise the dropdown is a dead UI before key setup.
-  let apiKey: string | null = null;
-  const kek = await getKek(fermiKek);
-  try {
-    const cred = await loadCredential(admin, kek, {
-      userId:  user.id,
-      botId:   null,
-      keyType: 'openai',
-    });
-    apiKey = cred.plaintext;
-  } catch {
-    // No BYOK row — fall through to platform.
-  }
-  apiKey ??= openaiApiKey || null;
+  const apiKey = openaiApiKey || null;
   if (!apiKey) {
     throw createError({
       statusCode:    503,
-      statusMessage: 'TTS preview unavailable: no OpenAI key configured',
+      statusMessage: 'TTS preview unavailable: platform OpenAI key not configured',
     });
   }
 

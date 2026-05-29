@@ -94,3 +94,16 @@ A capability wires one of two ways. Discriminator: `CapabilityConfig.url` (`shar
 - **MCP capability** (`github`, `notion`, `google-calendar`, BYO URL): a third party owns the schema — large, changing; fermi allowlists a read-only subset and sends a stored OAuth token as bearer. Connected via `McpClient`, tools namespaced `slug__name`.
 
 **The test:** is the tool schema fermi's or someone else's? Ours → in-process (a per-connection handshake to reach a schema we already hold and won't change buys nothing). Theirs → MCP (the fixed handshake cost buys not owning or maintaining a schema that changes under us).
+
+## Dashboard try-outs vs production runtime
+
+Two distinct contexts use vendor keys; the source differs.
+
+- **Production runtime** (worker reply, image gen, MCP tool call): user's BYOK first, platform key as fallback. The user opted into BYOK to pay for their own end-user traffic; routing through their key honors that contract.
+- **Dashboard try-out** (TTS preview, future image preview / connection test): **platform key only.** The owner is iterating on config inside fermi's UI, not delivering value to an end user. Burning their BYOK quota for "what does cedar sound like" surprises them and erodes the BYOK contract — they signed up to pay for *replies*, not for evaluating voices.
+
+**The test:** is the API call serving an end user (production), or helping the owner make a configuration decision in the dashboard (try-out)? Output destination decides it — going out to LINE / external = production; staying on the dashboard for the owner to evaluate = try-out.
+
+Cost on the try-out side is bounded by per-owner rate limits and is structurally tiny (a TTS preview is ~$0.000025; even 10K previews / month is under $1). Platform absorbs it without unit-economics impact.
+
+Exception: a "test this key" verify call (e.g. BYOK connect flow in `server/utils/byok.ts`) must use the key being tested, not platform — the test's purpose IS to validate the user's credential.
