@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
     .is('bot_id', null);
   if (removeErr) throw removeErr;
 
-  // Stripe-style masked preview so the connections card can echo
+  // Stripe-style masked preview so the connectors card can echo
   // which Tavily key fermi is holding without exposing the secret.
   const maskedKey = `${apiKey.slice(0, 12)}...${apiKey.slice(-3)}`;
 

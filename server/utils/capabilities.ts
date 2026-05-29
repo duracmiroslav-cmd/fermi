@@ -6,7 +6,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // Adding a provider (e.g. Brave under web-search): extend the
 // `providers` array, add the matching key_type to the
 // encrypted_credentials enum, and add a connect endpoint under
-// /api/connections/<provider>.
+// /api/connectors/<provider>.
 
 export type CredentialType = 'none' | 'providers' | 'coming_soon';
 

@@ -33,7 +33,7 @@ const onTavilyConnect = async () => {
   if (!tavilyKey.value) return;
   tavilyConnecting.value = true;
   try {
-    await $fetch('/api/connections/tavily', {
+    await $fetch('/api/connectors/tavily', {
       method: 'POST',
       body:   { apiKey: tavilyKey.value },
     });
@@ -50,7 +50,7 @@ const onTavilyConnect = async () => {
 const onTavilyDisconnect = async () => {
   tavilyDisconnecting.value = true;
   try {
-    await $fetch('/api/connections/tavily', { method: 'DELETE' });
+    await $fetch('/api/connectors/tavily', { method: 'DELETE' });
     await refreshCapabilities();
     notify.success('Tavily disconnected');
   } catch (e) {
@@ -68,7 +68,7 @@ const onGithubConnect = async () => {
   if (!githubToken.value) return;
   githubConnecting.value = true;
   try {
-    await $fetch('/api/connections/github', {
+    await $fetch('/api/connectors/github', {
       method: 'POST',
       body:   { token: githubToken.value },
     });
@@ -85,7 +85,7 @@ const onGithubConnect = async () => {
 const onGithubDisconnect = async () => {
   githubDisconnecting.value = true;
   try {
-    await $fetch('/api/connections/github', { method: 'DELETE' });
+    await $fetch('/api/connectors/github', { method: 'DELETE' });
     await refreshCapabilities();
     notify.success('GitHub disconnected');
   } catch (e) {

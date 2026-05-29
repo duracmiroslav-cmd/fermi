@@ -15,7 +15,7 @@ create table public.model_providers (
   display_name          text not null,
   -- Drives which connect-endpoint pattern the UI + API render:
   --   oauth   → /api/oauth/<slug>/{start,callback}      (OpenRouter today)
-  --   api_key → /api/connections/<slug> POST {apiKey}   (Tavily-style for OpenAI/Anthropic/Gemini)
+  --   api_key → /api/connectors/<slug> POST {apiKey}   (Tavily-style for OpenAI/Anthropic/Gemini)
   connect_type          text not null check (connect_type in ('oauth', 'api_key')),
   -- Shape of the model string stored in `agents.default_text_model`.
   -- aggregator (OpenRouter): provider-qualified slug like "anthropic/claude-3.5-sonnet".
@@ -38,7 +38,7 @@ create trigger model_providers_set_updated_at
 alter table public.model_providers enable row level security;
 
 -- Catalog is non-sensitive; any authenticated user can read it to
--- render the connections list and the per-agent provider picker.
+-- render the connectors list and the per-agent provider picker.
 create policy "Users can view model providers." on public.model_providers
   for select using (true);
 
@@ -49,7 +49,7 @@ revoke insert, update, delete on public.model_providers from authenticated;
 
 -- Seed the live catalog. All four BYOK providers ship with working
 -- connect endpoints (OpenRouter via OAuth, OpenAI/Anthropic/Gemini via
--- `/api/connections/<slug>` POST). `status = 'coming_soon'` is kept in
+-- `/api/connectors/<slug>` POST). `status = 'coming_soon'` is kept in
 -- the CHECK list for future additions whose endpoint lands later.
 insert into public.model_providers (slug, display_name, connect_type, routing_type, credential_key_type, status) values
   ('openrouter', 'OpenRouter', 'oauth',   'aggregator', 'openrouter', 'live'),
