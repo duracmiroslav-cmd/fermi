@@ -36,12 +36,12 @@ export default defineEventHandler(async (event) => {
   }
   const { model, voice, instructions } = parsed.data;
 
-  const { fermiKek, upstashUoutcome, upstashToken, openaiApiKey } = useRuntimeConfig(event);
+  const { fermiKek, upstashUrl, upstashToken, openaiApiKey } = useRuntimeConfig(event);
   const admin = useSupabaseAdmin();
 
   const outcome = await checkOwnerPreviewRateLimit(
     admin,
-    { upstashUoutcome: upstashUoutcome || null, upstashToken: upstashToken || null },
+    { upstashUrl: upstashUrl || null, upstashToken: upstashToken || null },
     { ownerId: user.id },
   );
   if (!outcome.allowed) {
