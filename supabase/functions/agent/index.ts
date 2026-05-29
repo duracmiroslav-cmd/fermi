@@ -103,10 +103,10 @@ const NO_AGENT_NOTICE = '⚙️ 這個 bot 還沒設定 agent，請到 https://f
 // Free tier: BYOK is the friction point. Notice surfaces both paths so
 // the bot owner can pick connect (manual) or upgrade (instant).
 const FREE_BYOK_NOTICE_OPENROUTER
-  = '⚙️ 還沒連接 OpenRouter。Free 方案請到 https://fermi.tw/dashboard/connections 連接，或升級 Pro 由 fermi 代管。';
+  = '⚙️ 還沒連接 OpenRouter。Free 方案請到 https://fermi.tw/dashboard/connectors 連接，或升級 Pro 由 fermi 代管。';
 const PLATFORM_KEY_OPS_NOTICE = '⚠️ Pro 服務暫時不可用，已通知 fermi 處理，請稍後再試。';
 const FREE_BYOK_NOTICE_OPENAI
-  = '🎙️ 語音功能需要 OpenAI key。Free 方案請到 https://fermi.tw/dashboard/connections 連接，或升級 Pro 由 fermi 代管。';
+  = '🎙️ 語音功能需要 OpenAI key。Free 方案請到 https://fermi.tw/dashboard/connectors 連接，或升級 Pro 由 fermi 代管。';
 // Quota-exhausted notices. STT replies via safeReply; TTS suffix gets
 // appended to the LLM's text reply when audio fallback fires; the
 // extended_run notice fully replaces `finalText` when the agent loop

@@ -62,7 +62,7 @@ export const generateImage: Tool = {
     });
     if (!quota.allowed) {
       return {
-        error: `Image generation quota exceeded: ${quota.count}/${quota.cap} this month. Tell the user the bot owner's free image quota is used up; they can either upgrade to Pro at https://fermi.tw/dashboard/billing ($19/mo, 200 images/mo) or connect their own fal.ai key at https://fermi.tw/dashboard/connections for unlimited usage.`,
+        error: `Image generation quota exceeded: ${quota.count}/${quota.cap} this month. Tell the user the bot owner's free image quota is used up; they can either upgrade to Pro at https://fermi.tw/dashboard/billing ($19/mo, 200 images/mo) or connect their own fal.ai key at https://fermi.tw/dashboard/connectors for unlimited usage.`,
       };
     }
 
@@ -81,7 +81,7 @@ export const generateImage: Tool = {
     } catch (err) {
       if (err instanceof FreeBYOKRequiredError) {
         return {
-          error: 'generate_image requires a fal.ai API key. Tell the user the bot owner needs to either connect fal.ai at https://fermi.tw/dashboard/connections (~$0.04 per image, sign up at https://fal.ai) or upgrade to Pro so fermi handles it.',
+          error: 'generate_image requires a fal.ai API key. Tell the user the bot owner needs to either connect fal.ai at https://fermi.tw/dashboard/connectors (~$0.04 per image, sign up at https://fal.ai) or upgrade to Pro so fermi handles it.',
         };
       }
       if (err instanceof PlatformKeyNotConfiguredError) {
