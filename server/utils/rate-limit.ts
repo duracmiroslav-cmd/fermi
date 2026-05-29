@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { RATE_WINDOWS, type RateWindow, buildRateLimitKey } from '~~/shared/constants/limits';
+import { RATE_WINDOWS, type RateWindow, buildPreviewRateLimitKey, buildRateLimitKey } from '~~/shared/constants/limits';
 import { type CounterEnv, createRateLimiter } from '~~/shared/counters/factory';
 
 export interface RateLimitOutcome {
@@ -26,6 +26,29 @@ export const checkBotUserRateLimit = async (
   const windowsWithScope = RATE_WINDOWS.map(w => ({
     scope:  w.scope,
     key:    buildRateLimitKey({ botId: input.botId, externalUserId: input.externalUserId, window: w }),
+    ttlSec: w.ttlSec,
+    cap:    w.cap,
+  }));
+
+  const result = await limiter.check({ windows: windowsWithScope });
+  if (!result.blocked) return { allowed: true, counts: result.counts };
+
+  const blockingScope = windowsWithScope.find(w => w.key === result.blockingWindow?.key)?.scope;
+  return { allowed: false, blockingScope, counts: result.counts };
+};
+
+// Owner-scoped variant for dashboard TTS preview. Same RATE_WINDOWS
+// numbers, different key shape (per owner, not per bot+user).
+export const checkOwnerPreviewRateLimit = async (
+  admin: SupabaseClient,
+  env:   CounterEnv,
+  input: { ownerId: string },
+): Promise<RateLimitOutcome> => {
+  const limiter = createRateLimiter(admin, env);
+
+  const windowsWithScope = RATE_WINDOWS.map(w => ({
+    scope:  w.scope,
+    key:    buildPreviewRateLimitKey({ ownerId: input.ownerId, window: w }),
     ttlSec: w.ttlSec,
     cap:    w.cap,
   }));

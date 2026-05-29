@@ -20,6 +20,10 @@ export default defineNuxtConfig({
     // forwarded into the counter factory.
     upstashUrl:             process.env.UPSTASH_REDIS_REST_URL ?? '',
     upstashToken:           process.env.UPSTASH_REDIS_REST_TOKEN ?? '',
+    // Platform OpenAI key for dashboard TTS preview when the owner
+    // hasn't connected their own OpenAI BYOK yet. Worker (Edge Fn)
+    // reads its own copy via Deno.env; this entry is server-only.
+    openaiApiKey:           process.env.OPENAI_API_KEY ?? '',
     // Public-facing origin fermi serves under. Used to build webhook
     // URLs we expose to LINE. Falls back to the request origin when
     // unset (fine for prod via real domain; required when dev'ing

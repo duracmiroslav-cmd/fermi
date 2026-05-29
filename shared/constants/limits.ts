@@ -75,6 +75,23 @@ export const buildRateLimitKey = (input: {
   return `rl:bot:${input.botId}:user:${input.externalUserId}:${input.window.scope}:${bucket}`;
 };
 
+// Owner-scoped rate limit for dashboard TTS preview. Distinct key
+// shape from buildRateLimitKey (which is per bot+user) because
+// previews fire from logged-in dashboard sessions where there's no
+// bot / external-user pair — the natural blast-radius unit is the
+// owner. Reuses RATE_WINDOWS unchanged (30/min, 200/hr, 1000/day)
+// because preview cost is similar order of magnitude to a normal
+// reply call.
+export const buildPreviewRateLimitKey = (input: {
+  ownerId: string;
+  window:  RateWindow;
+  now?:    Date;
+}): string => {
+  const now = input.now ?? new Date();
+  const bucket = formatBucket(input.window.scope, now);
+  return `rl:owner:${input.ownerId}:tts_preview:${input.window.scope}:${bucket}`;
+};
+
 // Monthly bucket suffix for quota keys; UTC month is fine because
 // fermi's billing month doesn't have to align with any user's local
 // month — the boundary just needs to be deterministic and globally
