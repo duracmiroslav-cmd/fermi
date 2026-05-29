@@ -51,7 +51,7 @@ const percentOf = (item: UsageItem): number => (
           <div
             v-for="i in 5"
             :key="i"
-            class="p-4 rounded-md ring ring-inset ring-muted bg-elevated/50 animate-pulse flex flex-col gap-2"
+            class="p-4 rounded-md ring ring-inset ring-muted bg-muted/50 animate-pulse flex flex-col gap-2"
           >
             <div class="flex items-baseline justify-between">
               <div class="h-5 flex items-center">

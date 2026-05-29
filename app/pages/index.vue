@@ -114,7 +114,7 @@ const submit = async () => {
           >
             <div
               v-if="submitted"
-              class="rounded-lg border border-default bg-elevated/50 px-4 py-3 font-mono text-sm text-highlighted flex items-center gap-2"
+              class="rounded-lg border border-default bg-muted/50 px-4 py-3 font-mono text-sm text-highlighted flex items-center gap-2"
             >
               <span class="text-primary">→</span>
               you're on the list. we'll write to <span class="text-toned">{{ email }}</span>.

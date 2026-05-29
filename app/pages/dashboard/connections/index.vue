@@ -68,59 +68,52 @@ const filteredCards = computed(() => {
 
           <div
             v-if="openrouterPending && !openrouter"
-            class="flex items-center gap-4 p-4 sm:p-6 rounded-md ring ring-inset ring-muted bg-elevated/50"
+            class="rounded-md border border-muted bg-muted/50 divide-y divide-default overflow-hidden"
             aria-busy="true"
           >
-            <USkeleton class="size-5 rounded shrink-0" />
-            <div class="flex-1 min-w-0">
-              <div class="h-6 flex items-center">
-                <USkeleton class="h-3.5 w-32" />
+            <div class="flex items-center gap-4 p-4">
+              <USkeleton class="size-5 rounded shrink-0" />
+              <div class="flex-1 min-w-0">
+                <div class="h-5 flex items-center">
+                  <USkeleton class="h-3 w-40" />
+                </div>
+                <div class="h-4 flex items-center">
+                  <USkeleton class="h-2.5 w-64 bg-muted/70" />
+                </div>
               </div>
-              <div class="h-5 flex items-center">
-                <USkeleton class="h-3 w-64 bg-muted/70" />
-              </div>
+              <USkeleton class="h-3 w-20 bg-muted/70 shrink-0" />
             </div>
-            <USkeleton class="h-3 w-20 bg-muted/70 shrink-0" />
           </div>
 
-          <NuxtLink
+          <div
             v-else
-            to="/dashboard/connections/openrouter"
-            class="block"
+            class="rounded-md border border-muted bg-muted/50 divide-y divide-default overflow-hidden"
           >
-            <UCard variant="interactive">
-              <div class="flex items-center gap-4">
-                <UIcon
-                  name="i-simple-icons-openrouter"
-                  class="size-5 text-toned shrink-0"
-                />
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium truncate">
-                    OpenRouter
-                  </p>
-                  <p class="text-xs text-toned">
-                    Routes messages to Claude, GPT, Gemini, and 200+ other models.
-                  </p>
-                </div>
-                <UBadge
-                  v-if="openrouter?.connected"
-                  color="neutral"
-                  variant="subtle"
-                  size="sm"
-                >
-                  Connected
-                </UBadge>
-                <UBadge
-                  v-else
-                  color="neutral"
-                  variant="subtle"
-                  size="sm"
-                >
-                  Available
-                </UBadge>
+            <NuxtLink
+              to="/dashboard/connections/openrouter"
+              class="flex items-center gap-4 p-4 hover:bg-muted transition-colors"
+            >
+              <UIcon
+                name="i-simple-icons-openrouter"
+                class="size-5 text-toned shrink-0"
+              />
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium truncate">
+                  OpenRouter
+                </p>
+                <p class="text-xs text-toned">
+                  Routes messages to Claude, GPT, Gemini, and 200+ other models.
+                </p>
               </div>
-            </UCard>
-          </NuxtLink>
+              <UBadge
+                color="neutral"
+                variant="subtle"
+                size="sm"
+              >
+                {{ openrouter?.connected ? 'Connected' : 'Available' }}
+              </UBadge>
+            </NuxtLink>
+          </div>
         </section>
 
         <section class="flex flex-col gap-3">
@@ -154,7 +147,7 @@ const filteredCards = computed(() => {
 
           <div
             v-if="capabilitiesPending && !capabilities"
-            class="rounded-md border border-muted bg-elevated/50 divide-y divide-default overflow-hidden"
+            class="rounded-md border border-muted bg-muted/50 divide-y divide-default overflow-hidden"
             aria-busy="true"
           >
             <div
@@ -177,7 +170,7 @@ const filteredCards = computed(() => {
 
           <div
             v-else-if="filteredCards.length"
-            class="rounded-md border border-muted bg-elevated/50 divide-y divide-default overflow-hidden"
+            class="rounded-md border border-muted bg-muted/50 divide-y divide-default overflow-hidden"
           >
             <component
               :is="isLinkable(card) ? NuxtLink : 'div'"
@@ -185,7 +178,7 @@ const filteredCards = computed(() => {
               :key="card.routeSlug"
               :to="isLinkable(card) ? `/dashboard/connections/${card.routeSlug}` : undefined"
               class="flex items-center gap-4 p-4"
-              :class="isLinkable(card) ? 'hover:bg-elevated transition-colors' : ''"
+              :class="isLinkable(card) ? 'hover:bg-muted transition-colors' : ''"
             >
               <UIcon
                 :name="card.icon"

@@ -25,27 +25,34 @@ Text intensity (high to low):
 
 `text-toned` is the only gray shade. Do NOT use `text-muted` or `text-dimmed` — all secondary/tertiary text collapses to a single tier. Hierarchy below `text-default` is signaled by size or weight, not by additional gray shades.
 
-Background elevation (low to high):
-`bg-default` (page) → `bg-muted` (hover/selected) → `bg-elevated` (cards) → `bg-accented` (modals/popovers)
+Background elevation (dark mode):
+`bg-default` (page) → `bg-muted/50` (card / list resting surface) → `bg-muted` (area hover) → `bg-accented` (modals / popovers)
+
+Dark mode collapses `bg-muted` and `bg-elevated` to the same value, and `bg-accented` is the only token strictly brighter than `bg-muted`. Stay on `bg-muted/*` for surfaces; reach for `bg-accented` only when you really need a tier of pop (modal, popover, an accented chip).
 
 Outlines split by purpose:
 
-- **Card outline** (self-contained surface, paired with `bg-elevated/50` + `rounded-md`): `ring ring-inset ring-muted`. Matches Nuxt UI's component convention (Empty, Alert, Popover, etc. all use `ring`). Ring is box-shadow inside the box (`ring-inset`), so it aligns horizontally with `<UInput>` and other form controls that sit in the same column, and hover/focus state changes don't shift layout.
+- **Card outline** (self-contained surface, paired with `bg-muted/50` + `rounded-md`): `ring ring-inset ring-muted`. Matches Nuxt UI's component convention (Empty, Alert, Popover, etc. all use `ring`). Ring is box-shadow inside the box (`ring-inset`), so it aligns horizontally with `<UInput>` and other form controls that sit in the same column, and hover/focus state changes don't shift layout.
 - **Structural divider** (separating layout regions, e.g. sidebar/header/footer edges): `border-{side} border-default`. Borders carry semantic "this side is the edge"; ring would draw a full box.
 
 Avoid `border border-muted` for cards — it works but is out of sync with the Nuxt UI components rendered next to it.
 
 ### Interactive surface states
 
-Three-tier state pattern for nav items, dropdown options, list cards, and any selectable/actionable surface:
+Two hover idioms, picked by primitive:
+
+- **Object surface** (standalone card with its own outline) — ring on hover. Use `<UCard variant="interactive">`.
+- **Area surface** (row inside a shared container) — bg on hover. Use `hover:bg-muted` on the row.
+
+Three-tier state pattern for area surfaces (nav items, dropdown options, list rows):
 
 | State | Text | Background |
 |---|---|---|
 | Idle | `text-toned` | (none) |
-| Hover | `text-highlighted` | `bg-elevated` |
+| Hover | `text-highlighted` | `bg-muted` |
 | Selected / Active | `text-primary` | `bg-primary/10` |
 
-Single-line items (nav, dropdown option) apply the full pattern. Multi-line cards with internal text hierarchy (name + subtitle) apply only the **background** portion of the pattern — keep the text hierarchy as-is.
+Single-line items (nav, dropdown option) apply the full pattern. Multi-line rows with internal text hierarchy (name + subtitle) apply only the **background** portion — keep the text hierarchy as-is.
 
 ### Brand color (primary = apricot)
 
@@ -88,9 +95,14 @@ If the same layout class string appears in ≥3 pages, extract to a `BaseXxx` co
 
 ### Cards
 
-Use `<UCard>` directly. The `fermi` variant is the global default, giving every card `bg-elevated/50 rounded-md ring ring-inset ring-muted divide-y divide-muted`.
+Use `<UCard>` directly. Two variants, both `bg-muted/50 rounded-md ring ring-inset ring-muted divide-y divide-muted`:
 
-For navigable cards, wrap with `<NuxtLink class="block">`. For conditional navigation (linkable vs static in a list), resolve via `resolveComponent('NuxtLink')` in script and use `<component :is="isLinkable ? NuxtLink : 'div'">`.
+- `static` (default) — info panel, no hover.
+- `interactive` — same plus `hover:ring-primary transition-shadow`. Opt in (`<UCard variant="interactive">`) when the card is navigable.
+
+For navigable cards, also wrap with `<NuxtLink class="block">`. For conditional navigation (linkable vs static in a list), resolve via `resolveComponent('NuxtLink')` in script and use `<component :is="isLinkable ? NuxtLink : 'div'">`.
+
+For multiple rows that should read as one grouping (rather than separate cards), use a list container: `rounded-md border border-muted bg-muted/50 divide-y divide-default overflow-hidden`, with each row a `flex items-center gap-4 p-4 hover:bg-muted transition-colors` (drop the hover on non-linkable rows).
 
 ## Skeletons
 
@@ -128,10 +140,11 @@ Use the real component's classes for outer shape and padding, so horizontal posi
 
 | Real element | Skeleton equivalent |
 |---|---|
-| `<UCard>` outer | `rounded-md ring ring-inset ring-muted bg-elevated/50 divide-y divide-muted` |
+| `<UCard>` outer | `rounded-md ring ring-inset ring-muted bg-muted/50 divide-y divide-muted` |
 | `<UCard>` header padding | `p-4 sm:px-6` |
 | `<UCard>` body padding | `p-4 sm:p-6` |
-| List card row | `p-4 sm:p-6 rounded-md ring ring-inset ring-muted bg-elevated/50` |
+| List container | `rounded-md border border-muted bg-muted/50 divide-y divide-default` |
+| List row | `flex items-center gap-4 p-4` |
 | `<UAvatar size="lg">` | `<USkeleton class="size-9 rounded-full" />` |
 | `<UInput>` md | `<USkeleton class="h-9 rounded-md bg-muted/40" />` |
 | `<UButton>` md | `<USkeleton class="h-9 w-X rounded-md bg-muted/60" />` |
