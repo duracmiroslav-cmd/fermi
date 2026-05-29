@@ -149,12 +149,11 @@ const onSaveTools = async (capability: AgentCapabilityRow) => {
         />
       </NuxtLink>
     </div>
-    <UCard :ui="{ body: 'p-0 sm:p-0' }">
-      <div
-        v-if="pending && !rows"
-        class="divide-y divide-default overflow-hidden"
-        aria-busy="true"
-      >
+    <div
+      class="rounded-md border border-muted bg-muted/50 divide-y divide-default overflow-hidden"
+      :aria-busy="pending && !rows ? 'true' : undefined"
+    >
+      <template v-if="pending && !rows">
         <div
           v-for="i in 4"
           :key="i"
@@ -177,12 +176,9 @@ const onSaveTools = async (capability: AgentCapabilityRow) => {
           </div>
           <USkeleton class="h-5 w-9 rounded-full shrink-0" />
         </div>
-      </div>
+      </template>
 
-      <div
-        v-else
-        class="divide-y divide-default overflow-hidden"
-      >
+      <template v-else>
         <UCollapsible
           v-for="capability in rows ?? []"
           :key="capability.id"
@@ -252,91 +248,91 @@ const onSaveTools = async (capability: AgentCapabilityRow) => {
 
           <template #content>
             <div class="border-t border-default px-4 pb-4 pt-3 bg-muted/50">
-            <div class="hidden sm:flex gap-4 pb-2 border-b border-default text-xs uppercase tracking-wider text-toned">
-              <span class="w-32 shrink-0" />
-              <span class="flex-1">Read</span>
-              <span class="flex-1">Write</span>
-            </div>
+              <div class="hidden sm:flex gap-4 pb-2 border-b border-default text-xs uppercase tracking-wider text-toned">
+                <span class="w-32 shrink-0" />
+                <span class="flex-1">Read</span>
+                <span class="flex-1">Write</span>
+              </div>
 
-            <div
-              v-for="(group, gi) in CAPABILITY_TOOL_GROUPS[capability.slug]"
-              :key="group.resource"
-              class="flex flex-col sm:flex-row gap-2 sm:gap-4 py-3"
-              :class="gi > 0 ? 'border-t border-default' : ''"
-            >
-              <p class="sm:w-32 sm:shrink-0 text-sm font-medium">
-                {{ group.resource }}
-              </p>
-              <div class="flex-1 flex flex-col gap-1">
-                <span class="sm:hidden text-xs uppercase tracking-wider text-toned">
-                  Read
-                </span>
-                <label
-                  v-for="tool in group.read"
-                  :key="tool"
-                  class="flex items-center gap-2 py-0.5 cursor-pointer group/tool"
-                >
-                  <UCheckbox
-                    :model-value="isToolEnabled(capability, tool)"
-                    @update:model-value="onToggleTool(capability, tool, $event)"
-                  />
-                  <span class="font-mono text-xs text-toned group-hover/tool:text-highlighted transition-colors truncate">
-                    {{ tool }}
+              <div
+                v-for="(group, gi) in CAPABILITY_TOOL_GROUPS[capability.slug]"
+                :key="group.resource"
+                class="flex flex-col sm:flex-row gap-2 sm:gap-4 py-3"
+                :class="gi > 0 ? 'border-t border-default' : ''"
+              >
+                <p class="sm:w-32 sm:shrink-0 text-sm font-medium">
+                  {{ group.resource }}
+                </p>
+                <div class="flex-1 flex flex-col gap-1">
+                  <span class="sm:hidden text-xs uppercase tracking-wider text-toned">
+                    Read
                   </span>
-                </label>
-              </div>
-              <div class="flex-1 flex flex-col gap-1">
-                <span class="sm:hidden text-xs uppercase tracking-wider text-toned">
-                  Write
-                </span>
-                <label
-                  v-for="tool in group.write"
-                  :key="tool"
-                  class="flex items-center gap-2 py-0.5 cursor-pointer group/tool"
-                >
-                  <UCheckbox
-                    :model-value="isToolEnabled(capability, tool)"
-                    @update:model-value="onToggleTool(capability, tool, $event)"
-                  />
-                  <span class="font-mono text-xs text-toned group-hover/tool:text-highlighted transition-colors truncate">
-                    {{ tool }}
+                  <label
+                    v-for="tool in group.read"
+                    :key="tool"
+                    class="flex items-center gap-2 py-0.5 cursor-pointer group/tool"
+                  >
+                    <UCheckbox
+                      :model-value="isToolEnabled(capability, tool)"
+                      @update:model-value="onToggleTool(capability, tool, $event)"
+                    />
+                    <span class="font-mono text-xs text-toned group-hover/tool:text-highlighted transition-colors truncate">
+                      {{ tool }}
+                    </span>
+                  </label>
+                </div>
+                <div class="flex-1 flex flex-col gap-1">
+                  <span class="sm:hidden text-xs uppercase tracking-wider text-toned">
+                    Write
                   </span>
-                </label>
-                <span
-                  v-if="!group.write.length"
-                  class="text-xs text-toned/60"
-                >
-                  —
-                </span>
+                  <label
+                    v-for="tool in group.write"
+                    :key="tool"
+                    class="flex items-center gap-2 py-0.5 cursor-pointer group/tool"
+                  >
+                    <UCheckbox
+                      :model-value="isToolEnabled(capability, tool)"
+                      @update:model-value="onToggleTool(capability, tool, $event)"
+                    />
+                    <span class="font-mono text-xs text-toned group-hover/tool:text-highlighted transition-colors truncate">
+                      {{ tool }}
+                    </span>
+                  </label>
+                  <span
+                    v-if="!group.write.length"
+                    class="text-xs text-toned/60"
+                  >
+                    —
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <div class="flex items-center justify-between mt-4 pt-3 border-t border-default">
-              <p class="text-xs text-toned">
-                {{ getToolCount(capability) }} tools enabled
-              </p>
-              <div class="flex items-center gap-2">
-                <UButton
-                  size="xs"
-                  color="neutral"
-                  variant="ghost"
-                  @click="onCancel(capability)"
-                >
-                  Cancel
-                </UButton>
-                <UButton
-                  size="xs"
-                  :loading="pendingToolSave.has(capability.id)"
-                  @click="onSaveTools(capability)"
-                >
-                  Save
-                </UButton>
+              <div class="flex items-center justify-between mt-4 pt-3 border-t border-default">
+                <p class="text-xs text-toned">
+                  {{ getToolCount(capability) }} tools enabled
+                </p>
+                <div class="flex items-center gap-2">
+                  <UButton
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    @click="onCancel(capability)"
+                  >
+                    Cancel
+                  </UButton>
+                  <UButton
+                    size="xs"
+                    :loading="pendingToolSave.has(capability.id)"
+                    @click="onSaveTools(capability)"
+                  >
+                    Save
+                  </UButton>
+                </div>
               </div>
-            </div>
             </div>
           </template>
         </UCollapsible>
-      </div>
-    </UCard>
+      </template>
+    </div>
   </div>
 </template>
