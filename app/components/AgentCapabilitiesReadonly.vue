@@ -23,7 +23,7 @@ const attached = computed(() => (rows.value ?? []).filter(c => c.attached));
           <USkeleton
             v-for="i in 3"
             :key="i"
-            class="h-6 rounded-full"
+            class="h-6 rounded-md"
             :class="['w-20', 'w-24', 'w-16'][i - 1]"
           />
         </template>

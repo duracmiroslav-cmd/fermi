@@ -32,6 +32,11 @@ const isLinkable = (card: FlatCard) =>
 
 const NuxtLink = resolveComponent('NuxtLink');
 
+// Cycled widths for capability skeleton rows so each row reads as a
+// distinct item rather than 6 identical bars.
+const CAP_TITLE_WIDTHS = ['w-40', 'w-32', 'w-48', 'w-36'];
+const CAP_DESC_WIDTHS = ['w-64', 'w-56', 'w-72', 'w-60'];
+
 const filteredCards = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
   if (!q) return flatCards.value;
@@ -158,10 +163,16 @@ const filteredCards = computed(() => {
               <USkeleton class="size-5 rounded shrink-0" />
               <div class="flex-1 min-w-0">
                 <div class="h-5 flex items-center">
-                  <USkeleton class="h-3 w-40" />
+                  <USkeleton
+                    class="h-3"
+                    :class="CAP_TITLE_WIDTHS[(i - 1) % CAP_TITLE_WIDTHS.length]"
+                  />
                 </div>
                 <div class="h-4 flex items-center">
-                  <USkeleton class="h-2.5 w-64 bg-muted/70" />
+                  <USkeleton
+                    class="h-2.5 bg-muted/70"
+                    :class="CAP_DESC_WIDTHS[(i - 1) % CAP_DESC_WIDTHS.length]"
+                  />
                 </div>
               </div>
               <USkeleton class="h-5 w-20 rounded-sm shrink-0" />
