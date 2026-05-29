@@ -129,6 +129,99 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     config:         {},
     credentialType: 'coming_soon',
   },
+  // Twinkle Hub bundles 50+ Taiwan-specific lookup tools + data.gov.tw open
+  // data queries behind one MCP endpoint. The upstream surface is too large
+  // (53+ tools) to expose all at once: each agent picks `enabledGroups` and
+  // the dispatcher unions those groups' `tools` into the LLM allowlist.
+  //
+  // The 12 tools deliberately omitted across groups are: `current_time_in`
+  // (overlaps fermi's in-process `time`), `fetch_url_as_markdown` (overlaps
+  // `web-fetch`, which has SSRF guards), `simplified_to_traditional` and
+  // `traditional_to_simplified` (OpenCC is fermi-owned core policy),
+  // `generate_test_taiwan_id` and `generate_test_tax_id` (dev fixtures),
+  // and the 6 coordinate-based GIS tools (`list_geo_themes`,
+  // `query_geo_theme_buffer`, `query_geo_theme_nearest`,
+  // `lookup_statistics_by_coord`, `lookup_zip33_by_coord`,
+  // `lookup_district_by_coord`) — LINE webhook drops location messages,
+  // so no GPS source ever reaches the agent.
+  'twinkle-hub': {
+    displayName: 'Twinkle Hub',
+    description: 'Look up Taiwan-specific information: dates and holidays (incl. ROC year / makeup days), addresses, postal codes, bank codes, MRT routes, company registration, ID / tax-ID validation, lunar calendar, and 50K+ government open datasets.',
+    config:      {
+      url:         'https://api.twinkleai.tw/mcp/',
+      authKeyType: 'twinkle',
+      toolGroups:  {
+        lookup: {
+          label: '一般查詢（日期 / 身分 / 銀行 / 捷運 / 農曆）',
+          tools: [
+            'twtools-is_taiwan_business_day',
+            'twtools-lookup_holidays',
+            'twtools-roc_year_to_western',
+            'twtools-western_year_to_roc',
+            'twtools-validate_taiwan_id_number',
+            'twtools-validate_tax_id_number',
+            'twtools-lookup_bank_code',
+            'twtools-lookup_mrt_line',
+            'twtools-validate_license_plate',
+            'twtools-validate_phone',
+            'twtools-lookup_24_solar_terms',
+            'twtools-lookup_zodiac',
+            'twtools-lunar_to_solar',
+            'twtools-solar_to_lunar',
+          ],
+        },
+        directory: {
+          label: '地址 + 公司資料',
+          tools: [
+            'twtools-address_en_to_zh',
+            'twtools-address_zh_to_en',
+            'twtools-address_to_postal_code',
+            'twtools-normalize_taiwan_address',
+            'twtools-validate_postal_code',
+            'twtools-lookup_zip33_by_road',
+            'twtools-lookup_admin_code',
+            'twtools-extract_admin_code_from_addr',
+            'twtools-lookup_administrative_district',
+            'twtools-lookup_county_basic_info',
+            'twtools-align_legacy_county',
+            'twtools-list_districts_in_county',
+            'twtools-lookup_company_by_tax_id',
+            'twtools-search_company_by_name',
+            'twtools-lookup_company_branches',
+            'twtools-lookup_company_executives',
+            'twtools-lookup_company_status_code',
+            'twtools-lookup_business_unit_type',
+            'twtools-lookup_capital_range',
+            'twtools-lookup_industry_code',
+            'twtools-lookup_government_agency_code',
+          ],
+        },
+        utility: {
+          label: '通用工具（時間 / PDF / 中文數字）',
+          tools: [
+            'twtools-duration_humanize',
+            'twtools-timezone_convert',
+            'twtools-extract_pdf_metadata',
+            'twtools-extract_pdf_pages',
+            'twtools-extract_pdf_text',
+            'twtools-format_chinese_numerals',
+          ],
+        },
+        // Filled in P6 from a real `list_tools` call against the upstream
+        // MCP server. Defaults off because opendata-* queries are heavier
+        // than utility lookups and likeliest to attract per-call pricing
+        // when Twinkle Hub leaves alpha.
+        opendata: {
+          label: '政府開放資料查詢',
+          tools: [],
+        },
+      },
+    },
+    credentialType: 'providers',
+    providers:      [
+      { slug: 'twinkle', displayName: 'Twinkle Hub', keyType: 'twinkle', status: 'live' },
+    ],
+  },
 };
 
 export const getBuiltInCapability = (slug: string): BuiltInCapability | null =>

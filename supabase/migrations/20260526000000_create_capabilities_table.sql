@@ -78,4 +78,5 @@ insert into public.capabilities (slug, display_name) values
   ('image-gen',       'Image generation'),
   ('github',          'GitHub'),
   ('google-calendar', 'Google Calendar'),
-  ('notion',          'Notion');
+  ('notion',          'Notion'),
+  ('twinkle-hub',     'Twinkle Hub');

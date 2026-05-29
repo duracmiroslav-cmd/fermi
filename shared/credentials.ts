@@ -10,7 +10,8 @@ export type KeyType
     | 'gemini'
     | 'tavily'
     | 'fal'
-    | 'github';
+    | 'github'
+    | 'twinkle';
 
 type Bytes = Uint8Array<ArrayBuffer>;
 
