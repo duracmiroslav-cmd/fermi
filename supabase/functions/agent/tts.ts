@@ -1,8 +1,16 @@
-// OpenAI tts-1 client. Direct fetch wrapper for the
+// OpenAI text-to-speech client. Direct fetch wrapper for the
 // `/v1/audio/speech` endpoint. Returns raw AAC bytes (ADTS frames)
 // because OpenAI's `response_format=aac` is the closest to LINE's
 // expected m4a. Some clients accept it as-is; if LINE rejects we
 // add an MP4 muxing pass downstream rather than baking it in here.
+
+import {
+  DEFAULT_TTS_MODEL,
+  DEFAULT_TTS_VOICE,
+  type TtsModel,
+  type TtsVoice,
+  supportsTtsInstructions,
+} from '../../../shared/tts.ts';
 
 export class TTSError extends Error {
   constructor(public readonly status: number, message: string) {
@@ -11,8 +19,6 @@ export class TTSError extends Error {
 }
 
 const TTS_ENDPOINT = 'https://api.openai.com/v1/audio/speech';
-const DEFAULT_TTS_MODEL = 'tts-1';
-const DEFAULT_VOICE = 'alloy';
 
 // LINE audio messages need a duration in milliseconds for the player
 // UI. Without decoding the AAC frames (heavy in Edge runtime) we
@@ -34,11 +40,28 @@ export interface SpeechResult {
 }
 
 export const synthesizeSpeech = async (params: {
-  apiKey: string;
-  text: string;
-  voice?: string;
+  apiKey:       string;
+  text:         string;
+  model?:       TtsModel | null;
+  voice?:       TtsVoice | null;
+  instructions?: string | null;
 }): Promise<SpeechResult> => {
-  const { apiKey, text, voice = DEFAULT_VOICE } = params;
+  const { apiKey, text } = params;
+  const model = params.model ?? DEFAULT_TTS_MODEL;
+  const voice = params.voice ?? DEFAULT_TTS_VOICE;
+
+  const body: Record<string, unknown> = {
+    model,
+    input: text,
+    voice,
+    response_format: 'aac',
+  };
+  // Older models (tts-1 / tts-1-hd) silently ignore `instructions`,
+  // but a few accounts have surfaced 400s when the param is present.
+  // Drop it unless the model supports it.
+  if (params.instructions && supportsTtsInstructions(model)) {
+    body.instructions = params.instructions;
+  }
 
   const res = await fetch(TTS_ENDPOINT, {
     method: 'POST',
@@ -46,16 +69,11 @@ export const synthesizeSpeech = async (params: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model: DEFAULT_TTS_MODEL,
-      input: text,
-      voice,
-      response_format: 'aac',
-    }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
-    const body = await res.text();
-    throw new TTSError(res.status, `OpenAI tts-1 ${res.status}: ${body.slice(0, 400)}`);
+    const errBody = await res.text();
+    throw new TTSError(res.status, `OpenAI ${model} ${res.status}: ${errBody.slice(0, 400)}`);
   }
 
   const bytes = new Uint8Array(await res.arrayBuffer());

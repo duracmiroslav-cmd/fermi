@@ -3,6 +3,7 @@ import { loadActiveCapabilities } from '../../../shared/agentCapabilities.ts';
 import { type AudioMime, detectAudioMime } from '../../../shared/audio.ts';
 import { detectImageMime, type ImageMime } from '../../../shared/image.ts';
 import { type VoiceReplyMode, findAgentById } from '../../../shared/agents.ts';
+import { type TtsModel, type TtsVoice } from '../../../shared/tts.ts';
 import { findBotById } from '../../../shared/bots.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
 import { getKek } from '../../../shared/kek.ts';
@@ -181,6 +182,9 @@ const runAgentLoop = async (params: {
     systemPrompt: string | null;
     defaultTextModel: string | null;
     defaultVisionModel: string | null;
+    defaultTtsModel: TtsModel | null;
+    defaultTtsVoice: TtsVoice | null;
+    ttsInstructions: string | null;
     voiceReplyMode: VoiceReplyMode;
   };
   openrouterKey: string;
@@ -446,7 +450,13 @@ const runAgentLoop = async (params: {
             purpose: 'openai',
             platformKey: PLATFORM_OPENAI_KEY,
           });
-          const speech = await synthesizeSpeech({ apiKey: resolved.key, text: finalText });
+          const speech = await synthesizeSpeech({
+            apiKey:       resolved.key,
+            text:         finalText,
+            model:        agent.defaultTtsModel,
+            voice:        agent.defaultTtsVoice,
+            instructions: agent.ttsInstructions,
+          });
           const { storagePath } = await uploadGeneratedAudio(admin, {
             ownerId: bot.ownerId,
             threadId,

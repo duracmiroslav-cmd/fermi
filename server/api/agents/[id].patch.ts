@@ -20,6 +20,9 @@ export default defineEventHandler(async (event) => {
   if ('systemPrompt' in input) patch.system_prompt = input.systemPrompt;
   if ('defaultTextModel' in input) patch.default_text_model = input.defaultTextModel;
   if ('defaultVisionModel' in input) patch.default_vision_model = input.defaultVisionModel;
+  if ('defaultTtsModel' in input) patch.default_tts_model = input.defaultTtsModel;
+  if ('defaultTtsVoice' in input) patch.default_tts_voice = input.defaultTtsVoice;
+  if ('ttsInstructions' in input) patch.tts_instructions = input.ttsInstructions;
   if ('modelProviderId' in input) patch.model_provider_id = input.modelProviderId;
   if ('voiceReplyMode' in input) patch.voice_reply_mode = input.voiceReplyMode;
   if ('avatarUrl' in input) patch.avatar_url = input.avatarUrl;
@@ -35,7 +38,7 @@ export default defineEventHandler(async (event) => {
     .eq('id', id)
     .eq('owner_id', user.id)
     .is('deleted_at', null)
-    .select('id, name, system_prompt, default_text_model, default_vision_model, model_provider_id, voice_reply_mode, avatar_url, updated_at')
+    .select('id, name, system_prompt, default_text_model, default_vision_model, default_tts_model, default_tts_voice, tts_instructions, model_provider_id, voice_reply_mode, avatar_url, updated_at')
     .maybeSingle();
   if (error) throw error;
   if (!data) {
@@ -48,6 +51,9 @@ export default defineEventHandler(async (event) => {
     systemPrompt:       data.system_prompt,
     defaultTextModel:   data.default_text_model,
     defaultVisionModel: data.default_vision_model,
+    defaultTtsModel:    data.default_tts_model,
+    defaultTtsVoice:    data.default_tts_voice,
+    ttsInstructions:    data.tts_instructions,
     modelProviderId:    data.model_provider_id,
     voiceReplyMode:     data.voice_reply_mode,
     avatarUrl:          data.avatar_url,

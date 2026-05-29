@@ -14,6 +14,14 @@
 -- `default_vision_model` (nullable) overrides the worker's hardcoded
 -- read-image default (`anthropic/claude-sonnet-4.5`); null = fall back
 -- to it. Used whenever a conversation contains an image.
+--
+-- `default_tts_model` / `default_tts_voice` / `tts_instructions` are
+-- nullable overrides for the OpenAI TTS path; null falls back to the
+-- worker default (`gpt-4o-mini-tts` + `cedar`). No CHECK constraint
+-- on the model / voice columns: the catalog grows with OpenAI, so
+-- Zod validates on write and `shared/tts.ts` parses defensively on
+-- read. `tts_instructions` is honored only when the model is
+-- `gpt-4o-mini-tts` (older models ignore it).
 
 create table public.agents (
   id                    uuid primary key default gen_random_uuid(),
@@ -22,6 +30,9 @@ create table public.agents (
   system_prompt         text,
   default_text_model    text,
   default_vision_model  text,
+  default_tts_model     text,
+  default_tts_voice     text,
+  tts_instructions      text,
   model_provider_id     uuid not null references public.model_providers(id),
   voice_reply_mode      text not null default 'off'
                           check (voice_reply_mode in ('off', 'auto', 'always')),
@@ -73,6 +84,9 @@ create function public.insert_agent_if_under_limit(
   p_system_prompt        text,
   p_default_text_model   text,
   p_default_vision_model text,
+  p_default_tts_model    text,
+  p_default_tts_voice    text,
+  p_tts_instructions     text,
   p_model_provider_id    uuid,
   p_voice_reply_mode     text,
   p_avatar_url           text,
@@ -96,11 +110,11 @@ begin
   end if;
 
   return query
-    insert into public.agents (owner_id, name, system_prompt, default_text_model, default_vision_model, model_provider_id, voice_reply_mode, avatar_url)
-    values (p_owner_id, p_name, p_system_prompt, p_default_text_model, p_default_vision_model, p_model_provider_id, p_voice_reply_mode, p_avatar_url)
+    insert into public.agents (owner_id, name, system_prompt, default_text_model, default_vision_model, default_tts_model, default_tts_voice, tts_instructions, model_provider_id, voice_reply_mode, avatar_url)
+    values (p_owner_id, p_name, p_system_prompt, p_default_text_model, p_default_vision_model, p_default_tts_model, p_default_tts_voice, p_tts_instructions, p_model_provider_id, p_voice_reply_mode, p_avatar_url)
     returning agents.id;
 end;
 $$;
 
-revoke execute on function public.insert_agent_if_under_limit(uuid, text, text, text, text, uuid, text, text, int) from public;
-grant  execute on function public.insert_agent_if_under_limit(uuid, text, text, text, text, uuid, text, text, int) to service_role;
+revoke execute on function public.insert_agent_if_under_limit(uuid, text, text, text, text, text, text, text, uuid, text, text, int) from public;
+grant  execute on function public.insert_agent_if_under_limit(uuid, text, text, text, text, text, text, text, uuid, text, text, int) to service_role;

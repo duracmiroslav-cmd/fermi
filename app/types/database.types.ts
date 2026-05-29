@@ -213,6 +213,8 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           default_text_model: string | null
+          default_tts_model: string | null
+          default_tts_voice: string | null
           default_vision_model: string | null
           deleted_at: string | null
           id: string
@@ -221,6 +223,7 @@ export type Database = {
           name: string
           owner_id: string
           system_prompt: string | null
+          tts_instructions: string | null
           updated_at: string
           voice_reply_mode: string
         }
@@ -228,6 +231,8 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           default_text_model?: string | null
+          default_tts_model?: string | null
+          default_tts_voice?: string | null
           default_vision_model?: string | null
           deleted_at?: string | null
           id?: string
@@ -236,6 +241,7 @@ export type Database = {
           name: string
           owner_id: string
           system_prompt?: string | null
+          tts_instructions?: string | null
           updated_at?: string
           voice_reply_mode?: string
         }
@@ -243,6 +249,8 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           default_text_model?: string | null
+          default_tts_model?: string | null
+          default_tts_voice?: string | null
           default_vision_model?: string | null
           deleted_at?: string | null
           id?: string
@@ -251,6 +259,7 @@ export type Database = {
           name?: string
           owner_id?: string
           system_prompt?: string | null
+          tts_instructions?: string | null
           updated_at?: string
           voice_reply_mode?: string
         }
@@ -722,12 +731,15 @@ export type Database = {
         Args: {
           p_avatar_url: string
           p_default_text_model: string
+          p_default_tts_model: string
+          p_default_tts_voice: string
           p_default_vision_model: string
           p_limit: number
           p_model_provider_id: string
           p_name: string
           p_owner_id: string
           p_system_prompt: string
+          p_tts_instructions: string
           p_voice_reply_mode: string
         }
         Returns: {

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { type TtsModel, type TtsVoice, parseTtsModel, parseTtsVoice } from './tts.ts';
 
 // Matches `agents.voice_reply_mode` CHECK constraint. Narrow type
 // gates downstream switches on a closed set; widening requires both
@@ -19,6 +20,9 @@ export interface AgentConfig {
   systemPrompt:       string | null;
   defaultTextModel:   string | null;
   defaultVisionModel: string | null;
+  defaultTtsModel:    TtsModel | null;
+  defaultTtsVoice:    TtsVoice | null;
+  ttsInstructions:    string | null;
   avatarUrl:          string | null;
   voiceReplyMode:     VoiceReplyMode;
 }
@@ -30,6 +34,9 @@ const mapRow = (data: {
   system_prompt:        string | null;
   default_text_model:   string | null;
   default_vision_model: string | null;
+  default_tts_model:    string | null;
+  default_tts_voice:    string | null;
+  tts_instructions:     string | null;
   avatar_url:           string | null;
   voice_reply_mode:     string;
 }): AgentConfig => ({
@@ -39,6 +46,9 @@ const mapRow = (data: {
   systemPrompt:       data.system_prompt,
   defaultTextModel:   data.default_text_model,
   defaultVisionModel: data.default_vision_model,
+  defaultTtsModel:    parseTtsModel(data.default_tts_model),
+  defaultTtsVoice:    parseTtsVoice(data.default_tts_voice),
+  ttsInstructions:    data.tts_instructions,
   avatarUrl:          data.avatar_url,
   voiceReplyMode:     parseVoiceReplyMode(data.voice_reply_mode),
 });
@@ -52,7 +62,7 @@ export const findAgentById = async (
 ): Promise<AgentConfig | null> => {
   const { data, error } = await admin
     .from('agents')
-    .select('id, owner_id, name, system_prompt, default_text_model, default_vision_model, avatar_url, voice_reply_mode')
+    .select('id, owner_id, name, system_prompt, default_text_model, default_vision_model, default_tts_model, default_tts_voice, tts_instructions, avatar_url, voice_reply_mode')
     .eq('id', agentId)
     .is('deleted_at', null)
     .maybeSingle();
