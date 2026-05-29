@@ -21,9 +21,9 @@ Use semantic tokens. Never use raw color classes.
 - ✓ `text-muted`, `bg-default`, `border-default`
 
 Text intensity (high to low):
-`text-highlighted` > `text-default` (omit class) > `text-toned`
+`text-highlighted` > `text-default` (omit class) > `text-toned` > `text-muted`
 
-`text-toned` is the only gray shade. Do NOT use `text-muted` or `text-dimmed` — all secondary/tertiary text collapses to a single tier. Hierarchy below `text-default` is signaled by size or weight, not by additional gray shades.
+`text-muted` is **not** "softer toned" — it is a distinct semantic tier reserved for **absence**: empty-state characters (`—`), placeholder hints in inputs, disabled-look indicators. Reach for it only when the text represents "there is nothing here," not "this text is less important." General secondary copy (descriptions, metadata, helper text) stays on `text-toned`. Do not introduce additional shades like `text-dimmed` or opacity-tuned grays (`text-toned/60`); for hierarchy below `text-toned`, use size or weight, not new gray tiers.
 
 Background elevation (dark mode):
 `bg-default` (page) → `bg-muted/50` (card / list resting surface) → `bg-muted` (area hover) → `bg-accented` (modals / popovers)

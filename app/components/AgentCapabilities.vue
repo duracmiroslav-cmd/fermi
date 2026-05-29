@@ -93,7 +93,8 @@ const onToggleExpand = (capability: AgentCapabilityRow, open: boolean) => {
   }
 };
 
-const onToggleTool = (capability: AgentCapabilityRow, tool: string, enabled: boolean) => {
+const onToggleTool = (capability: AgentCapabilityRow, tool: string, enabled: boolean | 'indeterminate') => {
+  if (enabled === 'indeterminate') return;
   const current = [...getEffectiveAllowlist(capability)];
   if (enabled) {
     if (!current.includes(tool)) current.push(tool);
@@ -247,8 +248,8 @@ const onSaveTools = async (capability: AgentCapabilityRow) => {
           </div>
 
           <template #content>
-            <div class="border-t border-default px-4 pb-4 pt-3 bg-muted/50">
-              <div class="hidden sm:flex gap-4 pb-2 border-b border-default text-xs uppercase tracking-wider text-toned">
+            <div class="border-t border-default p-4">
+              <div class="hidden sm:flex gap-4 pb-3 border-b border-default text-xs uppercase tracking-wider text-toned">
                 <span class="w-32 shrink-0" />
                 <span class="flex-1">Read</span>
                 <span class="flex-1">Write</span>
@@ -300,7 +301,7 @@ const onSaveTools = async (capability: AgentCapabilityRow) => {
                   </label>
                   <span
                     v-if="!group.write.length"
-                    class="text-xs text-toned/60"
+                    class="text-xs text-muted"
                   >
                     —
                   </span>

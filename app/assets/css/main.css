@@ -58,12 +58,6 @@
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
-/* Collapse muted and dimmed grays into toned (covers Nuxt UI defaults too). */
-:root, .dark {
-  --ui-text-muted: var(--ui-text-toned);
-  --ui-text-dimmed: var(--ui-text-toned);
-}
-
 a {
   text-underline-offset: 0.2em;
 }
