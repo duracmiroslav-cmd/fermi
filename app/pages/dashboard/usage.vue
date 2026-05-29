@@ -75,7 +75,7 @@ const getPercent = (item: UsageItem): number => (
             class="flex flex-col gap-2"
           >
             <div class="flex items-baseline justify-between">
-              <span class="font-medium text-highlighted">
+              <span class="font-medium">
                 {{ PURPOSE_LABEL[item.purpose] }}
               </span>
               <span class="text-sm text-toned font-mono">
@@ -91,7 +91,7 @@ const getPercent = (item: UsageItem): number => (
           class="flex flex-col gap-3"
         >
           <div class="flex flex-col gap-1">
-            <span class="font-medium text-highlighted">
+            <span class="font-medium">
               升 Pro 解鎖更高 cap
             </span>
             <span class="text-sm text-toned">

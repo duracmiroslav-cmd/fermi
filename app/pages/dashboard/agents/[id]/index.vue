@@ -131,7 +131,7 @@ const visionModel = computed<ProviderModel>(() => {
           <UCard>
             <p
               v-if="agent.systemPrompt"
-              class="text-sm text-highlighted whitespace-pre-wrap break-words leading-relaxed"
+              class="text-sm whitespace-pre-wrap break-words leading-relaxed"
             >
               {{ agent.systemPrompt }}
             </p>
@@ -208,13 +208,13 @@ const visionModel = computed<ProviderModel>(() => {
               <dt class="text-toned text-right">
                 Created
               </dt>
-              <dd class="text-highlighted">
+              <dd>
                 <TimeAgo :date="agent.createdAt" />
               </dd>
               <dt class="text-toned text-right">
                 Updated
               </dt>
-              <dd class="text-highlighted">
+              <dd>
                 <TimeAgo :date="agent.updatedAt" />
               </dd>
             </dl>

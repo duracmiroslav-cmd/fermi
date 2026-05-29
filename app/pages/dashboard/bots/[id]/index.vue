@@ -184,7 +184,7 @@ const copyWebhook = async () => {
               <dt class="text-toned text-right">
                 External ID
               </dt>
-              <dd class="text-highlighted break-all">
+              <dd class="break-all">
                 {{ bot.externalId }}
               </dd>
               <dt class="text-toned text-right">
@@ -215,7 +215,7 @@ const copyWebhook = async () => {
               <dt class="text-toned text-right">
                 Webhook URL
               </dt>
-              <dd class="text-highlighted flex items-center gap-1.5 min-w-0">
+              <dd class="flex items-center gap-1.5 min-w-0">
                 <code class="font-mono truncate select-all">{{ bot.webhookUrl }}</code>
                 <UButton
                   color="neutral"
@@ -229,13 +229,13 @@ const copyWebhook = async () => {
               <dt class="text-toned text-right">
                 Created
               </dt>
-              <dd class="text-highlighted">
+              <dd>
                 <TimeAgo :date="bot.createdAt" />
               </dd>
               <dt class="text-toned text-right">
                 Updated
               </dt>
-              <dd class="text-highlighted">
+              <dd>
                 <TimeAgo :date="bot.updatedAt" />
               </dd>
             </dl>
