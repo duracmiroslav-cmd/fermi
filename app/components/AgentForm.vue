@@ -243,7 +243,7 @@ const displayTtsVoice = computed<TtsVoice | undefined>({
 
 // Instructions only flow through to OpenAI for gpt-4o-mini-tts;
 // older models silently drop them. Disabling the field signals that
-// the value won't be honored without us throwing it away on submit.
+// the value won't be honored without discarding it on submit.
 const isInstructionsSupported = computed(() =>
   supportsTtsInstructions(effectiveTtsModel.value),
 );

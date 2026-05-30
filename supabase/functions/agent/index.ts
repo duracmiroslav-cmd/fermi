@@ -186,8 +186,7 @@ const runAgentLoop = async (params: {
   replyToken: string;
   userInput: UserInput;
   // Webhook timestamp from LINE (ms since epoch). Anchors the
-  // reply-token budget: we time elapsed from when LINE delivered
-  // the event, not when our worker dequeued it.
+  // reply-token budget on LINE's delivery time, not worker dequeue.
   eventTimestamp: number;
 }): Promise<void> => {
   const { bot, agent, openrouterKey, lineAccessToken, kek, externalUserId, replyToken, userInput, eventTimestamp } = params;
@@ -318,7 +317,7 @@ const runAgentLoop = async (params: {
         });
       } catch (err) {
         // OpenRouter 404 on a chat completion almost always means the
-        // model id retired (we hit the same endpoint every call, so
+        // model id retired (the endpoint is fixed every call, so
         // path-not-found is structurally impossible). Retry once with
         // the fermi default for this branch, then carry the fallback
         // forward so subsequent iterations don't re-pay the 404 cost.
@@ -449,10 +448,10 @@ const runAgentLoop = async (params: {
       = agent.voiceReplyMode === 'always'
         || (agent.voiceReplyMode === 'auto' && userInput.type === 'audio');
 
-    // Synthesize TTS first (if requested) so we know whether the
-    // primary `messages` row should be audio (with transcript) or
-    // plain text. Mirrors the user-side STT shape: a voice turn is
-    // stored as a single audio row with transcript embedded.
+    // Synthesize TTS first (if requested) so the primary `messages`
+    // row knows whether to store an audio variant (with transcript)
+    // or plain text. Mirrors the user-side STT shape: a voice turn
+    // is one audio row with transcript embedded.
     let ttsAudio: { storagePath: string; signedUrl: string; mime: string; sizeBytes: number; durationMs: number } | null = null;
     // Distinguishes quota block (suffix CTA on text fallback) from
     // generic TTS failure (silent text fallback). Both end up as text;
@@ -634,10 +633,10 @@ const runAgentLoop = async (params: {
     }
     await finishRun(admin, runId, 'failed', totalCostUsd, deriveErrorCode(errStatus));
     // Retry semantics flip on whether the user saw the error: once
-    // notified, throwing would have pgmq redeliver and we'd spam the
-    // chat with a duplicate ⚠️ every visibility-timeout (~30s). If
-    // notice itself failed (LINE 5xx), keep the throw so pgmq can
-    // retry (maybe the next attempt lands while LINE is back up).
+    // notified, throwing would have pgmq redeliver and spam the chat
+    // with a duplicate ⚠️ every visibility-timeout (~30s). If notice
+    // itself failed (LINE 5xx), keep the throw so pgmq can retry
+    // (maybe the next attempt lands while LINE is back up).
     if (userNotified) return;
     throw err;
   }
@@ -657,7 +656,7 @@ const formatErrorForLine = (err: unknown): string => {
   return `⚠️ ${message.slice(0, maxLen)}`;
 };
 
-// Filters out events whose webhookEventId we've already processed
+// Filters out events whose webhookEventId is already processed
 // (pgmq re-delivery, LINE webhook retry). Events without a
 // webhookEventId fall through unguarded (defensive only, LINE has
 // set this field on every webhook event since 2021).
@@ -727,10 +726,10 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     openrouterKey = resolved.key;
   } catch (err) {
     // FreeBYOKRequiredError = owner is on Free + hasn't connected.
-    // PlatformKeyNotConfiguredError = Pro user but fermi's env is missing
-    // (operational issue on our side; user-facing message must not blame
-    // the user). Any other throw is a real DB/decryption error → bubble
-    // so pgmq retries.
+    // PlatformKeyNotConfiguredError = Pro user but fermi's env is
+    // missing (operational issue on the fermi side; user-facing
+    // message must not blame the user). Any other throw is a real
+    // DB/decryption error → bubble so pgmq retries.
     const notice = err instanceof FreeBYOKRequiredError
       ? FREE_BYOK_NOTICE_OPENROUTER
       : err instanceof PlatformKeyNotConfiguredError
@@ -751,7 +750,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
   for (const event of events) {
     // LINE always sets `timestamp` on webhook events. The fallback
     // covers malformed payloads only; assuming "just arrived" keeps
-    // us on Reply, and a 400 still falls back to Push internally.
+    // the call on Reply, and a 400 still falls back to Push internally.
     const eventTimestamp = typeof event.timestamp === 'number' ? event.timestamp : Date.now();
 
     if (isTextMessageFromUser(event)) {
@@ -900,7 +899,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       continue;
     }
 
-    // Fallback for message events whose subtype we don't support yet:
+    // Fallback for message events whose subtype is unsupported:
     // sticker / video / file / location / imagemap. Reply once with a
     // clear scope notice so the user knows what to send instead.
     // Non-message events (follow / unfollow / postback / ...) drop
