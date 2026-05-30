@@ -160,10 +160,21 @@ const isTtsModelStale = computed(() =>
   && !TTS_MODELS.some(m => m.value === state.defaultTtsModel),
 );
 
-const isTtsVoiceStale = computed(() =>
-  !!state.defaultTtsVoice
-  && !TTS_VOICES.some(v => v.value === state.defaultTtsVoice),
-);
+// Two ways a voice goes stale: the catalog dropped it entirely
+// (fermi removed an OpenAI voice that retired), or the catalog still
+// has it but the currently-selected TTS model doesn't accept it
+// (e.g. cedar with tts-1). Distinguishing the reason lets the warning
+// copy say something true: "no longer available" vs "doesn't work
+// with X". Reset CTA stays the same.
+const ttsVoiceStaleReason = computed<'catalog' | 'incompat' | null>(() => {
+  const voice = state.defaultTtsVoice;
+  if (!voice) return null;
+  if (!TTS_VOICES.some(v => v.value === voice)) return 'catalog';
+  if (!supportsTtsVoice(effectiveTtsModel.value, voice)) return 'incompat';
+  return null;
+});
+
+const isTtsVoiceStale = computed(() => ttsVoiceStaleReason.value !== null);
 
 const onTextModelReset = () => {
   state.defaultTextModel = null;
@@ -243,18 +254,6 @@ const displayTtsVoice = computed<TtsVoice | undefined>({
 const isInstructionsSupported = computed(() =>
   supportsTtsInstructions(effectiveTtsModel.value),
 );
-
-// Reset voice when the model change drops the current pick from the
-// supported set (e.g. user switches from gpt-4o-mini-tts to tts-1
-// while voice is on cedar). null lets the worker resolve to the
-// model's own default rather than carrying a stale incompatible
-// value forward.
-watch(effectiveTtsModel, (model) => {
-  const voice = state.defaultTtsVoice;
-  if (voice && !supportsTtsVoice(model, voice)) {
-    state.defaultTtsVoice = null;
-  }
-});
 
 // Models come from OpenRouter; refresh re-pulls the catalog (e.g. after a
 // failed initial load) without closing the picker.
@@ -654,7 +653,9 @@ onUnmounted(stopPreviewAudio);
         color="warning"
         variant="subtle"
         icon="i-lucide-triangle-alert"
-        :title="`${state.defaultTtsVoice} is no longer available`"
+        :title="ttsVoiceStaleReason === 'catalog'
+          ? `${state.defaultTtsVoice} is no longer available`
+          : `${state.defaultTtsVoice} doesn't work with ${effectiveTtsModel}`"
         :description="`Reset to fermi's default (${DEFAULT_TTS_VOICE_NAME}) or pick a new voice from the list above.`"
         :actions="[{ label: 'Reset to default', color: 'warning', variant: 'soft', onClick: onTtsVoiceReset }]"
         class="mt-2"
