@@ -16,12 +16,6 @@ import {
   supportsTtsVoice,
 } from '~~/shared/tts';
 
-// Narrow unions for the TTS columns let USelect's v-model typing
-// stay strict end-to-end. `null` is the "unset, use worker fallback"
-// sentinel — string '' would collide with USelect's empty-state
-// detection. The text + vision model fields stay loose `string`
-// because their catalog is OpenRouter (200+ entries, schema-checked
-// only by length on the server, not enum membership).
 // `null` is the canonical "unset, use worker fallback" sentinel for
 // every picker field. Form layer (USelect / USelectMenu) maps null ↔
 // undefined at the display computeds; API boundary passes null
@@ -266,9 +260,8 @@ const onRefresh = async () => {
   }
 };
 
-// Stops any in-flight playback and revokes its blob URL. Called both
-// before kicking off a new preview and from onUnmounted so a fast
-// re-click or component teardown doesn't accumulate leaked URLs.
+// Revokes the blob URL so a fast re-click or component teardown
+// doesn't accumulate leaks.
 const stopPreviewAudio = () => {
   const audio = previewAudio.value;
   if (!audio) return;
@@ -277,9 +270,8 @@ const stopPreviewAudio = () => {
   previewAudio.value = null;
 };
 
-// Tracks the actively-playing Audio. The button doubles as a stop
-// control while this is set, so the user can cut off a too-long
-// sample without waiting for it to finish.
+// The button doubles as a stop control while playback is active so
+// the user can cut off a too-long sample without waiting.
 const isPlaying = computed(() => !!previewAudio.value);
 
 const onPreview = async () => {

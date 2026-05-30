@@ -367,7 +367,6 @@ const runAgentLoop = async (params: {
         openrouterGenId: result.generationId,
       });
 
-      // No tool calls, model's final answer. Exit loop.
       if (!result.toolCalls) {
         finalText = result.text ?? '';
         break;
@@ -514,10 +513,8 @@ const runAgentLoop = async (params: {
       }
     }
 
-    // Primary assistant row: audio variant when TTS succeeded (single
-    // row with transcript embedded, mirroring the user STT shape),
-    // text variant otherwise. Either way `finalText` is the
-    // canonical semantic content.
+    // Audio rows embed the transcript, mirroring the user-side STT
+    // shape so history rebuild treats both ends symmetrically.
     if (ttsAudio) {
       await appendMessage(admin, threadId, 'assistant', {
         type: 'audio',
@@ -633,11 +630,8 @@ const runAgentLoop = async (params: {
       type: 'error_occurred',
       payload,
     });
-    // Surface the failure to LINE so the user (and dogfooding owner)
-    // sees what went wrong instead of staring at a vanished `...`.
-    // Ships the raw error string for fast dogfooding. Once non-
-    // trusted users start arriving this needs to switch to a
-    // friendly notice plus an admin-only debug link.
+    // Surface the failure to LINE so the user sees what went wrong
+    // instead of staring at a vanished `...`.
     let userNotified = false;
     try {
       await deliverMessages({
@@ -944,7 +938,6 @@ const processMessage = async (payload: QueuePayload): Promise<void> => {
       await processLineMessage(payload);
       return;
     default: {
-      // Adding a new platform without a case here will fail compile.
       const exhaustive: never = payload.platform;
       console.warn('unknown platform; dropping', { platform: exhaustive });
     }
