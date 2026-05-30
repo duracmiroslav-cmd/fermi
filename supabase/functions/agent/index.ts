@@ -74,13 +74,10 @@ interface LineEvent {
   webhookEventId?: string;
 }
 
-// What the user just sent for this turn. Discriminated at the event
-// boundary in processLineMessage; runAgentLoop only sees the
-// validated form. The `audio` variant carries both the Whisper
-// transcript (LLM consumes) and the raw bytes (uploaded to storage
-// for a future thread replay UI). Knowing the input was audio is
-// also load-bearing for `voiceReplyMode='auto'`, which mirrors back
-// voice.
+// The `audio` variant carries both the Whisper transcript (LLM
+// consumes) and the raw bytes (storage for a future replay UI). The
+// audio modality is also load-bearing for `voiceReplyMode='auto'`,
+// which mirrors back voice.
 type UserInput
   = | { type: 'text';  text: string }
     | { type: 'audio'; lineMessageId: string; mime: AudioMime; bytes: Uint8Array; transcript: string }
@@ -108,10 +105,6 @@ const FREE_BYOK_NOTICE_OPENROUTER
 const PLATFORM_KEY_OPS_NOTICE = '⚠️ Pro 服務暫時不可用，已通知 fermi 處理，請稍後再試。';
 const FREE_BYOK_NOTICE_OPENAI
   = '🎙️ 語音功能需要 OpenAI key。Free 方案請到 https://fermi.tw/dashboard/connectors 連接，或升級 Pro 由 fermi 代管。';
-// Quota-exhausted notices. STT replies via safeReply; TTS suffix gets
-// appended to the LLM's text reply when audio fallback fires; the
-// extended_run notice fully replaces `finalText` when the agent loop
-// must abort mid-flight.
 const QUOTA_EXHAUSTED_STT
   = '⚠️ 這個月語音輸入額度已用完。可改傳文字訊息，或請 bot 主人升 Pro 解鎖：https://fermi.tw/dashboard/billing';
 const QUOTA_EXHAUSTED_TTS_SUFFIX
@@ -161,10 +154,9 @@ const isAudioMessageFromUser = (event: LineEvent): event is LineEvent & {
   && typeof event.source.userId === 'string'
 );
 
-// Reply-bearing user message of any modality we accept. Used by the
-// "no agent / no openrouter key" early-return paths so a message of
-// any supported type arriving in those states still gets the
-// configuration notice.
+// Reply-bearing user message of any modality fermi accepts. Lets
+// early-return paths (no agent / no openrouter key) still surface a
+// configuration notice regardless of the input modality.
 const isReplyableUserMessage = (event: LineEvent): event is LineEvent & {
   replyToken: string;
   source: LineSource & { userId: string };
@@ -248,9 +240,8 @@ const runAgentLoop = async (params: {
   let step = 1;
   let totalCostUsd = 0;
 
-  // Side-effect sink for tools that produce media (image-gen, future
-  // TTS-via-tool etc.). Tools push entries during execute; the loop
-  // tail drains them into the LINE delivery array.
+  // Side-effect sink for tools that produce media. Tools push entries
+  // during execute; the loop tail drains them into LINE delivery.
   const attachments: ToolAttachment[] = [];
 
   try {
@@ -529,7 +520,7 @@ const runAgentLoop = async (params: {
 
     // Persist tool-produced media as additional assistant rows so
     // history rebuild on subsequent turns can re-sign URLs and feed
-    // them to the LLM (same pattern as user-uploaded vision images).
+    // them to the LLM.
     for (const att of attachments) {
       if (att.type === 'image') {
         await appendMessage(admin, threadId, 'assistant', {
@@ -541,14 +532,10 @@ const runAgentLoop = async (params: {
       }
     }
 
-    // Compose LINE delivery: primary message (audio if TTS succeeded,
-    // text otherwise) followed by any image attachments. LINE caps
-    // multi-message replies at 5; image attachments take the slots
-    // after the primary, so a generation-heavy turn that produces 5+
-    // images would lose the tail. Acceptable for v1 (the LLM is
-    // discouraged from generating that many images per turn in the
-    // tool description), and the truncation layer (replyMessages /
-    // pushMessages) caps at LINE_MESSAGES_PER_CALL anyway.
+    // LINE caps multi-message replies at 5; image attachments take the
+    // slots after the primary, so a turn that produces 5+ images loses
+    // the tail. The truncation layer (replyMessages / pushMessages)
+    // caps at LINE_MESSAGES_PER_CALL regardless.
     const textWithSuffix = ttsQuotaExhausted
       ? `${finalText}${QUOTA_EXHAUSTED_TTS_SUFFIX}`
       : finalText;

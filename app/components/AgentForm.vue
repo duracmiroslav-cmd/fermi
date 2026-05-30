@@ -86,7 +86,7 @@ const isPreviewing = ref(false);
 // button is the entire UI.
 const previewAudio = ref<HTMLAudioElement | null>(null);
 
-// Same UUID-flash-avoidance trick as the agent picker: hide value while loading.
+// Hide value while loading to avoid a UUID flash before names arrive.
 const displayTextModelId = computed<string | undefined>({
   get: () => (modelsPending.value ? undefined : state.defaultTextModel ?? undefined),
   set: (v) => { state.defaultTextModel = v ?? null; },
@@ -228,10 +228,9 @@ const effectiveTtsModel = computed<TtsModel>(
   () => state.defaultTtsModel ?? DEFAULT_TTS_MODEL,
 );
 
-// USelect's v-model uses `undefined` for "no selection," matching
-// the existing text / vision pickers' display computeds. Translate
-// null ↔ undefined at the boundary so `state` keeps the null
-// sentinel that matches the API + schema.
+// USelect's v-model uses `undefined` for "no selection". Translate
+// null ↔ undefined at the boundary so `state` keeps the null sentinel
+// that matches the API + schema.
 const displayTtsModel = computed<TtsModel | undefined>({
   get: () => state.defaultTtsModel ?? undefined,
   set: (v) => { state.defaultTtsModel = v ?? null; },
