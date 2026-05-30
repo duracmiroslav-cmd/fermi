@@ -6,9 +6,9 @@
 
 import {
   DEFAULT_TTS_MODEL,
-  DEFAULT_TTS_VOICE,
   type TtsModel,
   type TtsVoice,
+  resolveTtsVoice,
   supportsTtsInstructions,
 } from '../../../shared/tts.ts';
 
@@ -48,7 +48,11 @@ export const synthesizeSpeech = async (params: {
 }): Promise<SpeechResult> => {
   const { apiKey, text } = params;
   const model = params.model ?? DEFAULT_TTS_MODEL;
-  const voice = params.voice ?? DEFAULT_TTS_VOICE;
+  // `resolveTtsVoice` swaps an incompatible stored voice (e.g. cedar
+  // on tts-1, set before the model was switched) for the model's
+  // own default. Without this an agent edit could permanently 4xx
+  // TTS for that user until they reopen the form and re-pick.
+  const voice = resolveTtsVoice(model, params.voice ?? null);
 
   const body: Record<string, unknown> = {
     model,

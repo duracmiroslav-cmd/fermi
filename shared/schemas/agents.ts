@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { VOICE_REPLY_MODES } from '../agents';
-import { TTS_MODELS, TTS_VOICES } from '../tts';
+import { TTS_MODEL_IDS, TTS_VOICE_IDS } from '../tts';
 
 export const createAgentInputSchema = z.object({
   name:               z.string().min(1).max(80),
@@ -12,8 +12,8 @@ export const createAgentInputSchema = z.object({
   // side) rather than as a DB CHECK that requires a migration per
   // addition. ttsInstructions is free text; only honored by
   // gpt-4o-mini-tts (older models silently ignore it).
-  defaultTtsModel:    z.enum(TTS_MODELS).nullish(),
-  defaultTtsVoice:    z.enum(TTS_VOICES).nullish(),
+  defaultTtsModel:    z.enum(TTS_MODEL_IDS).nullish(),
+  defaultTtsVoice:    z.enum(TTS_VOICE_IDS).nullish(),
   ttsInstructions:    z.string().max(2000).nullish(),
   // Optional on input: omitting it lets the server default to the
   // OpenRouter row in `model_providers`, preserving today's API shape

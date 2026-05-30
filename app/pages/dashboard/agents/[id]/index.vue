@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import type { VoiceReplyMode } from '~~/shared/agents';
 import { DEFAULT_VISION_MODEL, resolveTextModel } from '~~/shared/constants/models';
-import { DEFAULT_TTS_MODEL, DEFAULT_TTS_VOICE, type TtsModel, type TtsVoice } from '~~/shared/tts';
+import {
+  DEFAULT_TTS_MODEL_NAME,
+  DEFAULT_TTS_VOICE_NAME,
+  type TtsModel,
+  type TtsVoice,
+  getTtsModelName,
+  getTtsVoiceName,
+} from '~~/shared/tts';
 
 definePageMeta({ layout: false });
 
@@ -227,21 +234,21 @@ const visionModel = computed<ProviderModel>(() => {
                 Voice model
               </dt>
               <dd>
-                <span v-if="agent.defaultTtsModel">{{ agent.defaultTtsModel }}</span>
+                <span v-if="agent.defaultTtsModel">{{ getTtsModelName(agent.defaultTtsModel) }}</span>
                 <span
                   v-else
                   class="text-toned"
-                >{{ DEFAULT_TTS_MODEL }} (default)</span>
+                >{{ DEFAULT_TTS_MODEL_NAME }} (default)</span>
               </dd>
               <dt class="text-toned text-right">
                 Voice
               </dt>
               <dd>
-                <span v-if="agent.defaultTtsVoice">{{ agent.defaultTtsVoice }}</span>
+                <span v-if="agent.defaultTtsVoice">{{ getTtsVoiceName(agent.defaultTtsVoice) }}</span>
                 <span
                   v-else
                   class="text-toned"
-                >{{ DEFAULT_TTS_VOICE }} (default)</span>
+                >{{ DEFAULT_TTS_VOICE_NAME }} (default)</span>
               </dd>
               <dt class="text-toned text-right">
                 Voice instructions

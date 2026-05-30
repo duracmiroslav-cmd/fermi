@@ -4,12 +4,16 @@ import { DEFAULT_TEXT_MODEL, DEFAULT_VISION_MODEL } from '~~/shared/constants/mo
 import { createAgentInputSchema } from '~~/shared/schemas/agents';
 import {
   DEFAULT_TTS_MODEL,
+  DEFAULT_TTS_MODEL_NAME,
   DEFAULT_TTS_VOICE,
+  DEFAULT_TTS_VOICE_NAME,
   TTS_MODELS,
   TTS_VOICES,
   type TtsModel,
   type TtsVoice,
+  VOICES_BY_MODEL,
   supportsTtsInstructions,
+  supportsTtsVoice,
 } from '~~/shared/tts';
 
 // Narrow unions for the TTS columns let USelect's v-model typing
@@ -78,8 +82,11 @@ const isTextModelPickerOpening = ref(false);
 const isVisionModelPickerOpening = ref(false);
 const isRefreshing = ref(false);
 const isPreviewing = ref(false);
-const previewAudioUrl = ref<string | null>(null);
-const previewAudioRef = ref<HTMLAudioElement | null>(null);
+// One in-flight Audio element so the next preview click can stop the
+// prior one mid-playback. Held in a ref purely for cleanup; the player
+// is invisible by design (no `<audio controls>` in the template) — the
+// button is the entire UI.
+const previewAudio = ref<HTMLAudioElement | null>(null);
 
 // Same UUID-flash-avoidance trick as the agent picker: hide value while loading.
 const displayTextModelId = computed<string | undefined>({
@@ -145,17 +152,25 @@ const promptCharCount = computed(() => state.systemPrompt.length);
 // the dropdown see which pick they'd land on by leaving it blank.
 const ttsModelItems = computed(() =>
   TTS_MODELS.map(m => ({
-    label: m === DEFAULT_TTS_MODEL ? `${m} (default)` : m,
-    value: m,
+    label: m.value === DEFAULT_TTS_MODEL ? `${m.name} (default)` : m.name,
+    value: m.value,
   })),
 );
 
-const ttsVoiceItems = computed(() =>
-  TTS_VOICES.map(v => ({
-    label: v === DEFAULT_TTS_VOICE ? `${v} (default)` : v,
-    value: v,
-  })),
-);
+// Filtered by current model: tts-1 / tts-1-hd reject the newer voices
+// (cedar, marin, ballad, verse) with a 400. Picking model first then
+// voice keeps the dropdown honest about what'll actually play.
+// Iterating TTS_VOICES (not VOICES_BY_MODEL) preserves the canonical
+// presentation order regardless of which model is selected.
+const ttsVoiceItems = computed(() => {
+  const supportedIds = new Set<TtsVoice>(VOICES_BY_MODEL[effectiveTtsModel.value]);
+  return TTS_VOICES
+    .filter(v => supportedIds.has(v.value))
+    .map(v => ({
+      label: v.value === DEFAULT_TTS_VOICE ? `${v.name} (default)` : v.name,
+      value: v.value,
+    }));
+});
 
 const effectiveTtsModel = computed<TtsModel>(
   () => state.defaultTtsModel ?? DEFAULT_TTS_MODEL,
@@ -182,6 +197,18 @@ const isInstructionsSupported = computed(() =>
   supportsTtsInstructions(effectiveTtsModel.value),
 );
 
+// Reset voice when the model change drops the current pick from the
+// supported set (e.g. user switches from gpt-4o-mini-tts to tts-1
+// while voice is on cedar). null lets the worker resolve to the
+// model's own default rather than carrying a stale incompatible
+// value forward.
+watch(effectiveTtsModel, (model) => {
+  const voice = state.defaultTtsVoice;
+  if (voice && !supportsTtsVoice(model, voice)) {
+    state.defaultTtsVoice = null;
+  }
+});
+
 // Models come from OpenRouter; refresh re-pulls the catalog (e.g. after a
 // failed initial load) without closing the picker.
 const onRefresh = async () => {
@@ -193,15 +220,30 @@ const onRefresh = async () => {
   }
 };
 
+// Stops any in-flight playback and revokes its blob URL. Called both
+// before kicking off a new preview and from onUnmounted so a fast
+// re-click or component teardown doesn't accumulate leaked URLs.
+const stopPreviewAudio = () => {
+  const audio = previewAudio.value;
+  if (!audio) return;
+  audio.pause();
+  URL.revokeObjectURL(audio.src);
+  previewAudio.value = null;
+};
+
+// Tracks the actively-playing Audio. The button doubles as a stop
+// control while this is set, so the user can cut off a too-long
+// sample without waiting for it to finish.
+const isPlaying = computed(() => !!previewAudio.value);
+
 const onPreview = async () => {
+  if (isPlaying.value) {
+    stopPreviewAudio();
+    return;
+  }
   if (isPreviewing.value) return;
   isPreviewing.value = true;
-  // Revoke prior blob so accumulated previews don't leak memory
-  // across an editing session.
-  if (previewAudioUrl.value) {
-    URL.revokeObjectURL(previewAudioUrl.value);
-    previewAudioUrl.value = null;
-  }
+  stopPreviewAudio();
   try {
     const blob = await $fetch<Blob>('/api/agents/preview-tts', {
       method: 'POST',
@@ -212,11 +254,15 @@ const onPreview = async () => {
       },
       responseType: 'blob',
     });
-    previewAudioUrl.value = URL.createObjectURL(blob);
-    // Player auto-plays via the `autoplay` attribute on a fresh
-    // mount; the :key bound to the blob URL forces remount per
-    // preview so each click triggers playback even when the
-    // element was already on screen.
+    // `new Audio()` keeps playback off the DOM entirely. The button is
+    // user-gesture-initiated, so the autoplay policy admits this call.
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.addEventListener('ended', () => {
+      if (previewAudio.value === audio) stopPreviewAudio();
+    });
+    previewAudio.value = audio;
+    await audio.play();
   } catch (e) {
     notify.error('Preview failed', e);
   } finally {
@@ -228,9 +274,7 @@ const onSubmit = () => {
   emit('submit', { ...state });
 };
 
-onUnmounted(() => {
-  if (previewAudioUrl.value) URL.revokeObjectURL(previewAudioUrl.value);
-});
+onUnmounted(stopPreviewAudio);
 </script>
 
 <template>
@@ -502,7 +546,7 @@ onUnmounted(() => {
         v-model="displayTtsModel"
         :items="ttsModelItems"
         value-key="value"
-        :placeholder="`${DEFAULT_TTS_MODEL} (default)`"
+        :placeholder="`${DEFAULT_TTS_MODEL_NAME} (default)`"
       />
     </UFormField>
 
@@ -516,27 +560,18 @@ onUnmounted(() => {
           v-model="displayTtsVoice"
           :items="ttsVoiceItems"
           value-key="value"
-          :placeholder="`${DEFAULT_TTS_VOICE} (default)`"
+          :placeholder="`${DEFAULT_TTS_VOICE_NAME} (default)`"
           class="flex-1"
         />
         <UButton
-          icon="i-lucide-play"
+          :icon="isPlaying ? 'i-lucide-square' : 'i-lucide-play'"
           color="neutral"
           variant="outline"
           :loading="isPreviewing"
-          aria-label="Preview voice"
+          :aria-label="isPlaying ? 'Stop preview' : 'Preview voice'"
           @click="onPreview"
         />
       </div>
-      <audio
-        v-if="previewAudioUrl"
-        :key="previewAudioUrl"
-        ref="previewAudioRef"
-        :src="previewAudioUrl"
-        controls
-        autoplay
-        class="mt-2 w-full"
-      />
     </UFormField>
 
     <UFormField

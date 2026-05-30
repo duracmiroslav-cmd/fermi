@@ -16,19 +16,32 @@ import { checkOwnerPreviewRateLimit } from '~~/server/utils/rate-limit';
 import {
   DEFAULT_TTS_MODEL,
   DEFAULT_TTS_VOICE,
-  TTS_MODELS,
+  TTS_MODEL_IDS,
   TTS_PREVIEW_SAMPLE_TEXT,
-  TTS_VOICES,
+  TTS_VOICE_IDS,
   supportsTtsInstructions,
+  supportsTtsVoice,
 } from '~~/shared/tts';
 
 const TTS_ENDPOINT = 'https://api.openai.com/v1/audio/speech';
 
+// `superRefine` catches (model, voice) combos OpenAI's API rejects
+// (e.g. tts-1 + cedar). The form prevents this combo through its
+// model-aware dropdown; this is the defense for direct callers and
+// for stale dropdown state.
 const bodySchema = z.object({
-  model:        z.enum(TTS_MODELS).default(DEFAULT_TTS_MODEL),
-  voice:        z.enum(TTS_VOICES).default(DEFAULT_TTS_VOICE),
+  model:        z.enum(TTS_MODEL_IDS).default(DEFAULT_TTS_MODEL),
+  voice:        z.enum(TTS_VOICE_IDS).default(DEFAULT_TTS_VOICE),
   instructions: z.string().max(2000).nullish(),
-}).strict();
+}).strict().superRefine((data, ctx) => {
+  if (!supportsTtsVoice(data.model, data.voice)) {
+    ctx.addIssue({
+      code:    'custom',
+      path:    ['voice'],
+      message: `Voice "${data.voice}" not supported by model "${data.model}"`,
+    });
+  }
+});
 
 export default defineEventHandler(async (event) => {
   const user = await getCurrentUser(event);
