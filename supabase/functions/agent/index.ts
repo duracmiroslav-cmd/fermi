@@ -272,9 +272,15 @@ const runAgentLoop = async (params: {
     const hasImageInHistory = history.some((m) =>
       Array.isArray(m.content) && m.content.some((p) => p.type === 'image_url'),
     );
-    const model = hasImageInHistory
+    // A 404 from OpenRouter on the agent's picked model (retired
+    // upstream) rebinds this to the fermi default in the catch path
+    // below, so subsequent loop iterations don't re-pay the same 4xx.
+    // Each branch falls back to its own default with no cross-over:
+    // vision → vision default, text → text default.
+    let model = hasImageInHistory
       ? (agent.defaultVisionModel ?? DEFAULT_VISION_MODEL)
       : (agent.defaultTextModel ?? DEFAULT_TEXT_MODEL);
+    const fallbackModel = hasImageInHistory ? DEFAULT_VISION_MODEL : DEFAULT_TEXT_MODEL;
 
     const messages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
@@ -311,12 +317,38 @@ const runAgentLoop = async (params: {
       });
 
       const llmStart = performance.now();
-      const result = await completeChat({
-        apiKey: openrouterKey,
-        model,
-        messages,
-        tools,
-      });
+      let result;
+      try {
+        result = await completeChat({
+          apiKey: openrouterKey,
+          model,
+          messages,
+          tools,
+        });
+      } catch (err) {
+        // OpenRouter 404 on a chat completion almost always means the
+        // model id retired (we hit the same endpoint every call, so
+        // path-not-found is structurally impossible). Retry once with
+        // the fermi default for this branch, then carry the fallback
+        // forward so subsequent iterations don't re-pay the 404 cost.
+        // Same-id guard: if the default itself 404s, let the error up.
+        if (err instanceof OpenRouterError && err.status === 404 && model !== fallbackModel) {
+          console.warn('Model retired, retrying with default', {
+            originalModel: model,
+            fallbackModel,
+            agentId:       agent.id,
+          });
+          model = fallbackModel;
+          result = await completeChat({
+            apiKey: openrouterKey,
+            model,
+            messages,
+            tools,
+          });
+        } else {
+          throw err;
+        }
+      }
       const llmLatency = Math.round(performance.now() - llmStart);
       totalCostUsd += result.costUsd;
 
