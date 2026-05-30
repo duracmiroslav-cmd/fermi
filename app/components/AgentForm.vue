@@ -550,7 +550,7 @@ onUnmounted(() => {
         v-model.trim="state.ttsInstructions"
         :rows="3"
         :disabled="!isInstructionsSupported"
-        placeholder="speak calmly and warmly"
+        placeholder="Speak calmly and warmly."
       />
     </UFormField>
   </UForm>
