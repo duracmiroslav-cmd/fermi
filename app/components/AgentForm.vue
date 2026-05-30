@@ -12,6 +12,8 @@ import {
   type TtsModel,
   type TtsVoice,
   VOICES_BY_MODEL,
+  getTtsModelName,
+  getTtsVoiceName,
   supportsTtsInstructions,
   supportsTtsVoice,
 } from '~~/shared/tts';
@@ -170,6 +172,16 @@ const ttsVoiceStaleReason = computed<'missing' | 'unsupported' | null>(() => {
 
 const isTtsVoiceStale = computed(() => ttsVoiceStaleReason.value !== null);
 
+// Display names mirror dropdown labels so warning copy reads as one
+// surface (e.g. "Cedar doesn't work with TTS-1" instead of the
+// lowercase wire ids). getTts*Name falls back to the raw id when the
+// stored value is no longer in the catalog — informative without
+// crashing.
+const ttsVoiceName = computed(() =>
+  state.defaultTtsVoice ? getTtsVoiceName(state.defaultTtsVoice) : '',
+);
+const ttsModelName = computed(() => getTtsModelName(effectiveTtsModel.value));
+
 const onTextModelReset = () => {
   state.defaultTextModel = null;
 };
@@ -181,6 +193,17 @@ const onTtsModelReset = () => {
 };
 const onTtsVoiceReset = () => {
   state.defaultTtsVoice = null;
+};
+
+// Fires only when the user picks a TTS model in the dropdown — Reset
+// buttons write state directly and don't emit this event. Clearing an
+// incompat voice here keeps the saved state in a shape the runtime
+// won't have to silently fall back on.
+const onTtsModelPicked = (next: TtsModel | undefined) => {
+  const voice = state.defaultTtsVoice;
+  if (next && voice && !supportsTtsVoice(next, voice)) {
+    state.defaultTtsVoice = null;
+  }
 };
 
 // Empty pickers (the Default agent ships with no model) inherit the
@@ -604,6 +627,7 @@ onUnmounted(stopPreviewAudio);
         :items="ttsModelItems"
         value-key="value"
         :placeholder="`${DEFAULT_TTS_MODEL_NAME} (default)`"
+        @update:model-value="onTtsModelPicked"
       />
       <UAlert
         v-if="isTtsModelStale"
@@ -645,8 +669,8 @@ onUnmounted(stopPreviewAudio);
         variant="subtle"
         icon="i-lucide-triangle-alert"
         :title="ttsVoiceStaleReason === 'missing'
-          ? `${state.defaultTtsVoice} is no longer available`
-          : `${state.defaultTtsVoice} doesn't work with ${effectiveTtsModel}`"
+          ? `${ttsVoiceName} is no longer available`
+          : `${ttsVoiceName} doesn't work with ${ttsModelName}`"
         :description="`Reset to fermi's default (${DEFAULT_TTS_VOICE_NAME}) or pick a new voice from the list above.`"
         :actions="[{ label: 'Reset to default', color: 'warning', variant: 'soft', onClick: onTtsVoiceReset }]"
         class="mt-2"
