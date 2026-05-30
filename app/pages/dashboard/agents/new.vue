@@ -9,8 +9,8 @@ const saving = ref(false);
 const onSubmit = async (value: {
   name:               string;
   systemPrompt:       string;
-  defaultTextModel:   string;
-  defaultVisionModel: string;
+  defaultTextModel:   string | null;
+  defaultVisionModel: string | null;
   defaultTtsModel:    TtsModel | null;
   defaultTtsVoice:    TtsVoice | null;
   ttsInstructions:    string;
@@ -22,10 +22,10 @@ const onSubmit = async (value: {
       body:   {
         name:               value.name,
         systemPrompt:       value.systemPrompt || null,
-        defaultTextModel:   value.defaultTextModel || null,
-        defaultVisionModel: value.defaultVisionModel || null,
-        defaultTtsModel:    value.defaultTtsModel || null,
-        defaultTtsVoice:    value.defaultTtsVoice || null,
+        defaultTextModel:   value.defaultTextModel,
+        defaultVisionModel: value.defaultVisionModel,
+        defaultTtsModel:    value.defaultTtsModel,
+        defaultTtsVoice:    value.defaultTtsVoice,
         ttsInstructions:    value.ttsInstructions || null,
       },
     });

@@ -22,11 +22,15 @@ import {
 // detection. The text + vision model fields stay loose `string`
 // because their catalog is OpenRouter (200+ entries, schema-checked
 // only by length on the server, not enum membership).
+// `null` is the canonical "unset, use worker fallback" sentinel for
+// every picker field. Form layer (USelect / USelectMenu) maps null ↔
+// undefined at the display computeds; API boundary passes null
+// through to the PATCH body, which the DB stores as NULL.
 interface AgentFormValue {
   name:               string;
   systemPrompt:       string;
-  defaultTextModel:   string;
-  defaultVisionModel: string;
+  defaultTextModel:   string | null;
+  defaultVisionModel: string | null;
   defaultTtsModel:    TtsModel | null;
   defaultTtsVoice:    TtsVoice | null;
   ttsInstructions:    string;
@@ -65,10 +69,10 @@ const state = reactive<AgentFormValue>({
   systemPrompt:     props.initialValue?.systemPrompt ?? '',
   // New agents seed both pickers with the worker fallbacks; edit preserves stored values.
   defaultTextModel: props.initialValue
-    ? (props.initialValue.defaultTextModel ?? '')
+    ? (props.initialValue.defaultTextModel ?? null)
     : DEFAULT_TEXT_MODEL,
   defaultVisionModel: props.initialValue
-    ? (props.initialValue.defaultVisionModel ?? '')
+    ? (props.initialValue.defaultVisionModel ?? null)
     : DEFAULT_VISION_MODEL,
   // TTS fields stay null on new agents so the worker fallback wins;
   // the placeholder copy surfaces what that fallback resolves to.
@@ -90,13 +94,13 @@ const previewAudio = ref<HTMLAudioElement | null>(null);
 
 // Same UUID-flash-avoidance trick as the agent picker: hide value while loading.
 const displayTextModelId = computed<string | undefined>({
-  get: () => (modelsPending.value ? undefined : state.defaultTextModel || undefined),
-  set: (v) => { if (v) state.defaultTextModel = v; },
+  get: () => (modelsPending.value ? undefined : state.defaultTextModel ?? undefined),
+  set: (v) => { state.defaultTextModel = v ?? null; },
 });
 
 const displayVisionModelId = computed<string | undefined>({
-  get: () => (modelsPending.value ? undefined : state.defaultVisionModel || undefined),
-  set: (v) => { if (v) state.defaultVisionModel = v; },
+  get: () => (modelsPending.value ? undefined : state.defaultVisionModel ?? undefined),
+  set: (v) => { state.defaultVisionModel = v ?? null; },
 });
 
 const allModelItems = computed(() =>
@@ -130,6 +134,41 @@ const selectedTextModel = computed(() =>
 const selectedVisionModel = computed(() =>
   (models.value ?? []).find(m => m.id === state.defaultVisionModel) ?? null,
 );
+
+// Stale = an explicit pick that's missing from the loaded catalog.
+// Catches the "model retired" case: the worker would still 4xx at
+// runtime, but surfacing it here lets the owner reset without waiting
+// to discover it through a broken reply. Text / vision check against
+// the dynamic OpenRouter list once it loads; TTS checks against the
+// static fermi catalog (no async gating needed).
+const isTextModelStale = computed(() =>
+  !modelsPending.value
+  && !!models.value
+  && !!state.defaultTextModel
+  && !selectedTextModel.value,
+);
+
+const isVisionModelStale = computed(() =>
+  !modelsPending.value
+  && !!models.value
+  && !!state.defaultVisionModel
+  && !selectedVisionModel.value,
+);
+
+const isTtsModelStale = computed(() =>
+  !!state.defaultTtsModel
+  && !TTS_MODELS.some(m => m.value === state.defaultTtsModel),
+);
+
+const onTextModelReset = () => {
+  state.defaultTextModel = null;
+};
+const onVisionModelReset = () => {
+  state.defaultVisionModel = null;
+};
+const onTtsModelReset = () => {
+  state.defaultTtsModel = null;
+};
 
 // Empty pickers (the Default agent ships with no model) inherit the
 // worker fallback. Surfacing the fallback model's name + icon in the
@@ -416,6 +455,16 @@ onUnmounted(stopPreviewAudio);
           </UTooltip>
         </template>
       </USelectMenu>
+      <UAlert
+        v-if="isTextModelStale"
+        color="warning"
+        variant="subtle"
+        icon="i-lucide-triangle-alert"
+        :title="`${state.defaultTextModel} is no longer available`"
+        :description="`Reset to fermi's default (${defaultTextModelInfo.name}) or pick a new model from the list above.`"
+        :actions="[{ label: 'Reset to default', color: 'warning', variant: 'soft', onClick: onTextModelReset }]"
+        class="mt-2"
+      />
     </UFormField>
 
     <UFormField
@@ -520,6 +569,16 @@ onUnmounted(stopPreviewAudio);
           </UTooltip>
         </template>
       </USelectMenu>
+      <UAlert
+        v-if="isVisionModelStale"
+        color="warning"
+        variant="subtle"
+        icon="i-lucide-triangle-alert"
+        :title="`${state.defaultVisionModel} is no longer available`"
+        :description="`Reset to fermi's default (${defaultVisionModelInfo.name}) or pick a new model from the list above.`"
+        :actions="[{ label: 'Reset to default', color: 'warning', variant: 'soft', onClick: onVisionModelReset }]"
+        class="mt-2"
+      />
     </UFormField>
 
     <UFormField
@@ -547,6 +606,16 @@ onUnmounted(stopPreviewAudio);
         :items="ttsModelItems"
         value-key="value"
         :placeholder="`${DEFAULT_TTS_MODEL_NAME} (default)`"
+      />
+      <UAlert
+        v-if="isTtsModelStale"
+        color="warning"
+        variant="subtle"
+        icon="i-lucide-triangle-alert"
+        :title="`${state.defaultTtsModel} is no longer available`"
+        :description="`Reset to fermi's default (${DEFAULT_TTS_MODEL_NAME}) or pick a new model from the list above.`"
+        :actions="[{ label: 'Reset to default', color: 'warning', variant: 'soft', onClick: onTtsModelReset }]"
+        class="mt-2"
       />
     </UFormField>
 
