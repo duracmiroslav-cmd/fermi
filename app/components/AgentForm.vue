@@ -160,11 +160,11 @@ const isTtsModelStale = computed(() =>
 // (e.g. cedar with tts-1). Distinguishing the reason lets the warning
 // copy say something true: "no longer available" vs "doesn't work
 // with X". Reset CTA stays the same.
-const ttsVoiceStaleReason = computed<'catalog' | 'incompat' | null>(() => {
+const ttsVoiceStaleReason = computed<'missing' | 'unsupported' | null>(() => {
   const voice = state.defaultTtsVoice;
   if (!voice) return null;
-  if (!TTS_VOICES.some(v => v.value === voice)) return 'catalog';
-  if (!supportsTtsVoice(effectiveTtsModel.value, voice)) return 'incompat';
+  if (!TTS_VOICES.some(v => v.value === voice)) return 'missing';
+  if (!supportsTtsVoice(effectiveTtsModel.value, voice)) return 'unsupported';
   return null;
 });
 
@@ -644,7 +644,7 @@ onUnmounted(stopPreviewAudio);
         color="warning"
         variant="subtle"
         icon="i-lucide-triangle-alert"
-        :title="ttsVoiceStaleReason === 'catalog'
+        :title="ttsVoiceStaleReason === 'missing'
           ? `${state.defaultTtsVoice} is no longer available`
           : `${state.defaultTtsVoice} doesn't work with ${effectiveTtsModel}`"
         :description="`Reset to fermi's default (${DEFAULT_TTS_VOICE_NAME}) or pick a new voice from the list above.`"
