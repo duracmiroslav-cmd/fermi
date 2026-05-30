@@ -160,6 +160,11 @@ const isTtsModelStale = computed(() =>
   && !TTS_MODELS.some(m => m.value === state.defaultTtsModel),
 );
 
+const isTtsVoiceStale = computed(() =>
+  !!state.defaultTtsVoice
+  && !TTS_VOICES.some(v => v.value === state.defaultTtsVoice),
+);
+
 const onTextModelReset = () => {
   state.defaultTextModel = null;
 };
@@ -168,6 +173,9 @@ const onVisionModelReset = () => {
 };
 const onTtsModelReset = () => {
   state.defaultTtsModel = null;
+};
+const onTtsVoiceReset = () => {
+  state.defaultTtsVoice = null;
 };
 
 // Empty pickers (the Default agent ships with no model) inherit the
@@ -641,6 +649,16 @@ onUnmounted(stopPreviewAudio);
           @click="onPreview"
         />
       </div>
+      <UAlert
+        v-if="isTtsVoiceStale"
+        color="warning"
+        variant="subtle"
+        icon="i-lucide-triangle-alert"
+        :title="`${state.defaultTtsVoice} is no longer available`"
+        :description="`Reset to fermi's default (${DEFAULT_TTS_VOICE_NAME}) or pick a new voice from the list above.`"
+        :actions="[{ label: 'Reset to default', color: 'warning', variant: 'soft', onClick: onTtsVoiceReset }]"
+        class="mt-2"
+      />
     </UFormField>
 
     <UFormField
