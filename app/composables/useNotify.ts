@@ -1,7 +1,3 @@
-// Standard success / error toasts. `error` accepts either a string detail
-// (for user-facing validation messages) or a thrown value. Thrown values
-// go through extractErrorMessage which prefers server `data.code` → i18n
-// key, falls back to statusMessage, then Error.message.
 export const useNotify = () => {
   const { t } = useI18n();
   const toast = useToast();

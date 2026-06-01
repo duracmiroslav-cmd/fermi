@@ -39,9 +39,6 @@ interface AgentDetail {
   bots:               BotRef[];
 }
 
-// Maps voice-reply mode to an i18n key. Detail page shows the
-// full-prose form; the radio picker in AgentForm shows the short form
-// (Off / Auto / Always) with separate description text.
 const VOICE_REPLY_LABEL_KEY: Record<VoiceReplyMode, string> = {
   off:    '__labelOff',
   auto:   '__labelAutoMirror',

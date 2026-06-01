@@ -604,9 +604,7 @@ const runAgentLoop = async (params: {
       payload,
     });
     // Surface the failure to LINE so the user sees what went wrong
-    // instead of staring at a vanished `...`. Generic locale-aware
-    // notice; the actual error details live in `error_occurred` step
-    // payload and Sentry capture, not the user-facing message.
+    // instead of staring at a vanished `...`.
     let userNotified = false;
     try {
       await deliverMessages({
@@ -661,9 +659,6 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     return;
   }
 
-  // Owner's dashboard locale doubles as the LINE end user locale —
-  // LINE's Messaging API doesn't surface user language, so owner locale
-  // is the best available proxy. Loaded once per webhook batch.
   const ownerLocale = await loadOwnerLocale(admin, bot.ownerId);
 
   const kek = await getKek(fermiKek);

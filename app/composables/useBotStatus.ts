@@ -4,8 +4,6 @@ import type { Ref } from 'vue';
 // edit surfaces, so the wording never drifts (e.g. "Ready" vs "Active").
 export type BotStatus = 'ready' | 'paused' | 'unconfigured';
 
-// Maps status to an i18n key. Call sites resolve via $t() so the
-// rendered string stays locale-aware.
 export const BOT_STATUS_LABEL_KEY: Record<BotStatus, string> = {
   ready:        '__statusReady',
   paused:       '__statusPaused',

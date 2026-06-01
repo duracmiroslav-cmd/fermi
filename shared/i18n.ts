@@ -1,16 +1,8 @@
 import { type Locale } from './locale.ts';
 
-// Worker-side channel notices addressed to the LINE end user. Distinct
-// from the dashboard's `i18n/locales/*.json` files because:
-//   1. Deno can't natively load those JSONs without an import attribute
-//      that doesn't round-trip cleanly through Vite, and
-//   2. The keys here don't overlap with dashboard keys (bucket prefix
-//      `__notice` is reserved for channel notices), so there is no
-//      drift between the two stores.
-//
-// If a future caller needs to share a single key across surfaces (e.g.
-// rendering the same notice in a dashboard preview), promote that key
-// into the JSON store and switch the worker to JSON imports.
+// Worker-side LINE notices. Kept inline (not in `i18n/locales/*.json`)
+// because Deno + Vite disagree on JSON import attributes; the `__notice`
+// bucket is reserved for these keys, so no overlap with dashboard.
 const messages: Record<Locale, Record<string, string>> = {
   'zh-Hant': {
     __noticeAgentStepsExceeded:        '⚠️ 跑了 {steps} 步還沒收斂，先停下來。可以換個方式問我一次。',
@@ -52,9 +44,6 @@ const messages: Record<Locale, Record<string, string>> = {
 
 const DEFAULT_LOCALE: Locale = 'zh-Hant';
 
-// `t(key, locale, params?)` — resolve key against the locale's message
-// map, fall back to the default locale's value, then to the key itself.
-// Params interpolate `{name}` tokens; missing tokens stay literal.
 export const t = (
   key: string,
   locale: Locale = DEFAULT_LOCALE,
