@@ -169,7 +169,7 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
       authKeyType: 'twinkle',
       toolGroups:  {
         lookup: {
-          label: '一般查詢（日期 / 身分 / 銀行 / 捷運 / 農曆）',
+          label: 'Lookup',
           tools: [
             'twtools-is_taiwan_business_day',
             'twtools-lookup_holidays',
@@ -188,7 +188,7 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
           ],
         },
         directory: {
-          label: '地址 + 公司資料',
+          label: 'Directory',
           tools: [
             'twtools-address_en_to_zh',
             'twtools-address_zh_to_en',
@@ -214,7 +214,7 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
           ],
         },
         utility: {
-          label: '通用工具（時間 / PDF / 中文數字）',
+          label: 'Utilities',
           tools: [
             'twtools-duration_humanize',
             'twtools-timezone_convert',
@@ -230,7 +230,7 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
         // dataset discovery + the three vertical corpora Twinkle Hub indexes
         // (考題 / 司法判決 / 專利).
         opendata: {
-          label: '政府開放資料查詢',
+          label: 'Open data',
           tools: [
             'opendata-list_domains',
             'opendata-search_datasets',
