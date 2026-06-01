@@ -626,13 +626,33 @@ onUnmounted(stopPreviewAudio);
       name="defaultTtsModel"
       help="The OpenAI TTS engine. gpt-4o-mini-tts is cheaper, higher quality, and the only one that honors voice instructions."
     >
-      <USelect
+      <USelectMenu
         v-model="displayTtsModel"
         :items="ttsModelItems"
         value-key="value"
         :placeholder="`${DEFAULT_TTS_MODEL_NAME} (default)`"
         @update:model-value="onTtsModelPicked"
-      />
+      >
+        <template #content-top>
+          <div class="px-2 py-1.5 border-b border-default">
+            <span class="text-xs">
+              {{ ttsModelItems.length }} voice model{{ ttsModelItems.length === 1 ? '' : 's' }}
+            </span>
+          </div>
+        </template>
+        <template #leading>
+          <UIcon
+            name="i-simple-icons-openai"
+            class="size-5 text-toned"
+          />
+        </template>
+        <template #item-leading>
+          <UIcon
+            name="i-simple-icons-openai"
+            class="size-5 text-toned"
+          />
+        </template>
+      </USelectMenu>
       <UAlert
         v-if="isTtsModelStale"
         color="warning"
