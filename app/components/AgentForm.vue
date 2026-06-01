@@ -81,11 +81,11 @@ const state = reactive<AgentFormValue>({
 const isTextModelPickerOpening = ref(false);
 const isVisionModelPickerOpening = ref(false);
 const isRefreshing = ref(false);
-const isPreviewing = ref(false);
-// One in-flight Audio element so the next preview click can stop the
-// prior one mid-playback. Held in a ref purely for cleanup; the player
-// is invisible by design (no `<audio controls>` in the template) — the
-// button is the entire UI.
+// Tracked per-voice, not as a bare boolean, so only the clicked item's
+// play button shows its loading / stop state. `previewAudio` is the one
+// in-flight element, kept so the next click can cut off the prior sample.
+const previewingVoice = ref<TtsVoice | null>(null);
+const playingVoice = ref<TtsVoice | null>(null);
 const previewAudio = ref<HTMLAudioElement | null>(null);
 
 // Hide value while loading to avoid a UUID flash before names arrive.
@@ -290,26 +290,23 @@ const stopPreviewAudio = () => {
   audio.pause();
   URL.revokeObjectURL(audio.src);
   previewAudio.value = null;
+  playingVoice.value = null;
 };
 
-// The button doubles as a stop control while playback is active so
-// the user can cut off a too-long sample without waiting.
-const isPlaying = computed(() => !!previewAudio.value);
-
-const onPreview = async () => {
-  if (isPlaying.value) {
+const onPreview = async (voice: TtsVoice) => {
+  if (playingVoice.value === voice) {
     stopPreviewAudio();
     return;
   }
-  if (isPreviewing.value) return;
-  isPreviewing.value = true;
+  if (previewingVoice.value) return;
   stopPreviewAudio();
+  previewingVoice.value = voice;
   try {
     const blob = await $fetch<Blob>('/api/agents/preview-tts', {
       method: 'POST',
       body:   {
         model:        effectiveTtsModel.value,
-        voice:        state.defaultTtsVoice || DEFAULT_TTS_VOICE,
+        voice,
         instructions: state.ttsInstructions || null,
       },
       responseType: 'blob',
@@ -322,12 +319,19 @@ const onPreview = async () => {
       if (previewAudio.value === audio) stopPreviewAudio();
     });
     previewAudio.value = audio;
+    playingVoice.value = voice;
     await audio.play();
   } catch (e) {
     notify.error('Preview failed', e);
   } finally {
-    isPreviewing.value = false;
+    previewingVoice.value = null;
   }
+};
+
+// A sample playing in the dropdown loses its stop control once the menu
+// closes, so cut it on dismiss.
+const onVoiceMenuToggle = (open: boolean) => {
+  if (!open) stopPreviewAudio();
 };
 
 const onSubmit = () => {
@@ -644,25 +648,40 @@ onUnmounted(stopPreviewAudio);
     <UFormField
       label="Voice"
       name="defaultTtsVoice"
-      help="The character the agent speaks in. Hit play to hear a short sample."
+      help="The character the agent speaks in. Hit play on any voice to hear a short sample."
     >
-      <div class="flex items-center gap-2">
-        <USelect
-          v-model="displayTtsVoice"
-          :items="ttsVoiceItems"
-          value-key="value"
-          :placeholder="`${DEFAULT_TTS_VOICE_NAME} (default)`"
-          class="flex-1"
-        />
-        <UButton
-          :icon="isPlaying ? 'i-lucide-square' : 'i-lucide-play'"
-          color="neutral"
-          variant="outline"
-          :loading="isPreviewing"
-          :aria-label="isPlaying ? 'Stop preview' : 'Preview voice'"
-          @click="onPreview"
-        />
-      </div>
+      <USelectMenu
+        v-model="displayTtsVoice"
+        :items="ttsVoiceItems"
+        value-key="value"
+        :placeholder="`${DEFAULT_TTS_VOICE_NAME} (default)`"
+        :ui="{ itemTrailingIcon: 'hidden' }"
+        @update:open="onVoiceMenuToggle"
+      >
+        <template #item-trailing="{ item }">
+          <!-- size-7 box aligns the check with the trailing button -->
+          <span class="flex items-center justify-center size-7 shrink-0">
+            <UIcon
+              v-if="state.defaultTtsVoice === item.value"
+              name="i-lucide-check"
+              class="size-4"
+            />
+          </span>
+          <UTooltip :text="playingVoice === item.value ? 'Stop preview' : 'Preview voice'">
+            <UButton
+              :icon="playingVoice === item.value ? 'i-lucide-square' : 'i-lucide-play'"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              :loading="previewingVoice === item.value"
+              :aria-label="playingVoice === item.value ? 'Stop preview' : 'Preview voice'"
+              class="hover:bg-accented! group-data-[state=checked]:hover:bg-primary/20!"
+              @click.stop="onPreview(item.value as TtsVoice)"
+              @pointerdown.stop
+            />
+          </UTooltip>
+        </template>
+      </USelectMenu>
       <UAlert
         v-if="isTtsVoiceStale"
         color="warning"
