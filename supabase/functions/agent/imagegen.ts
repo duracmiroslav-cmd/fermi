@@ -56,8 +56,11 @@ export const generateImage = async (params: {
   model: string;
   prompt: string;
   size: ImageSize;
+  // Owner-set content-filter strength (fal `safety_tolerance`, 1 strict – 6
+  // permissive). Omitted ⇒ fal's own default. Validated by the caller.
+  safetyTolerance?: number;
 }): Promise<ImageResult> => {
-  const { apiKey, model, prompt, size } = params;
+  const { apiKey, model, prompt, size, safetyTolerance } = params;
   const res = await fetch(`https://fal.run/${model}`, {
     method: 'POST',
     headers: {
@@ -69,6 +72,7 @@ export const generateImage = async (params: {
       prompt: `${prompt}${WATERMARK_SUFFIX}`,
       aspect_ratio: aspectRatioMap[size],
       num_images: 1,
+      ...(safetyTolerance !== undefined ? { safety_tolerance: safetyTolerance } : {}),
     }),
   });
   if (!res.ok) {

@@ -1,9 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   BUILT_IN_CAPABILITIES,
+  type CapabilitySettingField,
   type CredentialType,
   type ProviderMeta,
 } from '~~/shared/capabilities';
+
+export type { CapabilitySettingField } from '~~/shared/capabilities';
 
 export type { CredentialType, ProviderMeta } from '~~/shared/capabilities';
 
@@ -39,6 +42,9 @@ export interface CapabilityRow {
   // Initial selection when no `enabledGroups` has been recorded for this
   // agent yet. The UI uses this to pre-check the right boxes.
   defaultEnabledGroups?: string[];
+  // Owner-config form descriptor. When present, the row renders a settings
+  // panel; saved values land in `agent_capabilities.config`.
+  settings?:             CapabilitySettingField[];
 }
 
 export type AgentCapabilityRow = CapabilityRow & {
@@ -95,6 +101,7 @@ export const listCapabilitiesForUser = async (
       );
       row.defaultEnabledGroups = builtIn.config.defaultEnabledGroups;
     }
+    if (builtIn?.settings) row.settings = builtIn.settings;
     if (credentialType !== 'providers' || !providers) return row;
 
     row.providers = providers.map((p): CapabilityProviderRow => {

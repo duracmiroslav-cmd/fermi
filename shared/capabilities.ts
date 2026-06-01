@@ -25,11 +25,34 @@ export interface CapabilityConfig {
   // current selection of groups for this binding. Shallow-merges onto the
   // catalog config, overriding `defaultEnabledGroups`.
   enabledGroups?:        string[];
+  // Per-agent owner config for an in-process tool (no MCP `url`). Unlike the
+  // allowlist fields above, this is a runtime knob the worker reads and
+  // forwards to the upstream image API. Deliberately NOT an LLM tool param:
+  // the agent is driven by untrusted input, so it must never be able to
+  // loosen its own image safety filter. fal `safety_tolerance` 1 (strict) – 6
+  // (permissive); omitted ⇒ fal's own default.
+  safetyTolerance?:      number;
 }
 
 export interface ToolGroup {
   label: string;
   tools: string[];
+}
+
+// Owner-config form descriptor for a capability's settings panel — the third
+// config-panel shape, alongside per-tool checkboxes and per-group toggles.
+// Drives a generic settings form in the dashboard; the worker reads the saved
+// value from `agent_capabilities.config[key]`. `key` names the CapabilityConfig
+// field it writes. Slider is the only control so far.
+export interface CapabilitySettingField {
+  key:      string;
+  type:     'slider';
+  label:    string;
+  min:      number;
+  max:      number;
+  default:  number;
+  minLabel: string;
+  maxLabel: string;
 }
 
 export type CredentialType = 'none' | 'providers' | 'coming_soon';
@@ -50,6 +73,9 @@ export interface BuiltInCapability {
   config:         CapabilityConfig;
   credentialType: CredentialType;
   providers?:     ProviderMeta[];
+  // Owner-config form, rendered as the capability's settings panel. Absent for
+  // capabilities with nothing to configure beyond attach/detach.
+  settings?:      CapabilitySettingField[];
 }
 
 export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
@@ -79,6 +105,18 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     description:    'Generate an image from a natural-language prompt. Use when the user explicitly asks to "draw", "generate an image", "make a picture", or similar; do NOT use to fetch existing images from the web.',
     config:         {},
     credentialType: 'none',
+    settings:       [
+      {
+        key:      'safetyTolerance',
+        type:     'slider',
+        label:    'Safety filter',
+        min:      1,
+        max:      6,
+        default:  4,
+        minLabel: 'Strict',
+        maxLabel: 'Permissive',
+      },
+    ],
   },
   // GitHub's MCP server exposes ~42 tools including destructive writes. The
   // allowlist keeps only read-only tools: the agent is driven by untrusted

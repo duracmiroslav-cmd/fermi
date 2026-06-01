@@ -29,6 +29,13 @@ const parseSize = (raw: unknown): ImageSize => (
     : 'square'
 );
 
+// Owner config (not an LLM arg). Reject non-integers / out-of-band values so a
+// stale or hand-edited config can't 4xx the call; undefined ⇒ fal's default.
+const parseSafetyTolerance = (raw: unknown): number | undefined =>
+  typeof raw === 'number' && Number.isInteger(raw) && raw >= 1 && raw <= 6
+    ? raw
+    : undefined;
+
 export const generateImage: Tool = {
   name: 'generate_image',
   capabilitySlug: 'image-gen',
@@ -103,6 +110,7 @@ export const generateImage: Tool = {
         model: DEFAULT_IMAGE_MODEL,
         prompt: prompt.trim(),
         size: parseSize(size),
+        safetyTolerance: parseSafetyTolerance(ctx.capabilityConfig?.safetyTolerance),
       });
       // Use the LLM-issued tool call ID as the storage object name.
       // The path becomes an audit handle back to the `tool_called` /

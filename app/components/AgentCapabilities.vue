@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AgentCapabilityRow } from '~~/server/utils/capabilities';
+import type { AgentCapabilityRow, CapabilitySettingField } from '~~/server/utils/capabilities';
 import { CAPABILITY_TOOL_GROUPS, DEFAULT_TOOLS } from '~~/shared/capabilityTools';
 
 const props = defineProps<{
@@ -15,13 +15,18 @@ const { data: rows, pending, refresh: refreshCapabilities } = useApiFetch<AgentC
 const CAP_WIDTHS = ['w-24', 'w-32', 'w-20', 'w-28'];
 const CAP_DESC_WIDTHS = ['w-48', 'w-40', 'w-52', 'w-44'];
 
-// Two mutually exclusive config-panel modes: per-tool checkbox grid (github)
-// or per-group toggle list (twinkle-hub). `hasConfigPanel` opens the
-// collapsible for either; `hasGroupToggles` picks which body to render.
+// Three mutually exclusive config-panel modes: per-tool checkbox grid
+// (github), per-group toggle list (twinkle-hub), or a settings form
+// (image-gen). `hasConfigPanel` opens the collapsible for any; the body
+// picks which to render via `hasGroupToggles` / `hasSettings`.
 const hasConfigPanel = (capability: AgentCapabilityRow) =>
-  !!CAPABILITY_TOOL_GROUPS[capability.slug] || !!capability.toolGroups;
+  !!CAPABILITY_TOOL_GROUPS[capability.slug]
+  || !!capability.toolGroups
+  || !!capability.settings?.length;
 
 const hasGroupToggles = (capability: AgentCapabilityRow) => !!capability.toolGroups;
+
+const hasSettings = (capability: AgentCapabilityRow) => !!capability.settings?.length;
 
 const isLocked = (capability: AgentCapabilityRow): boolean => {
   if (capability.attached) return false;
@@ -45,6 +50,7 @@ const expandedCapId = ref<string | null>(null);
 const pendingConfigSave = ref(new Set<string>());
 const localTools = ref<Record<string, string[]>>({});
 const localGroups = ref<Record<string, string[]>>({});
+const localSettings = ref<Record<string, Record<string, number>>>({});
 const isRefreshing = ref(false);
 
 const getEffectiveTools = (capability: AgentCapabilityRow): Set<string> => {
@@ -76,6 +82,14 @@ const getEnabledToolCount = (capability: AgentCapabilityRow): number => {
     if (enabled.has(slug)) total += group.toolCount;
   }
   return total;
+};
+
+// Local edit wins; else the saved per-agent value; else the field default.
+const getSettingValue = (capability: AgentCapabilityRow, field: CapabilitySettingField): number => {
+  const local = localSettings.value[capability.id]?.[field.key];
+  if (local !== undefined) return local;
+  const saved = capability.agentConfig?.[field.key];
+  return typeof saved === 'number' ? saved : field.default;
 };
 
 const onCapabilityToggle = async (capability: AgentCapabilityRow, next: boolean) => {
@@ -118,6 +132,12 @@ const onExpandToggle = (capability: AgentCapabilityRow, open: boolean) => {
         const saved = capability.agentConfig?.enabledGroups as string[] | undefined;
         localGroups.value[capability.id] = [...(saved ?? capability.defaultEnabledGroups ?? [])];
       }
+    } else if (hasSettings(capability)) {
+      if (localSettings.value[capability.id] === undefined) {
+        localSettings.value[capability.id] = Object.fromEntries(
+          (capability.settings ?? []).map(f => [f.key, getSettingValue(capability, f)]),
+        );
+      }
     } else if (localTools.value[capability.id] === undefined) {
       const saved = capability.agentConfig?.tools as string[] | undefined;
       localTools.value[capability.id] = [...(saved ?? DEFAULT_TOOLS[capability.slug] ?? [])];
@@ -152,18 +172,32 @@ const onGroupToggle = (capability: AgentCapabilityRow, groupSlug: string, enable
   localGroups.value[capability.id] = current;
 };
 
+const setSetting = (capability: AgentCapabilityRow, key: string, value: number) => {
+  localSettings.value[capability.id] = {
+    ...localSettings.value[capability.id],
+    [key]: value,
+  };
+};
+
 const onCancel = (capability: AgentCapabilityRow) => {
   delete localTools.value[capability.id];
   delete localGroups.value[capability.id];
+  delete localSettings.value[capability.id];
   expandedCapId.value = null;
 };
 
 const onSave = async (capability: AgentCapabilityRow) => {
   if (pendingConfigSave.value.has(capability.id)) return;
-  const config = hasGroupToggles(capability)
-    ? { enabledGroups: localGroups.value[capability.id] }
-    : { tools: localTools.value[capability.id] };
-  if (!config.enabledGroups && !config.tools) return;
+  let config: Record<string, unknown>;
+  if (hasSettings(capability)) {
+    config = { ...localSettings.value[capability.id] };
+  } else if (hasGroupToggles(capability)) {
+    config = { enabledGroups: localGroups.value[capability.id] };
+    if (!config.enabledGroups) return;
+  } else {
+    config = { tools: localTools.value[capability.id] };
+    if (!config.tools) return;
+  }
   pendingConfigSave.value.add(capability.id);
   try {
     await $fetch(`/api/agents/${props.agentId}/capabilities/${capability.id}`, {
@@ -173,6 +207,7 @@ const onSave = async (capability: AgentCapabilityRow) => {
     capability.agentConfig = { ...capability.agentConfig, ...config };
     delete localTools.value[capability.id];
     delete localGroups.value[capability.id];
+    delete localSettings.value[capability.id];
     notify.success('Saved');
     expandedCapId.value = null;
   } catch (e) {
@@ -348,6 +383,50 @@ const onRefresh = async () => {
                   <p class="text-xs text-toned">
                     {{ getEnabledToolCount(capability) }} tools enabled
                   </p>
+                  <div class="flex items-center gap-2">
+                    <UButton
+                      size="xs"
+                      color="neutral"
+                      variant="ghost"
+                      @click="onCancel(capability)"
+                    >
+                      Cancel
+                    </UButton>
+                    <UButton
+                      size="xs"
+                      :loading="pendingConfigSave.has(capability.id)"
+                      @click="onSave(capability)"
+                    >
+                      Save
+                    </UButton>
+                  </div>
+                </div>
+              </template>
+
+              <template v-else-if="hasSettings(capability)">
+                <div
+                  v-for="(field, fi) in capability.settings"
+                  :key="field.key"
+                  class="flex flex-col gap-2"
+                  :class="fi > 0 ? 'mt-4 pt-4 border-t border-default' : ''"
+                >
+                  <p class="text-sm font-medium">
+                    {{ field.label }}
+                  </p>
+                  <USlider
+                    :model-value="getSettingValue(capability, field)"
+                    :min="field.min"
+                    :max="field.max"
+                    :step="1"
+                    @update:model-value="setSetting(capability, field.key, ($event as number))"
+                  />
+                  <div class="flex items-center justify-between text-xs text-toned">
+                    <span>{{ field.minLabel }}</span>
+                    <span>{{ field.maxLabel }}</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-end mt-4 pt-3 border-t border-default">
                   <div class="flex items-center gap-2">
                     <UButton
                       size="xs"

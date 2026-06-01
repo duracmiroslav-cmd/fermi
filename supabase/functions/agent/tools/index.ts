@@ -4,7 +4,7 @@ import { getCurrentTime } from './time.ts';
 import { searchWeb } from './web-search.ts';
 import { fetchWeb } from './web-fetch.ts';
 import { loadCredential, type KeyType } from '../../../../shared/credentials.ts';
-import type { AttachedCapability } from '../../../../shared/agentCapabilities.ts';
+import type { AttachedCapability, CapabilityConfig } from '../../../../shared/agentCapabilities.ts';
 import { McpClient, type McpTool } from './mcp/client.ts';
 import { wrapToolOutput } from '../prompt-guard.ts';
 
@@ -33,6 +33,10 @@ export interface ToolContext {
   // doubles as an audit trail back to the `agent_run_steps` row.
   toolCallId: string;
   attachments: ToolAttachment[];
+  // Per-agent config of the capability owning this tool, from
+  // `agent_capabilities.config`. Owner-set runtime knobs (e.g. image safety)
+  // the worker forwards upstream — bound at registration, never LLM-fillable.
+  capabilityConfig?: CapabilityConfig;
 }
 
 export interface Tool {
@@ -112,7 +116,10 @@ export const buildToolset = async (
   for (const capability of capabilities.filter(c => !c.config.url)) {
     for (const tool of tools.filter(t => t.capabilitySlug === capability.slug)) {
       schemas.push(toSchema(tool));
-      routers.set(tool.name, (args, ctx) => tool.execute(args, ctx));
+      // Bind the owning capability's config at registration so the tool reads
+      // owner settings without them ever entering the LLM-facing schema.
+      routers.set(tool.name, (args, ctx) =>
+        tool.execute(args, { ...ctx, capabilityConfig: capability.config }));
     }
   }
 
