@@ -12,14 +12,16 @@ export class ImageGenError extends Error {
 
 export const DEFAULT_IMAGE_MODEL = 'fal-ai/nano-banana';
 
-// Maps the LLM-facing size enum to fal's image_size string. Square
-// is the cheapest / most common; portrait + landscape cover the two
-// common aspect-ratio asks ("phone wallpaper", "banner").
+// Maps the LLM-facing size enum to nano-banana's `aspect_ratio`. The model
+// (Gemini Flash Image) has no `image_size` field — it only honors
+// `aspect_ratio`, so a stray `image_size` is silently dropped and every
+// image falls back to the 1:1 default. The friendly size names resolve to
+// ratios: portrait → 9:16 (phone wallpaper), landscape → 16:9 (banner).
 export type ImageSize = 'square' | 'portrait' | 'landscape';
-const sizeMap: Record<ImageSize, string> = {
-  square: 'square_hd',
-  portrait: 'portrait_16_9',
-  landscape: 'landscape_16_9',
+const aspectRatioMap: Record<ImageSize, string> = {
+  square:    '1:1',
+  portrait:  '9:16',
+  landscape: '16:9',
 };
 
 // Watermark suffix appended to every prompt. Prompt-based watermarks
@@ -65,7 +67,7 @@ export const generateImage = async (params: {
     },
     body: JSON.stringify({
       prompt: `${prompt}${WATERMARK_SUFFIX}`,
-      image_size: sizeMap[size],
+      aspect_ratio: aspectRatioMap[size],
       num_images: 1,
     }),
   });
