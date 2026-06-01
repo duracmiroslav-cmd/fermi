@@ -6,7 +6,10 @@ import { type VoiceReplyMode, findAgentById } from '../../../shared/agents.ts';
 import { type TtsModel, type TtsVoice } from '../../../shared/tts.ts';
 import { findBotById } from '../../../shared/bots.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
+import { t } from '../../../shared/i18n.ts';
 import { getKek } from '../../../shared/kek.ts';
+import { type Locale } from '../../../shared/locale.ts';
+import { loadOwnerLocale } from '../../../shared/users.ts';
 import {
   FreeBYOKRequiredError,
   PlatformKeyNotConfiguredError,
@@ -98,21 +101,6 @@ interface QueueMessage {
   payload: QueuePayload;
 }
 
-const NO_AGENT_NOTICE = '⚙️ 這個 bot 還沒設定 agent，請到 https://fermi.tw/dashboard 綁定一個。';
-// Free tier: BYOK is the friction point. Notice surfaces both paths so
-// the bot owner can pick connect (manual) or upgrade (instant).
-const FREE_BYOK_NOTICE_OPENROUTER
-  = '⚙️ 還沒連接 OpenRouter。Free 方案請到 https://fermi.tw/dashboard/connectors 連接，或升級 Pro 由 fermi 代管。';
-const PLATFORM_KEY_OPS_NOTICE = '⚠️ Pro 服務暫時不可用，已通知 fermi 處理，請稍後再試。';
-const FREE_BYOK_NOTICE_OPENAI
-  = '🎙️ 語音功能需要 OpenAI key。Free 方案請到 https://fermi.tw/dashboard/connectors 連接，或升級 Pro 由 fermi 代管。';
-const QUOTA_EXHAUSTED_STT
-  = '⚠️ 這個月語音輸入額度已用完。可改傳文字訊息，或請 bot 主人升 Pro 解鎖：https://fermi.tw/dashboard/billing';
-const QUOTA_EXHAUSTED_TTS_SUFFIX
-  = '\n\n（本次語音回覆額度已用完，改用文字。升 Pro 解鎖：https://fermi.tw/dashboard/billing）';
-const QUOTA_EXHAUSTED_EXTENDED_RUN
-  = '⚠️ 這個月長對話額度已用完。可換更具體的問法，或請 bot 主人升 Pro 解鎖：https://fermi.tw/dashboard/billing';
-
 const PLATFORM_OPENROUTER_KEY = Deno.env.get('OPENROUTER_API_KEY') ?? null;
 const PLATFORM_OPENAI_KEY = Deno.env.get('OPENAI_API_KEY') ?? null;
 
@@ -179,6 +167,7 @@ const runAgentLoop = async (params: {
     ttsInstructions: string | null;
     voiceReplyMode: VoiceReplyMode;
   };
+  ownerLocale: Locale;
   openrouterKey: string;
   lineAccessToken: string;
   kek: CryptoKey;
@@ -189,7 +178,7 @@ const runAgentLoop = async (params: {
   // reply-token budget on LINE's delivery time, not worker dequeue.
   eventTimestamp: number;
 }): Promise<void> => {
-  const { bot, agent, openrouterKey, lineAccessToken, kek, externalUserId, replyToken, userInput, eventTimestamp } = params;
+  const { bot, agent, ownerLocale, openrouterKey, lineAccessToken, kek, externalUserId, replyToken, userInput, eventTimestamp } = params;
 
   const threadId = await resolveOrCreateLatestThread(admin, bot.id, externalUserId);
   if (userInput.type === 'text') {
@@ -294,7 +283,7 @@ const runAgentLoop = async (params: {
         });
         extendedRunConsumed = true;
         if (!exQuota.allowed) {
-          finalText = QUOTA_EXHAUSTED_EXTENDED_RUN;
+          finalText = t('__noticeQuotaExtendedRunExhausted', ownerLocale);
           break;
         }
       }
@@ -425,7 +414,7 @@ const runAgentLoop = async (params: {
     // Hit the step cap without a terminal assistant turn. Send the
     // user a clear "I stopped" notice rather than nothing.
     if (finalText === null) {
-      finalText = `⚠️ 跑了 ${MAX_AGENT_STEPS} 步還沒收斂，先停下來。可以換個方式問我一次。`;
+      finalText = t('__noticeAgentStepsExceeded', ownerLocale, { steps: MAX_AGENT_STEPS });
     }
 
     const injectionCheck = checkInjection(finalText);
@@ -534,7 +523,7 @@ const runAgentLoop = async (params: {
     // the tail. The truncation layer (replyMessages / pushMessages)
     // caps at LINE_MESSAGES_PER_CALL regardless.
     const textWithSuffix = ttsQuotaExhausted
-      ? `${finalText}${QUOTA_EXHAUSTED_TTS_SUFFIX}`
+      ? `${finalText}${t('__noticeQuotaTtsExhaustedSuffix', ownerLocale)}`
       : finalText;
     const outbound: LineMessage[] = ttsAudio
       ? [{ type: 'audio', originalContentUrl: ttsAudio.signedUrl, duration: ttsAudio.durationMs }]
@@ -615,14 +604,16 @@ const runAgentLoop = async (params: {
       payload,
     });
     // Surface the failure to LINE so the user sees what went wrong
-    // instead of staring at a vanished `...`.
+    // instead of staring at a vanished `...`. Generic locale-aware
+    // notice; the actual error details live in `error_occurred` step
+    // payload and Sentry capture, not the user-facing message.
     let userNotified = false;
     try {
       await deliverMessages({
         accessToken: lineAccessToken,
         replyToken,
         userId: externalUserId,
-        messages: [{ type: 'text', text: formatErrorForLine(err) }],
+        messages: [{ type: 'text', text: t('__noticeServiceError', ownerLocale) }],
         elapsedMs: Date.now() - eventTimestamp,
       });
       userNotified = true;
@@ -638,19 +629,6 @@ const runAgentLoop = async (params: {
     if (userNotified) return;
     throw err;
   }
-};
-
-// OpenRouterError / LineReplyError / LinePushError already self-format
-// with their status code, so this only prefixes `⚠️` and truncates
-// well under LINE's 5000-char limit.
-const formatErrorForLine = (err: unknown): string => {
-  const maxLen = 400;
-  const message = err instanceof OpenRouterError
-    || err instanceof LineReplyError
-    || err instanceof LinePushError
-    ? err.message
-    : `fermi error: ${String(err)}`;
-  return `⚠️ ${message.slice(0, maxLen)}`;
 };
 
 // Filters out events whose webhookEventId is already processed
@@ -683,6 +661,11 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     return;
   }
 
+  // Owner's dashboard locale doubles as the LINE end user locale —
+  // LINE's Messaging API doesn't surface user language, so owner locale
+  // is the best available proxy. Loaded once per webhook batch.
+  const ownerLocale = await loadOwnerLocale(admin, bot.ownerId);
+
   const kek = await getKek(fermiKek);
   const { plaintext: lineAccessToken } = await loadCredential(admin, kek, {
     userId: bot.ownerId,
@@ -695,7 +678,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
   if (!bot.agentId) {
     for (const event of events) {
       if (isReplyableUserMessage(event)) {
-        await safeReply(lineAccessToken, event.replyToken, NO_AGENT_NOTICE);
+        await safeReply(lineAccessToken, event.replyToken, t('__noticeNoAgent', ownerLocale));
       }
     }
     return;
@@ -707,7 +690,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     // (race or manual SQL). Same UX as no-agent.
     for (const event of events) {
       if (isReplyableUserMessage(event)) {
-        await safeReply(lineAccessToken, event.replyToken, NO_AGENT_NOTICE);
+        await safeReply(lineAccessToken, event.replyToken, t('__noticeNoAgent', ownerLocale));
       }
     }
     return;
@@ -727,18 +710,18 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     // missing (operational issue on the fermi side; user-facing
     // message must not blame the user). Any other throw is a real
     // DB/decryption error → bubble so pgmq retries.
-    const notice = err instanceof FreeBYOKRequiredError
-      ? FREE_BYOK_NOTICE_OPENROUTER
+    const noticeKey = err instanceof FreeBYOKRequiredError
+      ? '__noticeFreeByokOpenrouter'
       : err instanceof PlatformKeyNotConfiguredError
-        ? PLATFORM_KEY_OPS_NOTICE
+        ? '__noticePlatformKeyOps'
         : null;
-    if (notice === null) throw err;
+    if (noticeKey === null) throw err;
     if (err instanceof PlatformKeyNotConfiguredError) {
       console.error('platform OpenRouter key missing for Pro user', { ownerId: bot.ownerId });
     }
     for (const event of events) {
       if (isReplyableUserMessage(event)) {
-        await safeReply(lineAccessToken, event.replyToken, notice);
+        await safeReply(lineAccessToken, event.replyToken, t(noticeKey, ownerLocale));
       }
     }
     return;
@@ -754,6 +737,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       await runAgentLoop({
         bot,
         agent,
+        ownerLocale,
         openrouterKey,
         lineAccessToken,
         kek,
@@ -772,14 +756,14 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         const content = await fetchMessageContent(lineAccessToken, event.message.id);
         const detected = detectImageMime(content.bytes);
         if (!detected) {
-          await safeReply(lineAccessToken, event.replyToken, '⚠️ 目前只支援 JPG / PNG / GIF / WebP。');
+          await safeReply(lineAccessToken, event.replyToken, t('__noticeUnsupportedImageFormat', ownerLocale));
           continue;
         }
         imageMime = detected;
         imageBytes = content.bytes;
       } catch (err) {
         if (err instanceof LineContentError && err.status === 413) {
-          await safeReply(lineAccessToken, event.replyToken, '⚠️ 圖片太大，上限 10MB。');
+          await safeReply(lineAccessToken, event.replyToken, t('__noticeImageTooLarge', ownerLocale));
           continue;
         }
         throw err;
@@ -787,6 +771,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       await runAgentLoop({
         bot,
         agent,
+        ownerLocale,
         openrouterKey,
         lineAccessToken,
         kek,
@@ -805,14 +790,14 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         const content = await fetchMessageContent(lineAccessToken, event.message.id);
         const detected = detectAudioMime(content.bytes);
         if (!detected) {
-          await safeReply(lineAccessToken, event.replyToken, '⚠️ 不支援的音訊格式。');
+          await safeReply(lineAccessToken, event.replyToken, t('__noticeUnsupportedAudioFormat', ownerLocale));
           continue;
         }
         audioMime = detected;
         audioBytes = content.bytes;
       } catch (err) {
         if (err instanceof LineContentError && err.status === 413) {
-          await safeReply(lineAccessToken, event.replyToken, '⚠️ 音訊太大，上限 10MB。');
+          await safeReply(lineAccessToken, event.replyToken, t('__noticeAudioTooLarge', ownerLocale));
           continue;
         }
         throw err;
@@ -826,7 +811,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         purpose: 'stt',
       });
       if (!sttQuota.allowed) {
-        await safeReply(lineAccessToken, event.replyToken, QUOTA_EXHAUSTED_STT);
+        await safeReply(lineAccessToken, event.replyToken, t('__noticeQuotaSttExhausted', ownerLocale));
         continue;
       }
 
@@ -845,12 +830,12 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         openaiKey = resolved.key;
       } catch (err) {
         if (err instanceof FreeBYOKRequiredError) {
-          await safeReply(lineAccessToken, event.replyToken, FREE_BYOK_NOTICE_OPENAI);
+          await safeReply(lineAccessToken, event.replyToken, t('__noticeFreeByokOpenai', ownerLocale));
           continue;
         }
         if (err instanceof PlatformKeyNotConfiguredError) {
           console.error('platform OpenAI key missing for Pro user', { ownerId: bot.ownerId });
-          await safeReply(lineAccessToken, event.replyToken, PLATFORM_KEY_OPS_NOTICE);
+          await safeReply(lineAccessToken, event.replyToken, t('__noticePlatformKeyOps', ownerLocale));
           continue;
         }
         throw err;
@@ -862,13 +847,13 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       } catch (err) {
         if (err instanceof STTError) {
           console.warn('Whisper failed; dropping audio', { status: err.status });
-          await safeReply(lineAccessToken, event.replyToken, '⚠️ 無法辨識這段語音，請再試一次。');
+          await safeReply(lineAccessToken, event.replyToken, t('__noticeAudioTranscriptionFailed', ownerLocale));
           continue;
         }
         throw err;
       }
       if (transcript.length === 0) {
-        await safeReply(lineAccessToken, event.replyToken, '⚠️ 沒聽清楚，請再試一次。');
+        await safeReply(lineAccessToken, event.replyToken, t('__noticeAudioEmpty', ownerLocale));
         continue;
       }
 
@@ -879,6 +864,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       await runAgentLoop({
         bot,
         agent,
+        ownerLocale,
         openrouterKey,
         lineAccessToken,
         kek,
@@ -908,7 +894,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       await safeReply(
         lineAccessToken,
         event.replyToken,
-        '⚠️ 目前只支援文字、圖片、語音訊息。',
+        t('__noticeUnsupportedMessageType', ownerLocale),
       );
     }
   }
