@@ -4,10 +4,19 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxt/fonts',
     '@nuxt/ui',
+    '@nuxtjs/i18n',
     '@nuxtjs/supabase',
     '@sentry/nuxt/module',
     '@vueuse/nuxt',
   ],
+  i18n: {
+    defaultLocale:         'en',
+    strategy:              'no_prefix',
+    detectBrowserLanguage: false,
+    locales:               [
+      { code: 'en', name: 'English', file: 'en.json' },
+    ],
+  },
   colorMode: {
     preference: 'dark',
     fallback:   'dark',

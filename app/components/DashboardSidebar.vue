@@ -11,22 +11,22 @@
       <DashboardNavItem
         to="/dashboard/bots"
         icon="i-lucide-bot"
-        label="Bots"
+        :label="$t('__labelBot', 2)"
       />
       <DashboardNavItem
         to="/dashboard/agents"
         icon="i-lucide-cpu"
-        label="Agents"
+        :label="$t('__labelAgent', 2)"
       />
       <DashboardNavItem
         to="/dashboard/connectors"
         icon="i-lucide-cable"
-        label="Connectors"
+        :label="$t('__labelConnector', 2)"
       />
       <DashboardNavItem
         to="/dashboard/usage"
         icon="i-lucide-gauge"
-        label="Usage"
+        :label="$t('__labelUsage')"
       />
     </nav>
 

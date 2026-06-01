@@ -1,0 +1,6 @@
+{
+  "__labelAgent":     "Agent|Agents",
+  "__labelBot":       "Bot|Bots",
+  "__labelConnector": "Connector|Connectors",
+  "__labelUsage":     "Usage"
+}

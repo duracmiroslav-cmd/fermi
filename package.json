@@ -17,6 +17,7 @@
     "@line/bot-sdk": "^11.0.0",
     "@nuxt/fonts": "^0.14.0",
     "@nuxt/ui": "^4.8.0",
+    "@nuxtjs/i18n": "^10.4.0",
     "@nuxtjs/supabase": "^2.0.9",
     "@sentry/nuxt": "^10.55.0",
     "@supabase/supabase-js": "^2.106.1",
