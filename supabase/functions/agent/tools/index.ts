@@ -157,22 +157,20 @@ export const buildToolset = async (
             mcpToolCache.set(cacheKey, { tools: mcpTools, expiresAt: Date.now() + TOOL_CACHE_TTL_MS });
           }
 
-          // Two allowlist shapes: `tools` flat (a hardcoded read-only
-          // subset) or `toolGroups` + `enabledGroups` (the agent picks
-          // which groups of a many-tool MCP to surface; allowlist =
-          // union of the chosen groups). `enabledGroups` is per-agent
-          // state, shallow-merged over the capability's
-          // `defaultEnabledGroups` at load time.
+          // Allowlist sources, in priority order:
+          //   1. `tools` (per-agent override or, for flat-list capabilities
+          //      like github, the catalog's read-only baseline).
+          //   2. For grouped capabilities (twinkle-hub) with no per-agent
+          //      override, the union of `defaultEnabledGroups`.
           let allowlist: Set<string> | null = null;
-          if (capability.config.toolGroups) {
-            const enabled = capability.config.enabledGroups
-              ?? capability.config.defaultEnabledGroups
-              ?? [];
-            allowlist = new Set(
-              enabled.flatMap(g => capability.config.toolGroups?.[g]?.tools ?? []),
-            );
-          } else if (capability.config.tools) {
+          if (capability.config.tools) {
             allowlist = new Set(capability.config.tools);
+          } else if (capability.config.toolGroups && capability.config.defaultEnabledGroups) {
+            allowlist = new Set(
+              capability.config.defaultEnabledGroups.flatMap(
+                g => capability.config.toolGroups?.[g]?.tools ?? [],
+              ),
+            );
           }
           for (const t of mcpTools) {
             if (allowlist && !allowlist.has(t.name)) continue;

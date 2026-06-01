@@ -20,12 +20,12 @@ export interface CapabilityProviderRow {
   connectedAt?: string;
 }
 
-// Surfaced to the capability config UI so each group can render as one
-// labelled checkbox. Tool names stay server-side: the client only needs the
-// human-readable label and a count for the "(N tools)" hint.
+// Surfaced to the capability config UI so each group renders as a labelled
+// section of per-tool checkboxes. Tool names are upstream identifiers; the
+// UI strips the upstream prefix (e.g. `twtools-`) at render time.
 export interface ToolGroupSummary {
-  label:     string;
-  toolCount: number;
+  label: string;
+  tools: string[];
 }
 
 export interface CapabilityRow {
@@ -35,12 +35,12 @@ export interface CapabilityRow {
   description:           string | null;
   credentialType:        CredentialType;
   providers?:            CapabilityProviderRow[];
-  // When set, the capability uses group-level toggles (instead of per-tool
-  // checkboxes). The agent binding stores its selection as
-  // `agent_capabilities.config.enabledGroups` (array of group slugs).
+  // When set, the capability config UI renders per-tool checkboxes grouped
+  // under each group's label. The agent binding stores its per-tool selection
+  // as `agent_capabilities.config.tools`.
   toolGroups?:           Record<string, ToolGroupSummary>;
-  // Initial selection when no `enabledGroups` has been recorded for this
-  // agent yet. The UI uses this to pre-check the right boxes.
+  // Tools belonging to these groups are pre-checked when the agent binding
+  // hasn't saved its own `tools` list yet.
   defaultEnabledGroups?: string[];
   // Owner-config form descriptor. When present, the row renders a settings
   // panel; saved values land in `agent_capabilities.config`.
@@ -96,7 +96,7 @@ export const listCapabilitiesForUser = async (
       row.toolGroups = Object.fromEntries(
         Object.entries(builtIn.config.toolGroups).map(([slug, group]) => [
           slug,
-          { label: group.label, toolCount: group.tools.length },
+          { label: group.label, tools: [...group.tools] },
         ]),
       );
       row.defaultEnabledGroups = builtIn.config.defaultEnabledGroups;

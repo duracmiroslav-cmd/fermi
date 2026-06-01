@@ -11,20 +11,25 @@
 export interface CapabilityConfig {
   url?:                  string;
   authKeyType?:          string;
-  // Flat read-only allowlist used by capabilities that don't group tools
-  // (e.g. github). Only listed names are surfaced to the LLM.
+  // Per-agent allowlist (`agent_capabilities.config.tools`): the user's
+  // current per-tool selection for this binding. Shallow-merges onto the
+  // catalog config, overriding the catalog default.
+  //
+  // Also used as the catalog default for flat-list capabilities (e.g.
+  // github), where it doubles as the read-only baseline. Grouped capabilities
+  // (e.g. twinkle-hub) derive their catalog default from
+  // `defaultEnabledGroups` instead — see `toolGroups` below.
   tools?:                string[];
-  // Grouped allowlist used by capabilities with too many tools to expose at
-  // once (e.g. twinkle-hub). Effective allowlist is the union of
-  // `toolGroups[g].tools` for g in the agent's `enabledGroups`.
+  // Grouped tool surface for capabilities with too many tools to display
+  // ungrouped (e.g. twinkle-hub). UI renders each group as a labelled
+  // section of per-tool checkboxes; the runtime allowlist is whatever the
+  // user has checked, persisted as `config.tools`.
   toolGroups?:           Record<string, ToolGroup>;
-  // Set on the capability's catalog config: which groups apply when the
-  // agent binding hasn't recorded an explicit `enabledGroups` yet.
+  // Catalog-level default selection for grouped capabilities: tools belonging
+  // to these groups are pre-checked when the agent binding hasn't saved its
+  // own `tools` list yet, and the dispatcher uses the same union as the
+  // runtime fallback.
   defaultEnabledGroups?: string[];
-  // Set on the per-agent override (`agent_capabilities.config`): the user's
-  // current selection of groups for this binding. Shallow-merges onto the
-  // catalog config, overriding `defaultEnabledGroups`.
-  enabledGroups?:        string[];
   // Per-agent owner config for an in-process tool (no MCP `url`). Unlike the
   // allowlist fields above, this is a runtime knob the worker reads and
   // forwards to the upstream image API. Deliberately NOT an LLM tool param:
@@ -176,9 +181,11 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
   },
   // Twinkle Hub bundles Taiwan-specific lookup tools + data.gov.tw open
   // data queries behind one MCP endpoint. The upstream surface is too large
-  // (65 tools as of 2026-05) to expose all at once: each agent picks
-  // `enabledGroups` and the dispatcher unions those groups' `tools` into
-  // the LLM allowlist.
+  // (65 tools as of 2026-05) to render as one flat checkbox list, so the UI
+  // groups them under `toolGroups`. Each agent saves a per-tool selection at
+  // `agent_capabilities.config.tools`; the dispatcher uses that flat list
+  // directly, falling back to the union of `defaultEnabledGroups` when the
+  // binding hasn't saved a selection yet.
   //
   // The 12 tools deliberately omitted across groups are: `current_time_in`
   // (overlaps fermi's in-process `time`), `fetch_url_as_markdown` (overlaps
