@@ -41,13 +41,19 @@ const encodeAad = (aad: string): Bytes =>
 
 const randomIv = (): Bytes => crypto.getRandomValues(new Uint8Array(IV_LENGTH));
 
+// AES-GCM is a valid key-wrap algorithm at runtime, but the lib types
+// omit AesGcmParams from wrapKey / unwrapKey's algorithm union (unlike
+// encrypt / decrypt). Typing the params as AesGcmParams here lets all
+// four ops share one constructor without per-call-site casts.
+const gcmParams = (iv: Bytes, aad: Bytes): AesGcmParams => ({ name: ALG, iv, additionalData: aad });
+
 const wrapDek = async (
   dek: CryptoKey,
   kek: CryptoKey,
   aad: Bytes,
 ): Promise<{ wrappedDek: Bytes; iv: Bytes }> => {
   const iv = randomIv();
-  const wrapped = await crypto.subtle.wrapKey('raw', dek, kek, { name: ALG, iv, additionalData: aad });
+  const wrapped = await crypto.subtle.wrapKey('raw', dek, kek, gcmParams(iv, aad));
   return { wrappedDek: new Uint8Array(wrapped), iv };
 };
 
@@ -61,7 +67,7 @@ const unwrapDek = (
     'raw',
     wrappedDek,
     kek,
-    { name: ALG, iv, additionalData: aad },
+    gcmParams(iv, aad),
     { name: ALG },
     false,
     ['encrypt', 'decrypt'],
@@ -74,7 +80,7 @@ const encryptWith = async (
 ): Promise<{ ciphertext: Bytes; iv: Bytes }> => {
   const iv = randomIv();
   const data = new TextEncoder().encode(plaintext);
-  const ct = await crypto.subtle.encrypt({ name: ALG, iv, additionalData: aad }, dek, data);
+  const ct = await crypto.subtle.encrypt(gcmParams(iv, aad), dek, data);
   return { ciphertext: new Uint8Array(ct), iv };
 };
 
@@ -84,7 +90,7 @@ const decryptWith = async (
   dek: CryptoKey,
   aad: Bytes,
 ): Promise<string> => {
-  const pt = await crypto.subtle.decrypt({ name: ALG, iv, additionalData: aad }, dek, ciphertext);
+  const pt = await crypto.subtle.decrypt(gcmParams(iv, aad), dek, ciphertext);
   return new TextDecoder().decode(pt);
 };
 
