@@ -21,7 +21,7 @@ const iconBySlug: Record<string, string> = {
   'github':          'i-simple-icons-github',
   'google-calendar': 'i-simple-icons-googlecalendar',
   'notion':          'i-simple-icons-notion',
-  'twinkle-hub':     'i-lucide-sparkles',
+  'twinkle-hub':     'i-lucide-star',
 };
 
 export const getCapabilityIcon = (slug: string): string =>
