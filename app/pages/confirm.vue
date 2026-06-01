@@ -27,7 +27,7 @@ onMounted(async () => {
 <template>
   <div class="min-h-screen flex items-center justify-center">
     <p class="text-toned">
-      Signing in...
+      {{ $t('__hintSigningIn') }}
     </p>
   </div>
 </template>

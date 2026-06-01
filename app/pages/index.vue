@@ -1,9 +1,11 @@
 <script setup lang="ts">
 definePageMeta({ auth: false });
 
+const { t } = useI18n();
+
 useSeoMeta({
-  title:       'fermi · agentic AI in your LINE',
-  description: 'fermi puts MCP-connected agents inside LINE. No deploy, no new app, five-minute onboarding. Join the wait-list.',
+  title:       t('__titleSeoLanding'),
+  description: t('__descriptionSeoLanding'),
 });
 
 const user = useSupabaseUser();
@@ -18,7 +20,7 @@ const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.
 const submit = async () => {
   errorMessage.value = null;
   if (!isValidEmail(email.value)) {
-    errorMessage.value = 'enter a valid email address';
+    errorMessage.value = t('__errorInvalidEmail');
     return;
   }
   submitting.value = true;
@@ -36,11 +38,11 @@ const submit = async () => {
 
     <aside class="pointer-events-none absolute top-32 right-6 sm:right-12 hidden md:block font-mono text-right select-none">
       <p class="text-xs text-toned/70 leading-relaxed">
-        <span class="block">"where is everyone?"</span>
-        <span class="block text-toned/50 mt-1">,  enrico fermi, 1950</span>
+        <span class="block">{{ $t('__descriptionFermiQuote') }}</span>
+        <span class="block text-toned/50 mt-1">{{ $t('__descriptionFermiQuoteAttribution') }}</span>
       </p>
       <p class="mt-6 text-xs text-toned/70">
-        <span class="text-primary/80">∴</span> they're on LINE.
+        <span class="text-primary/80">∴</span> {{ $t('__descriptionFermiQuoteAnswer') }}
       </p>
     </aside>
 
@@ -64,7 +66,7 @@ const submit = async () => {
             :to="user ? '/dashboard' : '/sign-in'"
             class="text-toned hover:text-highlighted transition-colors flex items-center gap-1.5"
           >
-            {{ user ? 'open dashboard' : 'sign in' }}
+            {{ user ? $t('__actionOpenDashboard') : $t('__actionSignIn') }}
             <span
               v-if="user"
               aria-hidden="true"
@@ -80,23 +82,23 @@ const submit = async () => {
               <span class="absolute inset-0 rounded-full bg-primary animate-ping-slow" />
               <span class="relative inline-block w-1.5 h-1.5 rounded-full bg-primary" />
             </span>
-            <span class="text-toned uppercase tracking-wider">closed beta · accepting wait-list</span>
+            <span class="text-toned uppercase tracking-wider">{{ $t('__hintClosedBeta') }}</span>
           </div>
 
           <h1 class="font-mono text-highlighted text-3xl sm:text-5xl md:text-6xl leading-none tracking-tight font-medium">
             <span
               class="block reveal"
               style="animation-delay: 60ms"
-            >agentic AI,</span>
+            >{{ $t('__titleHeroLine1') }}</span>
             <span
               class="block reveal mt-2 sm:mt-3"
               style="animation-delay: 180ms"
-            >in the chat</span>
+            >{{ $t('__titleHeroLine2') }}</span>
             <span
               class="block reveal mt-2 sm:mt-3"
               style="animation-delay: 300ms"
             >
-              you already use<span class="text-primary">.</span>
+              {{ $t('__titleHeroLine3') }}<span class="text-primary">.</span>
             </span>
           </h1>
 
@@ -104,7 +106,7 @@ const submit = async () => {
             class="mt-10 text-toned text-base sm:text-lg max-w-xl leading-relaxed reveal"
             style="animation-delay: 520ms"
           >
-            fermi puts MCP-connected agents inside LINE. No deploy, no new app to learn. Add a friend, link your tools, and chat like normal, only now your chat ships work.
+            {{ $t('__descriptionHeroSubline') }}
           </p>
 
           <form
@@ -112,13 +114,16 @@ const submit = async () => {
             style="animation-delay: 680ms"
             @submit.prevent="submit"
           >
-            <div
+            <I18nT
               v-if="submitted"
+              keypath="__descriptionWaitlistJoined"
+              tag="div"
               class="rounded-lg border border-default bg-muted/50 px-4 py-3 font-mono text-sm text-highlighted flex items-center gap-2"
             >
-              <span class="text-primary">→</span>
-              you're on the list. we'll write to <span class="text-toned">{{ email }}</span>.
-            </div>
+              <template #email>
+                <span class="text-toned">{{ email }}</span>
+              </template>
+            </I18nT>
 
             <template v-else>
               <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
@@ -138,7 +143,7 @@ const submit = async () => {
                   trailing-icon="i-lucide-arrow-right"
                   class="font-mono justify-center"
                 >
-                  join wait-list
+                  {{ $t('__actionJoinWaitlist') }}
                 </UButton>
               </div>
               <p
@@ -151,7 +156,7 @@ const submit = async () => {
                 v-else
                 class="mt-3 font-mono text-xs text-toned"
               >
-                no spam. we ping you the moment beta opens.
+                {{ $t('__hintWaitlistNoSpam') }}
               </p>
             </template>
           </form>
@@ -164,26 +169,26 @@ const submit = async () => {
             <span class="text-2xl sm:text-3xl text-highlighted tracking-tight">
               t ≈ <span class="text-primary">5</span><span class="text-toned text-base"> min</span>
             </span>
-            <span class="text-xs text-toned uppercase tracking-wider">onboarding</span>
+            <span class="text-xs text-toned uppercase tracking-wider">{{ $t('__labelOnboarding') }}</span>
           </div>
           <div class="flex flex-col gap-1.5">
             <span class="text-2xl sm:text-3xl text-highlighted tracking-tight">
               n = <span class="text-primary">10<sup class="text-lg">2</sup></span><span class="text-toned text-base"> MCPs</span>
             </span>
-            <span class="text-xs text-toned uppercase tracking-wider">ecosystem</span>
+            <span class="text-xs text-toned uppercase tracking-wider">{{ $t('__labelEcosystem') }}</span>
           </div>
           <div class="flex flex-col gap-1.5">
             <span class="text-2xl sm:text-3xl text-highlighted tracking-tight">
               d = <span class="text-primary">0</span><span class="text-toned text-base"> deploys</span>
             </span>
-            <span class="text-xs text-toned uppercase tracking-wider">infrastructure</span>
+            <span class="text-xs text-toned uppercase tracking-wider">{{ $t('__labelInfrastructure') }}</span>
           </div>
         </div>
       </section>
 
       <footer class="px-6 sm:px-12 py-6 border-t border-default font-mono text-xs text-toned">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <span>© fermi · spiritual successor to gpt-ai-assistant</span>
+          <span>{{ $t('__descriptionFooterCopyright') }}</span>
           <a
             href="https://github.com/ipotesi/fermi"
             target="_blank"

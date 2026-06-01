@@ -1,7 +1,15 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   error: { statusCode: number; message?: string };
 }>();
+
+const { t } = useI18n();
+
+const fallbackMessage = computed(() =>
+  props.error.statusCode === 404
+    ? t('__descriptionPageNotFound')
+    : t('__descriptionSomethingWentWrong'),
+);
 
 const handleError = () => clearError({ redirect: '/' });
 </script>
@@ -12,14 +20,14 @@ const handleError = () => clearError({ redirect: '/' });
       {{ error.statusCode }}
     </h1>
     <p class="text-toned">
-      {{ error.message || (error.statusCode === 404 ? 'Page not found' : 'Something went wrong') }}
+      {{ error.message || fallbackMessage }}
     </p>
     <UButton
       color="neutral"
       variant="outline"
       @click="handleError"
     >
-      Go home
+      {{ $t('__actionGoHome') }}
     </UButton>
   </div>
 </template>
