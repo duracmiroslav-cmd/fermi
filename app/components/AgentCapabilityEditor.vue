@@ -83,7 +83,10 @@ const {
             <h2 class="font-semibold">
               {{ sectionLabel }}
             </h2>
-            <div class="flex items-center gap-2">
+            <div
+              v-if="capability.attached"
+              class="flex items-center gap-2"
+            >
               <UButton
                 :to="`/dashboard/agents/${agentId}/edit`"
                 color="neutral"
@@ -95,7 +98,7 @@ const {
               <UButton
                 size="sm"
                 :loading="saving"
-                :disabled="!isDirty || !capability.attached"
+                :disabled="!isDirty"
                 @click="onSave"
               >
                 Save
