@@ -5,6 +5,7 @@ import { searchWeb } from './web-search.ts';
 import { fetchWeb } from './web-fetch.ts';
 import { loadCredential, type KeyType } from '../../../../shared/credentials.ts';
 import type { AttachedCapability, CapabilityConfig } from '../../../../shared/agentCapabilities.ts';
+import { DEFAULT_TOOLS } from '../../../../shared/capabilityTools.ts';
 import { McpClient, type McpTool } from './mcp/client.ts';
 import { wrapToolOutput } from '../prompt-guard.ts';
 
@@ -158,10 +159,13 @@ export const buildToolset = async (
           }
 
           // Allowlist sources, in priority order:
-          //   1. `tools` (per-agent override or, for flat-list capabilities
-          //      like github, the catalog's read-only baseline).
-          //   2. For grouped capabilities (twinkle-hub) with no per-agent
-          //      override, the union of `defaultEnabledGroups`.
+          //   1. Per-agent `config.tools` override (the user explicitly picked
+          //      a subset on the capability sub-page).
+          //   2. For grouped capabilities (twinkle-hub) with no override, the
+          //      union of tools belonging to `defaultEnabledGroups`.
+          //   3. For matrix capabilities (github) with no override, the read
+          //      columns of `CAPABILITY_TOOL_GROUPS[slug]` — same source the
+          //      sub-page renders, so the safety boundary stays in one file.
           let allowlist: Set<string> | null = null;
           if (capability.config.tools) {
             allowlist = new Set(capability.config.tools);
@@ -171,6 +175,8 @@ export const buildToolset = async (
                 g => capability.config.toolGroups?.[g]?.tools ?? [],
               ),
             );
+          } else if (DEFAULT_TOOLS[capability.slug]) {
+            allowlist = new Set(DEFAULT_TOOLS[capability.slug]);
           }
           for (const t of mcpTools) {
             if (allowlist && !allowlist.has(t.name)) continue;

@@ -13,12 +13,10 @@ export interface CapabilityConfig {
   authKeyType?:          string;
   // Per-agent allowlist (`agent_capabilities.config.tools`): the user's
   // current per-tool selection for this binding. Shallow-merges onto the
-  // catalog config, overriding the catalog default.
-  //
-  // Also used as the catalog default for flat-list capabilities (e.g.
-  // github), where it doubles as the read-only baseline. Grouped capabilities
-  // (e.g. twinkle-hub) derive their catalog default from
-  // `defaultEnabledGroups` instead — see `toolGroups` below.
+  // catalog config; when present it overrides the catalog default that the
+  // dispatcher would otherwise derive from `toolGroups` /
+  // `defaultEnabledGroups` (twinkle-hub) or `CAPABILITY_TOOL_GROUPS`
+  // (github).
   tools?:                string[];
   // Grouped tool surface for capabilities with too many tools to display
   // ungrouped (e.g. twinkle-hub). UI renders each group as a labelled
@@ -124,43 +122,21 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     ],
   },
   // GitHub's MCP server exposes ~42 tools including destructive writes. The
-  // allowlist keeps only read-only tools: the agent is driven by untrusted
-  // LINE / web content, so it must never hold a write capability it could be
-  // prompt-injected into using. A fine-grained PAT's read-only scope does
-  // NOT filter the server's tool list, so this allowlist is the enforcement
-  // point, not the token.
+  // read-only safety boundary lives in `shared/capabilityTools.ts`'s
+  // `CAPABILITY_TOOL_GROUPS.github`: the dispatcher's default allowlist is
+  // derived from those groups' `read` columns (via `DEFAULT_TOOLS`), and the
+  // sub-page renders the same source as the matrix UI. Single source of
+  // truth — adding a tool here means editing one file, not two. The agent
+  // is driven by untrusted LINE / web content, so it must never hold a
+  // write capability it could be prompt-injected into using. A fine-grained
+  // PAT's read-only scope does NOT filter the server's tool list, so the
+  // derived allowlist is the enforcement point, not the token.
   'github': {
     displayName: 'GitHub',
     description: 'Browse repositories, issues, pull requests, and source code on the connected GitHub account.',
     config:      {
       url:         'https://api.githubcopilot.com/mcp/',
       authKeyType: 'github',
-      tools:       [
-        'get_commit',
-        'get_file_contents',
-        'get_label',
-        'get_latest_release',
-        'get_me',
-        'get_release_by_tag',
-        'get_tag',
-        'get_team_members',
-        'get_teams',
-        'issue_read',
-        'list_branches',
-        'list_commits',
-        'list_issue_types',
-        'list_issues',
-        'list_pull_requests',
-        'list_releases',
-        'list_repository_collaborators',
-        'list_tags',
-        'pull_request_read',
-        'search_code',
-        'search_issues',
-        'search_pull_requests',
-        'search_repositories',
-        'search_users',
-      ],
     },
     credentialType: 'providers',
     providers:      [
