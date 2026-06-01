@@ -42,6 +42,7 @@ import {
 } from './threads.ts';
 import { type ToolAttachment, buildToolset } from './tools/index.ts';
 import { checkInjection, wrapSystemPrompt } from './prompt-guard.ts';
+import { captureException } from './sentry.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -933,6 +934,7 @@ Deno.serve(async () => {
 
   if (error) {
     console.error('dequeue failed', error);
+    void captureException(error, { tags: { stage: 'dequeue' } });
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -947,9 +949,11 @@ Deno.serve(async () => {
       const { error: archiveErr } = await admin.rpc('archive_webhook_event', { msg_id });
       if (archiveErr) {
         console.error('archive failed', { msg_id, archiveErr });
+        void captureException(archiveErr, { tags: { stage: 'archive' }, extra: { msg_id } });
       }
     } catch (err) {
       console.error('process failed; leaving for retry', { msg_id, err });
+      void captureException(err, { tags: { stage: 'process' }, extra: { msg_id } });
     }
   }
 

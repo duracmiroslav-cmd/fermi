@@ -1,6 +1,13 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  modules:   ['@nuxt/eslint', '@nuxt/fonts', '@nuxt/ui', '@nuxtjs/supabase', '@vueuse/nuxt'],
+  modules: [
+    '@nuxt/eslint',
+    '@nuxt/fonts',
+    '@nuxt/ui',
+    '@nuxtjs/supabase',
+    '@sentry/nuxt/module',
+    '@vueuse/nuxt',
+  ],
   colorMode: {
     preference: 'dark',
     fallback:   'dark',
@@ -31,6 +38,14 @@ export default defineNuxtConfig({
     appUrl:                 process.env.NUXT_APP_URL ?? '',
     public:                 {
       googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
+      sentry:         {
+        // DSN flows through runtimeConfig so Sentry's init files can read
+        // it via `useRuntimeConfig()` instead of `process.env.*`. Vite's
+        // build-time `process.env` substitution doesn't always reach
+        // config files outside `app/`; the runtimeConfig path is the
+        // documented way and works in both client + server bundles.
+        dsn: process.env.NUXT_PUBLIC_SENTRY_DSN ?? '',
+      },
     },
   },
   supabase: {
