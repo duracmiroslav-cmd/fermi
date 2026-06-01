@@ -4,6 +4,7 @@ import type { CapabilityProviderRow, CapabilityRow } from '~~/server/utils/capab
 definePageMeta({ layout: false });
 
 const route = useRoute();
+const { t } = useI18n();
 const notify = useNotify();
 
 const {
@@ -35,11 +36,11 @@ const selfProvider = computed<CapabilityProviderRow | null>(() =>
 const headline = computed(() => {
   const cap = capability.value;
   if (!cap) return null;
-  if (cap.credentialType === 'coming_soon') return 'Coming soon';
-  if (cap.credentialType === 'none') return 'Built-in';
+  if (cap.credentialType === 'coming_soon') return t('__statusComingSoon');
+  if (cap.credentialType === 'none') return t('__statusBuiltIn');
   if (isSelfProvider.value) return null;
   const anyConnected = (cap.providers ?? []).some(p => p.status === 'connected');
-  return anyConnected ? 'Connected' : 'Available';
+  return anyConnected ? t('__statusConnected') : t('__statusAvailable');
 });
 
 // Per-provider connect/disconnect action. Status comes from the parent
@@ -54,9 +55,9 @@ const makeAction = (endpoint: string, label: string, bodyKey: string) => {
     try {
       await $fetch(endpoint, { method: 'POST', body: { [bodyKey]: value } });
       await refreshCapabilities();
-      notify.success(`${label} connected`);
+      notify.success(t('__toastConnectorConnected', { name: label }));
     } catch (e) {
-      notify.error(`Failed to connect ${label}`, e);
+      notify.error(t('__toastConnectorConnectFailed', { name: label }), e);
     } finally {
       connecting.value = false;
     }
@@ -67,9 +68,9 @@ const makeAction = (endpoint: string, label: string, bodyKey: string) => {
     try {
       await $fetch(endpoint, { method: 'DELETE' });
       await refreshCapabilities();
-      notify.success(`${label} disconnected`);
+      notify.success(t('__toastConnectorDisconnected', { name: label }));
     } catch (e) {
-      notify.error('Disconnect failed', e);
+      notify.error(t('__toastDisconnectFailed'), e);
     } finally {
       disconnecting.value = false;
     }
@@ -89,7 +90,7 @@ const twinkleHub = makeAction('/api/connectors/twinkle-hub', 'Twinkle Hub', 'tok
       <template #title>
         <DashboardBreadcrumb
           :items="[
-            { label: 'Connectors', to: '/dashboard/connectors' },
+            { label: $t('__labelConnector', 2), to: '/dashboard/connectors' },
             { label: capability?.displayName ?? '' },
           ]"
           :loading="!capability"
@@ -110,17 +111,21 @@ const twinkleHub = makeAction('/api/connectors/twinkle-hub', 'Twinkle Hub', 'tok
             <h1 class="text-2xl font-semibold truncate">
               {{ capability.displayName }}
             </h1>
-            <p
+            <I18nT
               v-if="isSelfProvider && selfProvider?.status === 'connected' && selfProvider.connectedAt"
+              keypath="__hintConnectedAt"
+              tag="p"
               class="text-sm text-toned mt-1"
             >
-              Connected <TimeAgo :date="selfProvider.connectedAt" />
-            </p>
+              <template #time>
+                <TimeAgo :date="selfProvider.connectedAt" />
+              </template>
+            </I18nT>
             <p
               v-else-if="isSelfProvider"
               class="text-sm text-toned mt-1"
             >
-              Not connected
+              {{ $t('__statusNotConnected') }}
             </p>
             <p
               v-else-if="headline"
@@ -141,28 +146,34 @@ const twinkleHub = makeAction('/api/connectors/twinkle-hub', 'Twinkle Hub', 'tok
         <template v-if="isSelfProvider && selfProvider!.status !== 'coming_soon'">
           <template v-if="selfProvider!.slug === 'github'">
             <p class="text-sm text-toned">
-              Connect a fine-grained personal access token. fermi only exposes read-only GitHub tools regardless of the token's scope, so granting read access on the repos you want the agent to see is enough.
+              {{ $t('__descriptionGithubConnector') }}
             </p>
             <UCard>
               <ConnectorCredentialCard
-                label="Personal access token"
+                :label="$t('__labelPersonalAccessToken')"
                 mode="key"
                 :status="selfProvider!.status"
                 :masked-key="selfProvider!.maskedKey"
-                :placeholder="selfProvider!.status === 'connected' ? 'Reconnect to view token' : 'github_pat_...'"
+                :placeholder="selfProvider!.status === 'connected' ? $t('__placeholderReconnectToViewToken') : 'github_pat_...'"
                 :connecting="github.connecting.value"
                 :disconnecting="github.disconnecting.value"
                 @connect="github.connect"
                 @disconnect="github.disconnect"
               >
                 <template #help>
-                  Create a fine-grained PAT at
-                  <a
-                    href="https://github.com/settings/personal-access-tokens"
-                    target="_blank"
-                    rel="noopener"
-                    class="underline"
-                  >github.com/settings</a>. Pick the repos and grant read access.
+                  <I18nT
+                    keypath="__hintGithubPatHelp"
+                    tag="span"
+                  >
+                    <template #link>
+                      <a
+                        href="https://github.com/settings/personal-access-tokens"
+                        target="_blank"
+                        rel="noopener"
+                        class="underline"
+                      >github.com/settings</a>
+                    </template>
+                  </I18nT>
                 </template>
               </ConnectorCredentialCard>
             </UCard>
@@ -170,29 +181,34 @@ const twinkleHub = makeAction('/api/connectors/twinkle-hub', 'Twinkle Hub', 'tok
 
           <template v-else-if="selfProvider!.slug === 'twinkle-hub'">
             <p class="text-sm text-toned">
-              Twinkle Hub bundles 50+ Taiwan-specific lookup tools and the full data.gov.tw open-data catalog behind a single MCP endpoint. Free during alpha.
+              {{ $t('__descriptionTwinkleHubConnector') }}
             </p>
             <UCard>
               <ConnectorCredentialCard
-                label="Bearer token"
+                :label="$t('__labelBearerToken')"
                 mode="key"
                 :status="selfProvider!.status"
                 :masked-key="selfProvider!.maskedKey"
-                :placeholder="selfProvider!.status === 'connected' ? 'Reconnect to view token' : 'sk-...'"
+                :placeholder="selfProvider!.status === 'connected' ? $t('__placeholderReconnectToViewToken') : 'sk-...'"
                 :connecting="twinkleHub.connecting.value"
                 :disconnecting="twinkleHub.disconnecting.value"
                 @connect="twinkleHub.connect"
                 @disconnect="twinkleHub.disconnect"
               >
                 <template #help>
-                  Sign in at
-                  <a
-                    href="https://hub.twinkleai.tw"
-                    target="_blank"
-                    rel="noopener"
-                    class="underline"
-                  >hub.twinkleai.tw</a>
-                  with Google or GitHub, then copy your token from the dashboard.
+                  <I18nT
+                    keypath="__hintTwinkleHubHelp"
+                    tag="span"
+                  >
+                    <template #link>
+                      <a
+                        href="https://hub.twinkleai.tw"
+                        target="_blank"
+                        rel="noopener"
+                        class="underline"
+                      >hub.twinkleai.tw</a>
+                    </template>
+                  </I18nT>
                 </template>
               </ConnectorCredentialCard>
             </UCard>
@@ -202,7 +218,7 @@ const twinkleHub = makeAction('/api/connectors/twinkle-hub', 'Twinkle Hub', 'tok
         <template v-else-if="capability.credentialType === 'providers' && capability.providers?.length">
           <div class="flex flex-col gap-3">
             <h2 class="text-base font-semibold">
-              Providers
+              {{ $t('__titleProviders') }}
             </h2>
             <UCard
               v-for="provider in capability.providers"
@@ -219,42 +235,52 @@ const twinkleHub = makeAction('/api/connectors/twinkle-hub', 'Twinkle Hub', 'tok
                     variant="subtle"
                     size="sm"
                   >
-                    Coming soon
+                    {{ $t('__statusComingSoon') }}
                   </UBadge>
-                  <span
+                  <I18nT
                     v-else-if="provider.status === 'connected' && provider.connectedAt"
+                    keypath="__hintConnectedAt"
+                    tag="span"
                     class="text-xs text-toned"
                   >
-                    Connected <TimeAgo :date="provider.connectedAt" />
-                  </span>
+                    <template #time>
+                      <TimeAgo :date="provider.connectedAt" />
+                    </template>
+                  </I18nT>
                 </div>
               </template>
 
               <div class="flex flex-col gap-4">
                 <template v-if="provider.slug === 'tavily'">
                   <p class="text-sm text-toned">
-                    Tavily is a web search API tuned for LLM agents. 1K searches a month free, no credit card.
+                    {{ $t('__descriptionTavilyConnector') }}
                   </p>
                   <ConnectorCredentialCard
                     v-if="provider.status !== 'coming_soon'"
-                    label="API key"
+                    :label="$t('__labelApiKey')"
                     mode="key"
                     :status="provider.status"
                     :masked-key="provider.maskedKey"
-                    :placeholder="provider.status === 'connected' ? 'Reconnect to view key' : 'tvly-...'"
+                    :placeholder="provider.status === 'connected' ? $t('__placeholderReconnectToViewKey') : 'tvly-...'"
                     :connecting="tavily.connecting.value"
                     :disconnecting="tavily.disconnecting.value"
                     @connect="tavily.connect"
                     @disconnect="tavily.disconnect"
                   >
                     <template #help>
-                      Grab a key at
-                      <a
-                        href="https://app.tavily.com"
-                        target="_blank"
-                        rel="noopener"
-                        class="underline"
-                      >app.tavily.com</a>. 30 seconds, free, no credit card.
+                      <I18nT
+                        keypath="__hintTavilyHelp"
+                        tag="span"
+                      >
+                        <template #link>
+                          <a
+                            href="https://app.tavily.com"
+                            target="_blank"
+                            rel="noopener"
+                            class="underline"
+                          >app.tavily.com</a>
+                        </template>
+                      </I18nT>
                     </template>
                   </ConnectorCredentialCard>
                 </template>
@@ -267,14 +293,14 @@ const twinkleHub = makeAction('/api/connectors/twinkle-hub', 'Twinkle Hub', 'tok
           v-else-if="capability.credentialType === 'none'"
           class="text-sm text-toned"
         >
-          Already available. Attach this on any agent's page to use it.
+          {{ $t('__descriptionAlreadyAvailable') }}
         </p>
 
         <p
           v-else-if="capability.credentialType === 'coming_soon'"
           class="text-sm text-toned"
         >
-          OAuth integration in progress. Check back soon.
+          {{ $t('__descriptionOauthInProgress') }}
         </p>
       </DashboardContainer>
 
@@ -282,9 +308,9 @@ const twinkleHub = makeAction('/api/connectors/twinkle-hub', 'Twinkle Hub', 'tok
         <UEmpty
           variant="subtle"
           icon="i-lucide-search-x"
-          title="Capability not found"
-          description="This page may have been removed, or the link is wrong."
-          :actions="[{ label: 'Back to Connectors', icon: 'i-lucide-arrow-left', to: '/dashboard/connectors' }]"
+          :title="$t('__titleCapabilityNotFound')"
+          :description="$t('__descriptionConnectorPageNotFound')"
+          :actions="[{ label: $t('__actionBackToConnectors'), icon: 'i-lucide-arrow-left', to: '/dashboard/connectors' }]"
         />
       </DashboardContainer>
     </NuxtLayout>

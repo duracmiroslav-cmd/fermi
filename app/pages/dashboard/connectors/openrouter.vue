@@ -28,7 +28,7 @@ const onConnect = () => {
       <template #title>
         <DashboardBreadcrumb
           :items="[
-            { label: 'Connectors', to: '/dashboard/connectors' },
+            { label: $t('__labelConnector', 2), to: '/dashboard/connectors' },
             { label: 'OpenRouter' },
           ]"
         />
@@ -48,38 +48,42 @@ const onConnect = () => {
             <h1 class="text-2xl font-semibold truncate">
               OpenRouter
             </h1>
-            <p
+            <I18nT
               v-if="openrouter?.connected && openrouter.connectedAt"
+              keypath="__hintConnectedAt"
+              tag="p"
               class="text-sm text-toned mt-1"
             >
-              Connected <TimeAgo :date="openrouter.connectedAt" />
-            </p>
+              <template #time>
+                <TimeAgo :date="openrouter.connectedAt" />
+              </template>
+            </I18nT>
             <p
               v-else
               class="text-sm text-toned mt-1"
             >
-              Not connected
+              {{ $t('__statusNotConnected') }}
             </p>
           </div>
         </header>
 
         <p class="text-sm text-default">
-          Every message routes through OpenRouter. Pick from Claude, GPT, Gemini, or 200+ other models. Pay OpenRouter as you go, no minimum, fermi takes no cut.
+          {{ $t('__descriptionOpenrouterConnector') }}
         </p>
 
         <UCard>
           <ConnectorCredentialCard
-            label="API key"
+            :label="$t('__labelApiKey')"
             mode="oauth"
             :status="openrouter?.connected ? 'connected' : 'available'"
             :masked-key="openrouter?.maskedKey"
-            :placeholder="openrouter?.connected ? 'Reconnect to view key' : 'Not connected'"
+            :placeholder="openrouter?.connected ? $t('__placeholderReconnectToViewKey') : $t('__placeholderNotConnected')"
             :disconnecting="isDisconnecting"
             @connect="onConnect"
             @disconnect="disconnect"
           >
             <template #help>
-              New to OpenRouter? Free signup, takes a minute.
+              {{ $t('__hintOpenrouterSignup') }}
             </template>
           </ConnectorCredentialCard>
         </UCard>

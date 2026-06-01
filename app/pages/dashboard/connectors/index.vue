@@ -48,26 +48,26 @@ const filteredCards = computed(() => {
   <div>
     <NuxtLayout name="dashboard">
       <template #title>
-        <DashboardBreadcrumb :items="[{ label: 'Connectors' }]" />
+        <DashboardBreadcrumb :items="[{ label: $t('__labelConnector', 2) }]" />
       </template>
 
       <DashboardContainer>
         <header class="flex flex-col gap-2">
           <h1 class="text-2xl font-semibold">
-            Connectors
+            {{ $t('__labelConnector', 2) }}
           </h1>
           <p class="text-sm text-toned">
-            Wire up the LLM and capabilities your agents can reach for. Credentials live here. Attach per-agent on each agent's page.
+            {{ $t('__descriptionConnectorsPage') }}
           </p>
         </header>
 
         <section class="flex flex-col gap-3">
           <div class="flex flex-col gap-0.5">
             <h2 class="font-semibold">
-              Model providers
+              {{ $t('__titleModelProviders') }}
             </h2>
             <p class="text-sm text-toned">
-              Where every message goes for a response.
+              {{ $t('__descriptionModelProviders') }}
             </p>
           </div>
 
@@ -107,7 +107,7 @@ const filteredCards = computed(() => {
                   OpenRouter
                 </p>
                 <p class="text-xs text-toned">
-                  Routes messages to Claude, GPT, Gemini, and 200+ other models.
+                  {{ $t('__descriptionOpenrouterListItem') }}
                 </p>
               </div>
               <UBadge
@@ -115,7 +115,7 @@ const filteredCards = computed(() => {
                 variant="subtle"
                 size="sm"
               >
-                {{ openrouter?.connected ? 'Connected' : 'Available' }}
+                {{ openrouter?.connected ? $t('__statusConnected') : $t('__statusAvailable') }}
               </UBadge>
             </NuxtLink>
           </div>
@@ -124,17 +124,17 @@ const filteredCards = computed(() => {
         <section class="flex flex-col gap-3">
           <div class="flex flex-col gap-0.5">
             <h2 class="font-semibold">
-              Capabilities
+              {{ $t('__titleCapabilities') }}
             </h2>
             <p class="text-sm text-toned">
-              Tools your agents can reach for beyond chat. Attach per agent on each agent's page.
+              {{ $t('__descriptionCapabilitiesPage') }}
             </p>
           </div>
 
           <UInput
             v-model.trim="searchQuery"
             icon="i-lucide-search"
-            placeholder="Search capabilities..."
+            :placeholder="$t('__placeholderSearchCapabilities')"
             autocomplete="off"
           >
             <template #trailing>
@@ -144,7 +144,7 @@ const filteredCards = computed(() => {
                 variant="link"
                 size="sm"
                 icon="i-lucide-x"
-                aria-label="Clear search"
+                :aria-label="$t('__actionClearSearch')"
                 @click="searchQuery = ''"
               />
             </template>
@@ -212,7 +212,7 @@ const filteredCards = computed(() => {
                 variant="subtle"
                 size="sm"
               >
-                Coming soon
+                {{ $t('__statusComingSoon') }}
               </UBadge>
               <UBadge
                 v-else-if="card.status === 'none'"
@@ -220,7 +220,7 @@ const filteredCards = computed(() => {
                 variant="subtle"
                 size="sm"
               >
-                Built-in
+                {{ $t('__statusBuiltIn') }}
               </UBadge>
               <UBadge
                 v-else-if="card.status === 'connected'"
@@ -228,7 +228,7 @@ const filteredCards = computed(() => {
                 variant="subtle"
                 size="sm"
               >
-                Connected
+                {{ $t('__statusConnected') }}
               </UBadge>
               <UBadge
                 v-else-if="card.status === 'available'"
@@ -236,7 +236,7 @@ const filteredCards = computed(() => {
                 variant="subtle"
                 size="sm"
               >
-                Available
+                {{ $t('__statusAvailable') }}
               </UBadge>
             </component>
           </div>
@@ -245,7 +245,7 @@ const filteredCards = computed(() => {
             v-else
             class="text-sm text-toned text-center py-8"
           >
-            No capabilities match "{{ searchQuery }}".
+            {{ $t('__descriptionNoCapabilitiesMatchSearch', { query: searchQuery }) }}
           </p>
         </section>
       </DashboardContainer>

@@ -2,6 +2,7 @@
 // `connect()` is a no-op default; OAuth providers redirect inline, key-based
 // providers override it via the returned `runConnect` helper.
 export const useConnector = <T>(endpoint: string, label: string) => {
+  const { t } = useI18n();
   const notify = useNotify();
   const { data, refresh, pending } = useApiFetch<T>(endpoint);
   const isConnecting = ref(false);
@@ -12,10 +13,10 @@ export const useConnector = <T>(endpoint: string, label: string) => {
     try {
       await $fetch(endpoint, { method: 'POST', body });
       await refresh();
-      notify.success(`${label} connected`);
+      notify.success(t('__toastConnectorConnected', { name: label }));
       return true;
     } catch (e) {
-      notify.error(`Failed to connect ${label}`, e);
+      notify.error(t('__toastConnectorConnectFailed', { name: label }), e);
       return false;
     } finally {
       isConnecting.value = false;
@@ -27,9 +28,9 @@ export const useConnector = <T>(endpoint: string, label: string) => {
     try {
       await $fetch(endpoint, { method: 'DELETE' });
       await refresh();
-      notify.success(`${label} disconnected`);
+      notify.success(t('__toastConnectorDisconnected', { name: label }));
     } catch (e) {
-      notify.error('Disconnect failed', e);
+      notify.error(t('__toastDisconnectFailed'), e);
     } finally {
       isDisconnecting.value = false;
     }

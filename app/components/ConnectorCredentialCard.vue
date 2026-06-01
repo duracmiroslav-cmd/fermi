@@ -69,7 +69,7 @@ watch(() => props.status, (s) => {
           :loading="disconnecting"
           @click="emit('disconnect')"
         >
-          Disconnect
+          {{ $t('__actionDisconnect') }}
         </UButton>
         <UButton
           v-else
@@ -78,7 +78,7 @@ watch(() => props.status, (s) => {
           :loading="connecting"
           :disabled="mode === 'key' && !draft.trim()"
         >
-          Connect
+          {{ $t('__actionConnect') }}
         </UButton>
       </div>
       <template
