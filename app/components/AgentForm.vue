@@ -678,6 +678,25 @@ onUnmounted(stopPreviewAudio);
         :ui="{ itemTrailingIcon: 'hidden' }"
         @update:open="onVoiceMenuToggle"
       >
+        <template #content-top>
+          <div class="px-2 py-1.5 border-b border-default">
+            <span class="text-xs">
+              {{ ttsVoiceItems.length }} voice{{ ttsVoiceItems.length === 1 ? '' : 's' }}
+            </span>
+          </div>
+        </template>
+        <template #leading>
+          <VoiceAvatar
+            :seed="state.defaultTtsVoice || DEFAULT_TTS_VOICE"
+            size="2xs"
+          />
+        </template>
+        <template #item-leading="{ item }">
+          <VoiceAvatar
+            :seed="item.value"
+            size="2xs"
+          />
+        </template>
         <template #item-trailing="{ item }">
           <!-- size-7 box aligns the check with the trailing button -->
           <span class="flex items-center justify-center size-7 shrink-0">
