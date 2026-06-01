@@ -15,13 +15,11 @@ export interface FlatCard {
 }
 
 const iconBySlug: Record<string, string> = {
-  'time':            'i-lucide-clock',
-  'web-search':      'i-lucide-search',
-  'web-fetch':       'i-lucide-globe',
-  'github':          'i-simple-icons-github',
-  'google-calendar': 'i-simple-icons-googlecalendar',
-  'notion':          'i-simple-icons-notion',
-  'twinkle-hub':     'i-lucide-star',
+  'time':        'i-lucide-clock',
+  'web-search':  'i-lucide-search',
+  'web-fetch':   'i-lucide-globe',
+  'github':      'i-simple-icons-github',
+  'twinkle-hub': 'i-lucide-star',
 };
 
 export const getCapabilityIcon = (slug: string): string =>

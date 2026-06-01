@@ -68,7 +68,7 @@ revoke insert, update, delete on public.capabilities from authenticated;
 --
 -- Naming convention: nouns, not verbs (a capability is an integration,
 -- not an action). Use the provider name when there's one dominant
--- provider with its own OAuth (github, notion, google-calendar). Use
+-- provider with its own auth (github, twinkle-hub). Use
 -- the domain name when providers are swappable (web-search can be
 -- backed by Tavily / Brave / Bing without changing the surface).
 insert into public.capabilities (slug, display_name) values
@@ -77,6 +77,4 @@ insert into public.capabilities (slug, display_name) values
   ('web-fetch',       'Web fetch'),
   ('image-gen',       'Image generation'),
   ('github',          'GitHub'),
-  ('google-calendar', 'Google Calendar'),
-  ('notion',          'Notion'),
   ('twinkle-hub',     'Twinkle Hub');

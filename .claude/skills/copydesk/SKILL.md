@@ -102,9 +102,9 @@ prompt engineering, not microcopy.
   from the name and schema; it needs the trigger condition.
 - Open with the action verb, then the decision cue, then a concrete example.
 - Capability *names* are nouns (an integration, not an action): `Web search`,
-  `Notion`. Provider name when one provider dominates (`github`, `notion`);
-  domain name when providers are swappable (`web-search` could be Tavily or
-  Brave).
+  `GitHub`. Provider name when one provider dominates (`github`,
+  `twinkle-hub`); domain name when providers are swappable (`web-search`
+  could be Tavily or Brave).
 
 Gold standard (real, from the capabilities seed):
 

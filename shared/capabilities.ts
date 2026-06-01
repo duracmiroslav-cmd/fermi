@@ -143,18 +143,6 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
       { slug: 'github', displayName: 'GitHub', keyType: 'github', status: 'live' },
     ],
   },
-  'google-calendar': {
-    displayName:    'Google Calendar',
-    description:    'Read and create events on the connected Google Calendar.',
-    config:         {},
-    credentialType: 'coming_soon',
-  },
-  'notion': {
-    displayName:    'Notion',
-    description:    'Read and update pages and databases in the connected Notion workspace.',
-    config:         {},
-    credentialType: 'coming_soon',
-  },
   // Twinkle Hub bundles Taiwan-specific lookup tools + data.gov.tw open
   // data queries behind one MCP endpoint. The upstream surface is too large
   // (65 tools as of 2026-05) to render as one flat checkbox list, so the UI

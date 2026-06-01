@@ -80,7 +80,7 @@ const { error: archiveError } = ... // 15:1 minority
 
 ## Capability vs core function
 
-A **capability** is a tool the LLM chooses to call inside its reasoning loop (`time`, `web-search`, `web-fetch`, `github`, `google-calendar`, `notion`, `image-gen`). Opt-in per agent via `agent_capabilities`; if unattached the agent just can't do that thing and normal conversation is unaffected. Per-agent config for a capability belongs in `agent_capabilities.config`, never as a column on `agents`.
+A **capability** is a tool the LLM chooses to call inside its reasoning loop (`time`, `web-search`, `web-fetch`, `github`, `image-gen`, `twinkle-hub`). Opt-in per agent via `agent_capabilities`; if unattached the agent just can't do that thing and normal conversation is unaffected. Per-agent config for a capability belongs in `agent_capabilities.config`, never as a column on `agents`.
 
 A **core function** is how the agent perceives input and delivers its reply across modalities — its senses and voice: read images (vision), transcribe audio (STT), speak replies (TTS), write text. The worker runs these automatically *around* the loop, driven by the message's media type or the agent's delivery settings; the LLM never invokes them. Their models are hardcoded constants or always-on `agents` columns, never capabilities.
 
@@ -91,7 +91,7 @@ A **core function** is how the agent perceives input and delivers its reply acro
 A capability wires one of two ways. Discriminator: `CapabilityConfig.url` (`shared/agentCapabilities.ts`) — present → MCP, absent → in-process.
 
 - **In-process tool** (`web-search`, `web-fetch`, `time`, `image-gen`): fermi owns the schema — stable, needs `ToolContext` (admin / KEK / `attachments` sink), often wraps fermi logic (tier policy, SSRF-safe fetch). A static `Tool` in `tools/`; zero handshake, zero extra deploy.
-- **MCP capability** (`github`, `notion`, `google-calendar`, BYO URL): a third party owns the schema — large, changing; fermi allowlists a read-only subset and sends a stored OAuth token as bearer. Connected via `McpClient`, tools namespaced `slug__name`.
+- **MCP capability** (`github`, `twinkle-hub`, BYO URL): a third party owns the schema — large, changing; fermi allowlists a read-only subset and sends a stored token as bearer. Connected via `McpClient`, tools namespaced `slug__name`.
 
 **The test:** is the tool schema fermi's or someone else's? Ours → in-process (a per-connection handshake to reach a schema we already hold and won't change buys nothing). Theirs → MCP (the fixed handshake cost buys not owning or maintaining a schema that changes under us).
 
