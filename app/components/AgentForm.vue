@@ -199,7 +199,7 @@ const onTtsVoiceReset = () => {
 // buttons write state directly and don't emit this event. Clearing an
 // incompat voice here keeps the saved state in a shape the runtime
 // won't have to silently fall back on.
-const onTtsModelPicked = (next: TtsModel | undefined) => {
+const onTtsModelPick = (next: TtsModel | undefined) => {
   const voice = state.defaultTtsVoice;
   if (next && voice && !supportsTtsVoice(next, voice)) {
     state.defaultTtsVoice = null;
@@ -631,7 +631,7 @@ onUnmounted(stopPreviewAudio);
         :items="ttsModelItems"
         value-key="value"
         :placeholder="`${DEFAULT_TTS_MODEL_NAME} (default)`"
-        @update:model-value="onTtsModelPicked"
+        @update:model-value="onTtsModelPick"
       >
         <template #content-top>
           <div class="px-2 py-1.5 border-b border-default">

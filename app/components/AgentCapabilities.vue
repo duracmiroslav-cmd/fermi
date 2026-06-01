@@ -78,7 +78,7 @@ const getEnabledToolCount = (capability: AgentCapabilityRow): number => {
   return total;
 };
 
-const onToggle = async (capability: AgentCapabilityRow, next: boolean) => {
+const onCapabilityToggle = async (capability: AgentCapabilityRow, next: boolean) => {
   if (pendingIds.value.has(capability.id)) return;
   if (!next && expandedCapId.value === capability.id) expandedCapId.value = null;
   const original = capability.attached;
@@ -110,7 +110,7 @@ const onToggle = async (capability: AgentCapabilityRow, next: boolean) => {
 // own collapse — single-open behavior is coordinated via expandedCapId.
 // Gating here instead of via UCollapsible's :disabled avoids a reactivity
 // quirk where toggling attached false→true left the trigger inert.
-const onToggleExpand = (capability: AgentCapabilityRow, open: boolean) => {
+const onExpandToggle = (capability: AgentCapabilityRow, open: boolean) => {
   if (!capability.attached || !hasConfigPanel(capability)) return;
   if (open) {
     if (hasGroupToggles(capability)) {
@@ -128,7 +128,7 @@ const onToggleExpand = (capability: AgentCapabilityRow, open: boolean) => {
   }
 };
 
-const onToggleTool = (capability: AgentCapabilityRow, tool: string, enabled: boolean | 'indeterminate') => {
+const onToolToggle = (capability: AgentCapabilityRow, tool: string, enabled: boolean | 'indeterminate') => {
   if (enabled === 'indeterminate') return;
   const current = [...getEffectiveTools(capability)];
   if (enabled) {
@@ -140,7 +140,7 @@ const onToggleTool = (capability: AgentCapabilityRow, tool: string, enabled: boo
   localTools.value[capability.id] = current;
 };
 
-const onToggleGroup = (capability: AgentCapabilityRow, groupSlug: string, enabled: boolean | 'indeterminate') => {
+const onGroupToggle = (capability: AgentCapabilityRow, groupSlug: string, enabled: boolean | 'indeterminate') => {
   if (enabled === 'indeterminate') return;
   const current = [...getEffectiveGroups(capability)];
   if (enabled) {
@@ -158,7 +158,7 @@ const onCancel = (capability: AgentCapabilityRow) => {
   expandedCapId.value = null;
 };
 
-const onSaveConfig = async (capability: AgentCapabilityRow) => {
+const onSave = async (capability: AgentCapabilityRow) => {
   if (pendingConfigSave.value.has(capability.id)) return;
   const config = hasGroupToggles(capability)
     ? { enabledGroups: localGroups.value[capability.id] }
@@ -259,7 +259,7 @@ const onRefresh = async () => {
           :key="capability.id"
           :open="expandedCapId === capability.id"
           :unmount-on-hide="false"
-          @update:open="(open) => onToggleExpand(capability, open)"
+          @update:open="(open) => onExpandToggle(capability, open)"
         >
           <div
             class="flex items-center gap-4 p-4"
@@ -315,7 +315,7 @@ const onRefresh = async () => {
               <USwitch
                 :model-value="capability.attached"
                 :disabled="isLocked(capability) || pendingIds.has(capability.id)"
-                @update:model-value="onToggle(capability, $event)"
+                @update:model-value="onCapabilityToggle(capability, $event)"
                 @click.stop
               />
             </div>
@@ -332,7 +332,7 @@ const onRefresh = async () => {
                 >
                   <UCheckbox
                     :model-value="isGroupEnabled(capability, groupSlug)"
-                    @update:model-value="onToggleGroup(capability, groupSlug, $event)"
+                    @update:model-value="onGroupToggle(capability, groupSlug, $event)"
                   />
                   <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium group-hover/group:text-highlighted transition-colors">
@@ -360,7 +360,7 @@ const onRefresh = async () => {
                     <UButton
                       size="xs"
                       :loading="pendingConfigSave.has(capability.id)"
-                      @click="onSaveConfig(capability)"
+                      @click="onSave(capability)"
                     >
                       Save
                     </UButton>
@@ -395,7 +395,7 @@ const onRefresh = async () => {
                     >
                       <UCheckbox
                         :model-value="isToolEnabled(capability, tool)"
-                        @update:model-value="onToggleTool(capability, tool, $event)"
+                        @update:model-value="onToolToggle(capability, tool, $event)"
                       />
                       <span class="font-mono text-xs text-toned group-hover/tool:text-highlighted transition-colors truncate">
                         {{ tool }}
@@ -413,7 +413,7 @@ const onRefresh = async () => {
                     >
                       <UCheckbox
                         :model-value="isToolEnabled(capability, tool)"
-                        @update:model-value="onToggleTool(capability, tool, $event)"
+                        @update:model-value="onToolToggle(capability, tool, $event)"
                       />
                       <span class="font-mono text-xs text-toned group-hover/tool:text-highlighted transition-colors truncate">
                         {{ tool }}
@@ -444,7 +444,7 @@ const onRefresh = async () => {
                     <UButton
                       size="xs"
                       :loading="pendingConfigSave.has(capability.id)"
-                      @click="onSaveConfig(capability)"
+                      @click="onSave(capability)"
                     >
                       Save
                     </UButton>
