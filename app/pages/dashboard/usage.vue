@@ -45,13 +45,13 @@ const getPercent = (item: UsageItem): number => (
 
         <section
           v-if="usagePending && !usage"
-          class="flex flex-col gap-3"
+          class="flex flex-col gap-4"
           aria-busy="true"
         >
           <div
             v-for="i in 5"
             :key="i"
-            class="p-4 rounded-md ring ring-inset ring-muted bg-muted/50 animate-pulse flex flex-col gap-2"
+            class="flex flex-col gap-2 animate-pulse"
           >
             <div class="flex items-baseline justify-between">
               <div class="h-5 flex items-center">
@@ -67,15 +67,15 @@ const getPercent = (item: UsageItem): number => (
 
         <section
           v-else-if="usage"
-          class="flex flex-col gap-3"
+          class="flex flex-col gap-4"
         >
-          <BaseCard
+          <div
             v-for="item in usage.items"
             :key="item.purpose"
             class="flex flex-col gap-2"
           >
             <div class="flex items-baseline justify-between">
-              <span class="font-medium">
+              <span class="text-sm font-medium">
                 {{ PURPOSE_LABEL[item.purpose] }}
               </span>
               <span class="text-sm text-toned font-mono">
@@ -83,12 +83,12 @@ const getPercent = (item: UsageItem): number => (
               </span>
             </div>
             <UProgress :model-value="getPercent(item)" />
-          </BaseCard>
+          </div>
         </section>
 
-        <BaseCard
+        <section
           v-if="profile?.tier === 'free'"
-          class="flex flex-col gap-3"
+          class="flex flex-col gap-3 mt-4 pt-6 border-t border-default"
         >
           <div class="flex flex-col gap-1">
             <span class="font-medium">
@@ -105,7 +105,7 @@ const getPercent = (item: UsageItem): number => (
           >
             Upgrade to Pro
           </UButton>
-        </BaseCard>
+        </section>
       </DashboardContainer>
     </NuxtLayout>
   </div>
