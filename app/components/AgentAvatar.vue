@@ -1,39 +1,19 @@
 <script setup lang="ts">
-import Avatar from 'vue-boring-avatars';
+import type { AvatarSize } from './GeneratedAvatar.vue';
 
-type AvatarSize = '3xs' | '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
-
-const props = withDefaults(defineProps<{
+// `seed` is the agent's stable id — every agent has one, so the generated
+// avatar survives renames. `name` is the uploaded image's alt text only
+// (it no longer feeds the seed); required so every caller declares it,
+// with null the explicit "no caption" — a missing alt can't slip through.
+withDefaults(defineProps<{
+  seed:  string;
   name:  string | null;
-  seed?: string | null;
   src?:  string | null;
   size?: AvatarSize;
 }>(), {
-  seed: null,
   src:  null,
   size: 'md',
 });
-
-const SIZE_PX: Record<AvatarSize, number> = {
-  '3xs': 16,
-  '2xs': 20,
-  'xs':  24,
-  'sm':  28,
-  'md':  32,
-  'lg':  36,
-  'xl':  40,
-  '2xl': 44,
-  '3xl': 48,
-};
-
-// Warm-led with cool accents: three apricot-leaning warm tones plus a teal
-// and indigo. The warm majority keeps it on-brand; the two cool hues give
-// the id-seeded hash enough spread to tell agents apart.
-const PALETTE = ['#e8728c', '#f0925a', '#f3c06b', '#5bb3b0', '#7c8fd6'];
-
-// Seed by the stable id so the avatar survives renames; fall back to the
-// name, then a constant so an empty agent still renders something.
-const seedValue = computed(() => props.seed || props.name || '?');
 </script>
 
 <template>
@@ -44,12 +24,10 @@ const seedValue = computed(() => props.seed || props.name || '?');
     :size="size"
     class="shrink-0"
   />
-  <Avatar
+  <GeneratedAvatar
     v-else
-    :size="SIZE_PX[size]"
-    :name="seedValue"
+    :seed="seed"
     variant="marble"
-    :colors="PALETTE"
-    class="shrink-0"
+    :size="size"
   />
 </template>
