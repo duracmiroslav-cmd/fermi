@@ -10,10 +10,16 @@ export default defineNuxtConfig({
     '@vueuse/nuxt',
   ],
   i18n: {
-    defaultLocale:         'en',
+    defaultLocale:         'zh-Hant',
     strategy:              'no_prefix',
-    detectBrowserLanguage: false,
-    locales:               [
+    detectBrowserLanguage: {
+      useCookie:  true,
+      cookieKey:  'i18n_redirected',
+      // `no_prefix` strategy: detection just sets initial cookie, no redirect.
+      redirectOn: 'root',
+    },
+    locales: [
+      { code: 'zh-Hant', name: '繁體中文', file: 'zh-Hant.json' },
       { code: 'en', name: 'English', file: 'en.json' },
     ],
   },
