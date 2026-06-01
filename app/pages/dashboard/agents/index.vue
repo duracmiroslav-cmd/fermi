@@ -56,12 +56,12 @@ const getTextModel = (stored: string | null): ProviderModel & { isDefault: boole
   <div>
     <NuxtLayout name="dashboard">
       <template #title>
-        <DashboardBreadcrumb :items="[{ label: 'Agents' }]" />
+        <DashboardBreadcrumb :items="[{ label: $t('__labelAgent', 2) }]" />
       </template>
       <DashboardContainer>
         <div class="flex items-center justify-between gap-4">
           <h1 class="text-2xl font-semibold">
-            Agents <span class="text-toned font-normal">({{ used }})</span>
+            {{ $t('__labelAgent', 2) }} <span class="text-toned font-normal">({{ used }})</span>
           </h1>
           <template v-if="agents?.length">
             <UTooltip
@@ -72,7 +72,7 @@ const getTextModel = (stored: string | null): ProviderModel & { isDefault: boole
                 icon="i-lucide-plus"
                 disabled
               >
-                New agent
+                {{ $t('__actionNewAgent') }}
               </UButton>
             </UTooltip>
             <UButton
@@ -80,7 +80,7 @@ const getTextModel = (stored: string | null): ProviderModel & { isDefault: boole
               icon="i-lucide-plus"
               to="/dashboard/agents/new"
             >
-              New agent
+              {{ $t('__actionNewAgent') }}
             </UButton>
           </template>
         </div>
@@ -90,7 +90,7 @@ const getTextModel = (stored: string | null): ProviderModel & { isDefault: boole
             v-if="agents?.length"
             v-model.trim="search"
             icon="i-lucide-search"
-            placeholder="Search agents..."
+            :placeholder="$t('__placeholderSearchAgents')"
           >
             <template #trailing>
               <UButton
@@ -99,7 +99,7 @@ const getTextModel = (stored: string | null): ProviderModel & { isDefault: boole
                 variant="link"
                 size="sm"
                 icon="i-lucide-x"
-                aria-label="Clear search"
+                :aria-label="$t('__actionClearSearch')"
                 @click="search = ''"
               />
             </template>
@@ -111,9 +111,9 @@ const getTextModel = (stored: string | null): ProviderModel & { isDefault: boole
             v-else-if="!agents?.length"
             variant="subtle"
             icon="i-lucide-sparkles"
-            title="No agents yet"
-            description="An agent is a persona with a name, a system prompt, and a default model. Attach one to a bot to bring it to life."
-            :actions="atLimit ? [] : [{ label: 'Create your first agent', icon: 'i-lucide-plus', to: '/dashboard/agents/new' }]"
+            :title="$t('__titleAgentsEmpty')"
+            :description="$t('__descriptionAgentsEmpty')"
+            :actions="atLimit ? [] : [{ label: $t('__actionCreateFirstAgent'), icon: 'i-lucide-plus', to: '/dashboard/agents/new' }]"
           />
 
           <div
@@ -145,7 +145,7 @@ const getTextModel = (stored: string | null): ProviderModel & { isDefault: boole
                         variant="subtle"
                         size="xs"
                       >
-                        Default
+                        {{ $t('__labelDefault') }}
                       </UBadge>
                     </div>
                     <div class="flex items-center gap-1.5 text-sm text-toned min-w-0">
@@ -158,13 +158,19 @@ const getTextModel = (stored: string | null): ProviderModel & { isDefault: boole
                         <span
                           v-if="getTextModel(agent.defaultTextModel).isDefault"
                           class="text-toned"
-                        >(default)</span>
+                        >{{ $t('__labelDefaultSuffix') }}</span>
                       </span>
                     </div>
                   </div>
-                  <span class="text-xs text-toned shrink-0">
-                    Edited <TimeAgo :date="agent.updatedAt" />
-                  </span>
+                  <I18nT
+                    keypath="__hintEditedAt"
+                    tag="span"
+                    class="text-xs text-toned shrink-0"
+                  >
+                    <template #time>
+                      <TimeAgo :date="agent.updatedAt" />
+                    </template>
+                  </I18nT>
                 </div>
               </UCard>
             </NuxtLink>
@@ -174,7 +180,7 @@ const getTextModel = (stored: string | null): ProviderModel & { isDefault: boole
             v-else
             class="text-sm text-toned text-center py-8"
           >
-            No agents match "{{ search }}".
+            {{ $t('__descriptionNoAgentsMatchSearch', { query: search }) }}
           </p>
         </div>
       </DashboardContainer>

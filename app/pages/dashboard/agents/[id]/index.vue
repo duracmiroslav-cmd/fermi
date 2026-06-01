@@ -39,10 +39,13 @@ interface AgentDetail {
   bots:               BotRef[];
 }
 
-const VOICE_REPLY_LABELS: Record<VoiceReplyMode, string> = {
-  off:    'Off',
-  auto:   'Auto (mirror the user)',
-  always: 'Always',
+// Maps voice-reply mode to an i18n key. Detail page shows the
+// full-prose form; the radio picker in AgentForm shows the short form
+// (Off / Auto / Always) with separate description text.
+const VOICE_REPLY_LABEL_KEY: Record<VoiceReplyMode, string> = {
+  off:    '__labelOff',
+  auto:   '__labelAutoMirror',
+  always: '__labelAlways',
 };
 
 interface ProviderModel {
@@ -52,6 +55,7 @@ interface ProviderModel {
 }
 
 const route = useRoute();
+const { t } = useI18n();
 
 const { data: agent, error, pending } = useApiFetch<AgentDetail>(
   () => `/api/agents/${route.params.id}`,
@@ -89,7 +93,7 @@ const visionModel = computed<ProviderModel>(() => {
       <template #title>
         <DashboardBreadcrumb
           :items="[
-            { label: 'Agents', to: '/dashboard/agents' },
+            { label: $t('__labelAgent', 2), to: '/dashboard/agents' },
             { label: agent?.name ?? '' },
           ]"
           :loading="!agent"
@@ -102,9 +106,9 @@ const visionModel = computed<ProviderModel>(() => {
         <UEmpty
           variant="subtle"
           icon="i-lucide-search-x"
-          title="Agent not found"
-          description="This agent may have been deleted, or the link is wrong."
-          :actions="[{ label: 'Back to agents', icon: 'i-lucide-arrow-left', to: '/dashboard/agents' }]"
+          :title="$t('__titleAgentNotFound')"
+          :description="$t('__descriptionAgentNotFound')"
+          :actions="[{ label: $t('__actionBackToAgents'), icon: 'i-lucide-arrow-left', to: '/dashboard/agents' }]"
         />
       </DashboardContainer>
 
@@ -118,14 +122,14 @@ const visionModel = computed<ProviderModel>(() => {
           />
           <div class="min-w-0">
             <h1 class="text-2xl font-semibold truncate flex items-center gap-2">
-              {{ agent.name || '(unnamed)' }}
+              {{ agent.name || $t('__labelUnnamed') }}
               <UBadge
                 v-if="agent.isDefault"
                 color="neutral"
                 variant="subtle"
                 size="sm"
               >
-                Default
+                {{ $t('__labelDefault') }}
               </UBadge>
             </h1>
           </div>
@@ -134,7 +138,7 @@ const visionModel = computed<ProviderModel>(() => {
         <div class="flex flex-col gap-3">
           <div class="flex items-center justify-between gap-4">
             <h2 class="font-semibold">
-              System prompt
+              {{ $t('__labelSystemPrompt') }}
             </h2>
             <UButton
               v-if="agent.systemPrompt"
@@ -144,7 +148,7 @@ const visionModel = computed<ProviderModel>(() => {
               variant="soft"
               size="sm"
             >
-              Edit
+              {{ $t('__actionEdit') }}
             </UButton>
           </div>
           <UCard>
@@ -159,14 +163,14 @@ const visionModel = computed<ProviderModel>(() => {
               class="flex flex-col items-start gap-3"
             >
               <p class="text-sm text-toned">
-                No system prompt set. This agent replies with default behavior.
+                {{ $t('__descriptionNoSystemPrompt') }}
               </p>
               <UButton
                 :to="`/dashboard/agents/${agent.id}/edit`"
                 icon="i-lucide-plus"
                 size="sm"
               >
-                Add system prompt
+                {{ $t('__actionAddSystemPrompt') }}
               </UButton>
             </div>
           </UCard>
@@ -174,12 +178,12 @@ const visionModel = computed<ProviderModel>(() => {
 
         <div class="flex flex-col gap-3">
           <h2 class="font-semibold">
-            Details
+            {{ $t('__titleDetails') }}
           </h2>
           <UCard>
             <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-7">
               <dt class="text-toned text-right">
-                Text model
+                {{ $t('__labelTextModel', 1) }}
               </dt>
               <dd class="min-w-0">
                 <div class="flex items-center gap-1.5 min-w-0">
@@ -193,7 +197,7 @@ const visionModel = computed<ProviderModel>(() => {
                     rel="noopener"
                     class="flex items-center gap-1.5 min-w-0 text-primary hover:underline"
                   >
-                    <span class="truncate">{{ model.isDefault ? `${model.name} (default)` : model.name }}</span>
+                    <span class="truncate">{{ model.isDefault ? `${model.name} ${t('__labelDefaultSuffix')}` : model.name }}</span>
                     <UIcon
                       name="i-lucide-external-link"
                       class="size-3.5 shrink-0 text-toned"
@@ -202,7 +206,7 @@ const visionModel = computed<ProviderModel>(() => {
                 </div>
               </dd>
               <dt class="text-toned text-right">
-                Vision model
+                {{ $t('__labelVisionModel', 1) }}
               </dt>
               <dd class="min-w-0">
                 <div class="flex items-center gap-1.5 min-w-0">
@@ -225,33 +229,33 @@ const visionModel = computed<ProviderModel>(() => {
                 </div>
               </dd>
               <dt class="text-toned text-right">
-                Voice reply
+                {{ $t('__labelVoiceReply') }}
               </dt>
               <dd>
-                {{ VOICE_REPLY_LABELS[agent.voiceReplyMode] }}
+                {{ $t(VOICE_REPLY_LABEL_KEY[agent.voiceReplyMode]) }}
               </dd>
               <dt class="text-toned text-right">
-                Voice model
+                {{ $t('__labelVoiceModel', 1) }}
               </dt>
               <dd>
                 <span v-if="agent.defaultTtsModel">{{ getTtsModelName(agent.defaultTtsModel) }}</span>
                 <span
                   v-else
                   class="text-toned"
-                >{{ DEFAULT_TTS_MODEL_NAME }} (default)</span>
+                >{{ DEFAULT_TTS_MODEL_NAME }} {{ $t('__labelDefaultSuffix') }}</span>
               </dd>
               <dt class="text-toned text-right">
-                Voice
+                {{ $t('__labelVoice', 1) }}
               </dt>
               <dd>
                 <span v-if="agent.defaultTtsVoice">{{ getTtsVoiceName(agent.defaultTtsVoice) }}</span>
                 <span
                   v-else
                   class="text-toned"
-                >{{ DEFAULT_TTS_VOICE_NAME }} (default)</span>
+                >{{ DEFAULT_TTS_VOICE_NAME }} {{ $t('__labelDefaultSuffix') }}</span>
               </dd>
               <dt class="text-toned text-right">
-                Voice instructions
+                {{ $t('__labelVoiceInstructions') }}
               </dt>
               <dd class="min-w-0">
                 <span
@@ -264,13 +268,13 @@ const visionModel = computed<ProviderModel>(() => {
                 >—</span>
               </dd>
               <dt class="text-toned text-right">
-                Created
+                {{ $t('__labelCreated') }}
               </dt>
               <dd>
                 <TimeAgo :date="agent.createdAt" />
               </dd>
               <dt class="text-toned text-right">
-                Updated
+                {{ $t('__labelUpdated') }}
               </dt>
               <dd>
                 <TimeAgo :date="agent.updatedAt" />
@@ -286,7 +290,7 @@ const visionModel = computed<ProviderModel>(() => {
           class="flex flex-col gap-3"
         >
           <h2 class="font-semibold">
-            Bots
+            {{ $t('__labelBot', 2) }}
           </h2>
           <div class="space-y-2">
             <BotListCard

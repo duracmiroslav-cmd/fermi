@@ -15,7 +15,7 @@ const attached = computed(() => (rows.value ?? []).filter(c => c.attached));
 <template>
   <div class="flex flex-col gap-3">
     <h2 class="font-semibold">
-      Capabilities
+      {{ $t('__titleCapabilities') }}
     </h2>
     <UCard>
       <div class="flex flex-wrap gap-2 min-h-6">
@@ -44,7 +44,7 @@ const attached = computed(() => (rows.value ?? []).filter(c => c.attached));
           v-else
           class="text-sm text-toned"
         >
-          No capabilities enabled.
+          {{ $t('__titleNoCapabilitiesEnabled') }}
         </p>
       </div>
     </UCard>

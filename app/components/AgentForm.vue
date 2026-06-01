@@ -53,6 +53,7 @@ const emit = defineEmits<{
   submit: [value: AgentFormValue];
 }>();
 
+const { t } = useI18n();
 const notify = useNotify();
 
 const { data: models, pending: modelsPending, refresh: refreshModels } = useApiFetch<ProviderModel[]>('/api/providers/openrouter/models');
@@ -226,7 +227,7 @@ const promptCharCount = computed(() => state.systemPrompt.length);
 // the dropdown see which pick they'd land on by leaving it blank.
 const ttsModelItems = computed(() =>
   TTS_MODELS.map(m => ({
-    label: m.value === DEFAULT_TTS_MODEL ? `${m.name} (default)` : m.name,
+    label: m.value === DEFAULT_TTS_MODEL ? `${m.name} ${t('__labelDefaultSuffix')}` : m.name,
     value: m.value,
   })),
 );
@@ -241,10 +242,16 @@ const ttsVoiceItems = computed(() => {
   return TTS_VOICES
     .filter(v => supportedIds.has(v.value))
     .map(v => ({
-      label: v.value === DEFAULT_TTS_VOICE ? `${v.name} (default)` : v.name,
+      label: v.value === DEFAULT_TTS_VOICE ? `${v.name} ${t('__labelDefaultSuffix')}` : v.name,
       value: v.value,
     }));
 });
+
+const voiceReplyModeItems = computed(() => [
+  { label: t('__labelOff'), value: 'off' as const, description: t('__hintVoiceReplyOffDescription') },
+  { label: t('__labelAuto'), value: 'auto' as const, description: t('__hintVoiceReplyAutoDescription') },
+  { label: t('__labelAlways'), value: 'always' as const, description: t('__hintVoiceReplyAlwaysDescription') },
+]);
 
 const effectiveTtsModel = computed<TtsModel>(
   () => state.defaultTtsModel ?? DEFAULT_TTS_MODEL,
@@ -321,7 +328,7 @@ const onPreview = async (voice: TtsVoice) => {
     playingVoice.value = voice;
     await audio.play();
   } catch (e) {
-    notify.error('Preview failed', e);
+    notify.error(t('__toastPreviewFailed'), e);
   } finally {
     previewingVoice.value = null;
   }
@@ -349,44 +356,44 @@ onUnmounted(stopPreviewAudio);
     @submit="onSubmit"
   >
     <UFormField
-      label="Name"
+      :label="$t('__labelName')"
       name="name"
       required
-      help="A label for you to recognize this agent. Users on LINE never see it."
+      :help="$t('__hintAgentName')"
     >
       <UInput
         v-model.trim="state.name"
-        placeholder="my agent"
+        :placeholder="$t('__placeholderAgentName')"
       />
     </UFormField>
 
     <UFormField
-      label="System prompt"
+      :label="$t('__labelSystemPrompt')"
       name="systemPrompt"
-      help="The persona instructions the agent follows. Sets its voice and behavior."
+      :help="$t('__hintSystemPrompt')"
     >
       <template #hint>
         <span class="text-sm text-toned">
-          {{ promptCharCount }} / 8000
+          {{ $t('__hintSystemPromptCharCount', { count: promptCharCount }) }}
         </span>
       </template>
       <UTextarea
         v-model.trim="state.systemPrompt"
         :rows="12"
-        placeholder="You are a helpful assistant..."
+        :placeholder="$t('__placeholderSystemPrompt')"
       />
     </UFormField>
 
     <UFormField
-      label="Text model"
+      :label="$t('__labelTextModel', 1)"
       name="defaultTextModel"
-      help="The AI model that generates this agent's replies."
+      :help="$t('__hintTextModel')"
     >
       <USelectMenu
         v-model="displayTextModelId"
         :items="allModelItems"
         value-key="value"
-        :placeholder="`${defaultTextModelInfo.name} (default)`"
+        :placeholder="`${defaultTextModelInfo.name} ${t('__labelDefaultSuffix')}`"
         :loading="modelsPending || isTextModelPickerOpening"
         :ui="{ itemTrailingIcon: 'hidden' }"
         @pointerdown="isTextModelPickerOpening = true"
@@ -398,14 +405,14 @@ onUnmounted(stopPreviewAudio);
             @pointerdown.stop
           >
             <span class="text-xs">
-              {{ allModelItems.length }} text model{{ allModelItems.length === 1 ? '' : 's' }}
+              {{ allModelItems.length }} {{ $t('__labelTextModel', allModelItems.length) }}
             </span>
             <UButton
               icon="i-lucide-refresh-cw"
               color="neutral"
               variant="ghost"
               size="xs"
-              label="Refresh"
+              :label="$t('__actionRefresh')"
               :loading="isRefreshing"
               @click.stop="onRefresh"
               @pointerdown.stop
@@ -436,9 +443,9 @@ onUnmounted(stopPreviewAudio);
           />
         </template>
         <template #empty="{ searchTerm }">
-          <span v-if="modelsPending">Loading models…</span>
-          <span v-else-if="searchTerm">No models match "{{ searchTerm }}"</span>
-          <span v-else>No models available</span>
+          <span v-if="modelsPending">{{ $t('__hintLoadingModels') }}</span>
+          <span v-else-if="searchTerm">{{ $t('__descriptionNoModelsMatchSearch', { query: searchTerm }) }}</span>
+          <span v-else>{{ $t('__descriptionNoModelsAvailable') }}</span>
         </template>
         <template #item-label="{ item }">
           <span class="inline-flex items-center gap-1.5 truncate">
@@ -449,7 +456,7 @@ onUnmounted(stopPreviewAudio);
               variant="subtle"
               size="xs"
             >
-              free
+              {{ $t('__labelFree') }}
             </UBadge>
           </span>
         </template>
@@ -462,7 +469,7 @@ onUnmounted(stopPreviewAudio);
               class="size-4"
             />
           </span>
-          <UTooltip text="View on OpenRouter">
+          <UTooltip :text="$t('__actionViewOnOpenrouter')">
             <UButton
               :to="`https://openrouter.ai/${item.value}`"
               target="_blank"
@@ -471,7 +478,7 @@ onUnmounted(stopPreviewAudio);
               color="neutral"
               variant="ghost"
               size="sm"
-              aria-label="View on OpenRouter"
+              :aria-label="$t('__actionViewOnOpenrouter')"
               class="hover:bg-accented! group-data-[state=checked]:hover:bg-primary/20!"
               @click.stop
               @pointerdown.stop
@@ -484,23 +491,23 @@ onUnmounted(stopPreviewAudio);
         color="warning"
         variant="subtle"
         icon="i-lucide-triangle-alert"
-        :title="`${state.defaultTextModel} is no longer available`"
-        :description="`Reset to fermi's default (${defaultTextModelInfo.name}) or pick a new model from the list above.`"
-        :actions="[{ label: 'Reset to default', color: 'warning', variant: 'soft', onClick: onTextModelReset }]"
+        :title="$t('__descriptionModelUnavailable', { name: state.defaultTextModel })"
+        :description="$t('__descriptionModelStaleResetCta', { name: defaultTextModelInfo.name })"
+        :actions="[{ label: $t('__actionResetToDefault'), color: 'warning', variant: 'soft', onClick: onTextModelReset }]"
         class="mt-2"
       />
     </UFormField>
 
     <UFormField
-      label="Vision model"
+      :label="$t('__labelVisionModel', 1)"
       name="defaultVisionModel"
-      help="Used to read images sent into the conversation, whatever the text model is set to. Only vision-capable models are listed."
+      :help="$t('__hintVisionModel')"
     >
       <USelectMenu
         v-model="displayVisionModelId"
         :items="visionModelItems"
         value-key="value"
-        :placeholder="`${defaultVisionModelInfo.name} (default)`"
+        :placeholder="`${defaultVisionModelInfo.name} ${t('__labelDefaultSuffix')}`"
         :loading="modelsPending || isVisionModelPickerOpening"
         :ui="{ itemTrailingIcon: 'hidden' }"
         @pointerdown="isVisionModelPickerOpening = true"
@@ -512,14 +519,14 @@ onUnmounted(stopPreviewAudio);
             @pointerdown.stop
           >
             <span class="text-xs">
-              {{ visionModelItems.length }} vision model{{ visionModelItems.length === 1 ? '' : 's' }}
+              {{ visionModelItems.length }} {{ $t('__labelVisionModel', visionModelItems.length) }}
             </span>
             <UButton
               icon="i-lucide-refresh-cw"
               color="neutral"
               variant="ghost"
               size="xs"
-              label="Refresh"
+              :label="$t('__actionRefresh')"
               :loading="isRefreshing"
               @click.stop="onRefresh"
               @pointerdown.stop
@@ -550,9 +557,9 @@ onUnmounted(stopPreviewAudio);
           />
         </template>
         <template #empty="{ searchTerm }">
-          <span v-if="modelsPending">Loading models…</span>
-          <span v-else-if="searchTerm">No models match "{{ searchTerm }}"</span>
-          <span v-else>No vision models available</span>
+          <span v-if="modelsPending">{{ $t('__hintLoadingModels') }}</span>
+          <span v-else-if="searchTerm">{{ $t('__descriptionNoModelsMatchSearch', { query: searchTerm }) }}</span>
+          <span v-else>{{ $t('__descriptionNoVisionModelsAvailable') }}</span>
         </template>
         <template #item-label="{ item }">
           <span class="inline-flex items-center gap-1.5 truncate">
@@ -563,7 +570,7 @@ onUnmounted(stopPreviewAudio);
               variant="subtle"
               size="xs"
             >
-              free
+              {{ $t('__labelFree') }}
             </UBadge>
           </span>
         </template>
@@ -576,7 +583,7 @@ onUnmounted(stopPreviewAudio);
               class="size-4"
             />
           </span>
-          <UTooltip text="View on OpenRouter">
+          <UTooltip :text="$t('__actionViewOnOpenrouter')">
             <UButton
               :to="`https://openrouter.ai/${item.value}`"
               target="_blank"
@@ -585,7 +592,7 @@ onUnmounted(stopPreviewAudio);
               color="neutral"
               variant="ghost"
               size="sm"
-              aria-label="View on OpenRouter"
+              :aria-label="$t('__actionViewOnOpenrouter')"
               class="hover:bg-accented! group-data-[state=checked]:hover:bg-primary/20!"
               @click.stop
               @pointerdown.stop
@@ -598,44 +605,40 @@ onUnmounted(stopPreviewAudio);
         color="warning"
         variant="subtle"
         icon="i-lucide-triangle-alert"
-        :title="`${state.defaultVisionModel} is no longer available`"
-        :description="`Reset to fermi's default (${defaultVisionModelInfo.name}) or pick a new model from the list above.`"
-        :actions="[{ label: 'Reset to default', color: 'warning', variant: 'soft', onClick: onVisionModelReset }]"
+        :title="$t('__descriptionModelUnavailable', { name: state.defaultVisionModel })"
+        :description="$t('__descriptionModelStaleResetCta', { name: defaultVisionModelInfo.name })"
+        :actions="[{ label: $t('__actionResetToDefault'), color: 'warning', variant: 'soft', onClick: onVisionModelReset }]"
         class="mt-2"
       />
     </UFormField>
 
     <UFormField
-      label="Voice reply"
+      :label="$t('__labelVoiceReply')"
       name="voiceReplyMode"
-      help="Whether the agent speaks its replies. Audio replies use the owner's OpenAI key for TTS and cost more than text."
+      :help="$t('__hintVoiceReply')"
     >
       <URadioGroup
         v-model="state.voiceReplyMode"
-        :items="[
-          { label: 'Off', value: 'off', description: 'Never speak. Always reply with text.' },
-          { label: 'Auto', value: 'auto', description: 'Mirror the user — speak only when the user sent voice.' },
-          { label: 'Always', value: 'always', description: 'Always speak, regardless of how the user wrote.' },
-        ]"
+        :items="voiceReplyModeItems"
       />
     </UFormField>
 
     <UFormField
-      label="Voice model"
+      :label="$t('__labelVoiceModel', 1)"
       name="defaultTtsModel"
-      help="The OpenAI TTS engine. gpt-4o-mini-tts is cheaper, higher quality, and the only one that honors voice instructions."
+      :help="$t('__hintTtsModel')"
     >
       <USelectMenu
         v-model="displayTtsModel"
         :items="ttsModelItems"
         value-key="value"
-        :placeholder="`${DEFAULT_TTS_MODEL_NAME} (default)`"
+        :placeholder="`${DEFAULT_TTS_MODEL_NAME} ${t('__labelDefaultSuffix')}`"
         @update:model-value="onTtsModelPick"
       >
         <template #content-top>
           <div class="px-2 py-1.5 border-b border-default">
             <span class="text-xs">
-              {{ ttsModelItems.length }} voice model{{ ttsModelItems.length === 1 ? '' : 's' }}
+              {{ ttsModelItems.length }} {{ $t('__labelVoiceModel', ttsModelItems.length) }}
             </span>
           </div>
         </template>
@@ -657,30 +660,30 @@ onUnmounted(stopPreviewAudio);
         color="warning"
         variant="subtle"
         icon="i-lucide-triangle-alert"
-        :title="`${state.defaultTtsModel} is no longer available`"
-        :description="`Reset to fermi's default (${DEFAULT_TTS_MODEL_NAME}) or pick a new model from the list above.`"
-        :actions="[{ label: 'Reset to default', color: 'warning', variant: 'soft', onClick: onTtsModelReset }]"
+        :title="$t('__descriptionModelUnavailable', { name: state.defaultTtsModel })"
+        :description="$t('__descriptionModelStaleResetCta', { name: DEFAULT_TTS_MODEL_NAME })"
+        :actions="[{ label: $t('__actionResetToDefault'), color: 'warning', variant: 'soft', onClick: onTtsModelReset }]"
         class="mt-2"
       />
     </UFormField>
 
     <UFormField
-      label="Voice"
+      :label="$t('__labelVoice', 1)"
       name="defaultTtsVoice"
-      help="The character the agent speaks in. Hit play on any voice to hear a short sample."
+      :help="$t('__hintTtsVoice')"
     >
       <USelectMenu
         v-model="displayTtsVoice"
         :items="ttsVoiceItems"
         value-key="value"
-        :placeholder="`${DEFAULT_TTS_VOICE_NAME} (default)`"
+        :placeholder="`${DEFAULT_TTS_VOICE_NAME} ${t('__labelDefaultSuffix')}`"
         :ui="{ itemTrailingIcon: 'hidden' }"
         @update:open="onVoiceMenuToggle"
       >
         <template #content-top>
           <div class="px-2 py-1.5 border-b border-default">
             <span class="text-xs">
-              {{ ttsVoiceItems.length }} voice{{ ttsVoiceItems.length === 1 ? '' : 's' }}
+              {{ ttsVoiceItems.length }} {{ $t('__labelVoice', ttsVoiceItems.length) }}
             </span>
           </div>
         </template>
@@ -705,14 +708,14 @@ onUnmounted(stopPreviewAudio);
               class="size-4"
             />
           </span>
-          <UTooltip :text="playingVoice === item.value ? 'Stop preview' : 'Preview voice'">
+          <UTooltip :text="playingVoice === item.value ? $t('__actionStopPreview') : $t('__actionPreviewVoice')">
             <UButton
               :icon="playingVoice === item.value ? 'i-lucide-square' : 'i-lucide-play'"
               color="neutral"
               variant="ghost"
               size="sm"
               :loading="previewingVoice === item.value"
-              :aria-label="playingVoice === item.value ? 'Stop preview' : 'Preview voice'"
+              :aria-label="playingVoice === item.value ? $t('__actionStopPreview') : $t('__actionPreviewVoice')"
               class="hover:bg-accented! group-data-[state=checked]:hover:bg-primary/20!"
               @click.stop="onPreview(item.value as TtsVoice)"
               @pointerdown.stop
@@ -726,26 +729,24 @@ onUnmounted(stopPreviewAudio);
         variant="subtle"
         icon="i-lucide-triangle-alert"
         :title="ttsVoiceStaleReason === 'missing'
-          ? `${ttsVoiceName} is no longer available`
-          : `${ttsVoiceName} doesn't work with ${ttsModelName}`"
-        :description="`Reset to fermi's default (${DEFAULT_TTS_VOICE_NAME}) or pick a new voice from the list above.`"
-        :actions="[{ label: 'Reset to default', color: 'warning', variant: 'soft', onClick: onTtsVoiceReset }]"
+          ? $t('__descriptionModelUnavailable', { name: ttsVoiceName })
+          : $t('__descriptionVoiceUnsupported', { voice: ttsVoiceName, model: ttsModelName })"
+        :description="$t('__descriptionVoiceStaleResetCta', { name: DEFAULT_TTS_VOICE_NAME })"
+        :actions="[{ label: $t('__actionResetToDefault'), color: 'warning', variant: 'soft', onClick: onTtsVoiceReset }]"
         class="mt-2"
       />
     </UFormField>
 
     <UFormField
-      label="Voice instructions"
+      :label="$t('__labelVoiceInstructions')"
       name="ttsInstructions"
-      :help="isInstructionsSupported
-        ? `Optional tone / pace / accent direction (e.g. 'speak calmly and warmly').`
-        : 'Only honored when voice model is gpt-4o-mini-tts.'"
+      :help="$t(isInstructionsSupported ? '__hintTtsVoiceInstructionsSupported' : '__hintTtsVoiceInstructionsUnsupported')"
     >
       <UTextarea
         v-model.trim="state.ttsInstructions"
         :rows="3"
         :disabled="!isInstructionsSupported"
-        placeholder="Speak calmly and warmly."
+        :placeholder="$t('__placeholderTtsInstructions')"
       />
     </UFormField>
   </UForm>

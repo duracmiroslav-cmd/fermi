@@ -20,6 +20,7 @@ interface AgentDetail {
 }
 
 const route = useRoute();
+const { t } = useI18n();
 const notify = useNotify();
 
 const { data: agent, error, pending } = useApiFetch<AgentDetail>(
@@ -55,11 +56,11 @@ const onSubmit = async (value: {
         voiceReplyMode:     value.voiceReplyMode,
       },
     });
-    notify.success('Agent updated');
+    notify.success(t('__toastAgentUpdated'));
     await refreshNuxtData(route.params.id as string);
     await navigateTo(`/dashboard/agents/${route.params.id}`);
   } catch (e) {
-    notify.error('Update failed', e);
+    notify.error(t('__toastUpdateFailed'), e);
   } finally {
     saving.value = false;
   }
@@ -72,9 +73,9 @@ const onAvatarChange = async (url: string | null) => {
       body:   { avatarUrl: url },
     });
     if (agent.value) agent.value.avatarUrl = url;
-    notify.success(url ? 'Avatar updated' : 'Avatar removed');
+    notify.success(url ? t('__toastAvatarUpdated') : t('__toastAvatarRemoved'));
   } catch (e) {
-    notify.error('Avatar update failed', e);
+    notify.error(t('__toastAvatarUpdateFailed'), e);
   }
 };
 
@@ -82,10 +83,10 @@ const onDelete = async () => {
   deleting.value = true;
   try {
     await $fetch(`/api/agents/${route.params.id}`, { method: 'DELETE' });
-    notify.success('Agent deleted');
+    notify.success(t('__toastAgentDeleted'));
     await navigateTo('/dashboard/agents');
   } catch (e) {
-    notify.error('Delete failed', e);
+    notify.error(t('__toastDeleteFailed'), e);
     deleting.value = false;
   }
 };
@@ -97,9 +98,9 @@ const onDelete = async () => {
       <template #title>
         <DashboardBreadcrumb
           :items="[
-            { label: 'Agents', to: '/dashboard/agents' },
+            { label: $t('__labelAgent', 2), to: '/dashboard/agents' },
             { label: agent?.name ?? '', to: `/dashboard/agents/${route.params.id}` },
-            { label: 'Edit' },
+            { label: $t('__actionEdit') },
           ]"
           :loading="!agent"
         />
@@ -111,9 +112,9 @@ const onDelete = async () => {
         <UEmpty
           variant="subtle"
           icon="i-lucide-search-x"
-          title="Agent not found"
-          description="This agent may have been deleted, or the link is wrong."
-          :actions="[{ label: 'Back to agents', icon: 'i-lucide-arrow-left', to: '/dashboard/agents' }]"
+          :title="$t('__titleAgentNotFound')"
+          :description="$t('__descriptionAgentNotFound')"
+          :actions="[{ label: $t('__actionBackToAgents'), icon: 'i-lucide-arrow-left', to: '/dashboard/agents' }]"
         />
       </DashboardContainer>
 
@@ -128,14 +129,14 @@ const onDelete = async () => {
           </div>
           <div class="min-w-0">
             <h1 class="text-2xl font-semibold truncate flex items-center gap-2">
-              {{ agent.name || '(unnamed)' }}
+              {{ agent.name || $t('__labelUnnamed') }}
               <UBadge
                 v-if="agent.isDefault"
                 color="neutral"
                 variant="subtle"
                 size="sm"
               >
-                Default
+                {{ $t('__labelDefault') }}
               </UBadge>
             </h1>
           </div>
@@ -144,7 +145,7 @@ const onDelete = async () => {
         <div class="flex flex-col gap-3">
           <div class="flex items-center justify-between gap-4">
             <h2 class="font-semibold">
-              Settings
+              {{ $t('__titleSettings') }}
             </h2>
             <div class="flex items-center gap-2">
               <UButton
@@ -153,7 +154,7 @@ const onDelete = async () => {
                 variant="outline"
                 size="sm"
               >
-                Cancel
+                {{ $t('__actionCancel') }}
               </UButton>
               <UButton
                 type="submit"
@@ -161,7 +162,7 @@ const onDelete = async () => {
                 :loading="saving"
                 size="sm"
               >
-                Save
+                {{ $t('__actionSave') }}
               </UButton>
             </div>
           </div>
@@ -190,27 +191,27 @@ const onDelete = async () => {
           class="flex flex-col gap-3"
         >
           <h2 class="font-semibold text-error">
-            Danger zone
+            {{ $t('__titleDangerZone') }}
           </h2>
           <UCard>
             <div class="grid grid-cols-12 gap-4 md:items-center">
               <div class="col-span-12 md:col-span-9 min-w-0">
                 <p class="text-sm font-medium">
-                  Delete this agent
+                  {{ $t('__titleDeleteAgent') }}
                 </p>
                 <p class="text-xs text-toned mt-1">
                   <template v-if="agent.bots.length">
-                    Bound to {{ agent.bots.length }} bot{{ agent.bots.length === 1 ? '' : 's' }}. Rebind to another agent before deleting.
+                    {{ $t('__descriptionAgentBoundToBots', agent.bots.length, { count: agent.bots.length }) }}
                   </template>
                   <template v-else>
-                    Permanent. This agent isn't bound to any bot.
+                    {{ $t('__descriptionDeleteAgent') }}
                   </template>
                 </p>
               </div>
               <div class="col-span-12 md:col-span-3 justify-self-end">
                 <UTooltip
                   v-if="agent.bots.length"
-                  text="Agent still bound to a bot"
+                  :text="$t('__hintAgentBoundToBot')"
                 >
                   <UButton
                     color="error"
@@ -218,7 +219,7 @@ const onDelete = async () => {
                     size="sm"
                     disabled
                   >
-                    Delete agent
+                    {{ $t('__actionDeleteAgent') }}
                   </UButton>
                 </UTooltip>
                 <UButton
@@ -228,7 +229,7 @@ const onDelete = async () => {
                   size="sm"
                   @click="deleteDialogOpen = true"
                 >
-                  Delete agent
+                  {{ $t('__actionDeleteAgent') }}
                 </UButton>
               </div>
             </div>
@@ -237,17 +238,20 @@ const onDelete = async () => {
 
         <DeleteConfirmDialog
           v-model:open="deleteDialogOpen"
-          title="Delete agent"
+          :title="$t('__titleDeleteAgent')"
           :item-name="agent.name"
-          confirm-label="Delete"
+          :confirm-label="$t('__actionDelete')"
           :loading="deleting"
           @confirm="onDelete"
         >
-          <p>
-            Permanently deletes
-            <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{{ agent.name }}</span>.
-            Bots using this agent stop replying.
-          </p>
+          <I18nT
+            keypath="__descriptionDeleteAgentConfirm"
+            tag="p"
+          >
+            <template #name>
+              <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{{ agent.name }}</span>
+            </template>
+          </I18nT>
         </DeleteConfirmDialog>
       </DashboardContainer>
     </NuxtLayout>

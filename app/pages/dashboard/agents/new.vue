@@ -3,6 +3,7 @@ import type { TtsModel, TtsVoice } from '~~/shared/tts';
 
 definePageMeta({ layout: false });
 
+const { t } = useI18n();
 const notify = useNotify();
 const saving = ref(false);
 
@@ -29,10 +30,10 @@ const onSubmit = async (value: {
         ttsInstructions:    value.ttsInstructions || null,
       },
     });
-    notify.success('Agent created');
+    notify.success(t('__toastAgentCreated'));
     await navigateTo(`/dashboard/agents/${created.id}`);
   } catch (e) {
-    notify.error('Create failed', e);
+    notify.error(t('__toastCreateFailed'), e);
   } finally {
     saving.value = false;
   }
@@ -45,22 +46,22 @@ const onSubmit = async (value: {
       <template #title>
         <DashboardBreadcrumb
           :items="[
-            { label: 'Agents', to: '/dashboard/agents' },
-            { label: 'New' },
+            { label: $t('__labelAgent', 2), to: '/dashboard/agents' },
+            { label: $t('__titleNewAgent') },
           ]"
         />
       </template>
 
       <DashboardContainer>
         <h1 class="text-2xl font-semibold">
-          New agent
+          {{ $t('__titleNewAgent') }}
         </h1>
 
         <UCard>
           <template #header>
             <div class="flex items-center justify-between gap-4">
               <p class="font-medium">
-                Settings
+                {{ $t('__titleSettings') }}
               </p>
               <div class="flex items-center gap-2">
                 <UButton
@@ -69,7 +70,7 @@ const onSubmit = async (value: {
                   variant="ghost"
                   size="sm"
                 >
-                  Cancel
+                  {{ $t('__actionCancel') }}
                 </UButton>
                 <UButton
                   type="submit"
@@ -77,7 +78,7 @@ const onSubmit = async (value: {
                   :loading="saving"
                   size="sm"
                 >
-                  Create
+                  {{ $t('__actionCreate') }}
                 </UButton>
               </div>
             </div>

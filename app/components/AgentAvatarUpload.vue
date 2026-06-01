@@ -12,6 +12,7 @@ const ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const MAX_BYTES = 2 * 1024 * 1024;
 const BUCKET = 'agent-avatars';
 
+const { t } = useI18n();
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
 const notify = useNotify();
@@ -40,19 +41,19 @@ const onFileChange = async (event: Event) => {
   if (!file) return;
 
   if (!ALLOWED_MIME.includes(file.type)) {
-    notify.error('Unsupported format', 'PNG, JPEG, WebP, or GIF only.');
+    notify.error(t('__toastUnsupportedFormat'), t('__hintUnsupportedFormat'));
     input.value = '';
     return;
   }
   if (file.size > MAX_BYTES) {
-    notify.error('File too large', 'Max 2MB.');
+    notify.error(t('__toastFileTooLarge'), t('__hintFileTooLarge'));
     input.value = '';
     return;
   }
 
   uploading.value = true;
   try {
-    if (!user.value?.sub) throw new Error('Not signed in');
+    if (!user.value?.sub) throw new Error(t('__errorNotSignedIn'));
     await removeExistingForAgent(user.value.sub);
     const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
     const path = `${user.value.sub}/${props.agentId}.${ext}`;
@@ -66,7 +67,7 @@ const onFileChange = async (event: Event) => {
     localUrl.value = url;
     emit('change', url);
   } catch (e) {
-    notify.error('Upload failed', e);
+    notify.error(t('__toastUploadFailed'), e);
   } finally {
     uploading.value = false;
     input.value = '';
@@ -75,7 +76,7 @@ const onFileChange = async (event: Event) => {
 </script>
 
 <template>
-  <UTooltip :text="displayUrl ? 'Replace avatar' : 'Upload avatar'">
+  <UTooltip :text="displayUrl ? $t('__hintReplaceAvatar') : $t('__hintUploadAvatar')">
     <button
       type="button"
       :disabled="uploading"
