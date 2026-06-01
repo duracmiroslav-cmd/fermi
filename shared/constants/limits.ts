@@ -17,11 +17,11 @@ export const PURPOSES: readonly Purpose[]
   = ['image_gen', 'tts', 'stt', 'extended_run', 'line_push'] as const;
 
 export const PURPOSE_LABEL: Record<Purpose, string> = {
-  image_gen:    '圖片生成',
-  tts:          '語音回覆',
-  stt:          '語音輸入',
-  extended_run: '長對話',
-  line_push:    'LINE 主動推播',
+  image_gen:    'Image generation',
+  tts:          'Voice replies',
+  stt:          'Voice messages',
+  extended_run: 'Long conversations',
+  line_push:    'Push messages',
 };
 
 // Monthly quota caps by tier × purpose. Numbers derived in

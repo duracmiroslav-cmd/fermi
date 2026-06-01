@@ -92,10 +92,10 @@ const getPercent = (item: UsageItem): number => (
         >
           <div class="flex flex-col gap-1">
             <span class="font-medium">
-              升 Pro 解鎖更高 cap
+              Upgrade to Pro for higher caps
             </span>
             <span class="text-sm text-toned">
-              Pro 方案每月生圖 200、語音回覆 500、語音輸入 500、長對話 100。撞頂可 BYO key（OpenAI / fal.ai）真正 unlimited。
+              Pro raises monthly caps to 200 image generations, 500 voice replies, 500 voice messages, and 100 long conversations. Hit a cap? Connect your own OpenAI / fal.ai key for true unlimited.
             </span>
           </div>
           <UButton
@@ -103,7 +103,7 @@ const getPercent = (item: UsageItem): number => (
             color="primary"
             class="self-start"
           >
-            升 Pro
+            Upgrade to Pro
           </UButton>
         </BaseCard>
       </DashboardContainer>
