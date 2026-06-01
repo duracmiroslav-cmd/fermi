@@ -16,10 +16,6 @@ export type MessageContent = TextContent | ImageContent | AudioContent;
 
 export type MessageRole = 'user' | 'assistant' | 'tool';
 
-// Returns the most recent active thread for the (bot, external_user)
-// pair, or creates one if none exists. The `/new` command (when
-// added) will open a fresh thread by inserting; this resolver always
-// picks the latest by `last_message_at`.
 export const resolveOrCreateLatestThread = async (
   admin: SupabaseClient,
   botId: string,
@@ -59,8 +55,7 @@ export const appendMessage = async (
     .single();
   if (error) throw error;
 
-  // Bump last_message_at so the next webhook routes to this thread
-  // until `/new` (or a future timeout-based split) opens a new one.
+  // last_message_at drives which thread the next webhook routes to.
   const { error: touchErr } = await admin
     .from('threads')
     .update({ last_message_at: new Date().toISOString() })
@@ -70,11 +65,10 @@ export const appendMessage = async (
   return data.id;
 };
 
-// Newest-first DB order is reversed to chronological for the LLM
-// transcript. Image entries are signed in parallel so a vision-heavy
-// history doesn't serialize signing latency. Sign failures (e.g. the
-// Storage object was deleted) degrade to a placeholder text so the
-// surrounding turn structure stays intact for the model.
+// Image entries are signed in parallel so a vision-heavy history
+// doesn't serialize signing latency. Sign failures (e.g. the Storage
+// object was deleted) degrade to placeholder text so the surrounding
+// turn structure stays intact for the model.
 export const loadRecentMessages = async (
   admin: SupabaseClient,
   threadId: string,

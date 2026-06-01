@@ -2,9 +2,9 @@
 import type { AvatarSize } from './GeneratedAvatar.vue';
 
 // `seed` is the agent's stable id — every agent has one, so the generated
-// avatar survives renames. `name` is the uploaded image's alt text only
-// (it no longer feeds the seed); required so every caller declares it,
-// with null the explicit "no caption" — a missing alt can't slip through.
+// avatar survives renames. `name` is the uploaded image's alt text only;
+// required so every caller declares it, with null the explicit
+// "no caption" — a missing alt can't slip through.
 withDefaults(defineProps<{
   seed:  string;
   name:  string | null;

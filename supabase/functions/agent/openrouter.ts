@@ -1,8 +1,3 @@
-// Direct fetch wrapper for OpenRouter chat completions. Sticks to the
-// OpenAI-compatible POST /api/v1/chat/completions endpoint; the SDK
-// abstraction is deferred until a second modality (vision / image gen)
-// needs it.
-
 import type { ToolSchema } from './tools/index.ts';
 
 export interface OutgoingToolCall {
@@ -11,20 +6,16 @@ export interface OutgoingToolCall {
   function: { name: string; arguments: string };
 }
 
-// Parts of a multimodal user turn. Today only `text` and `image_url`
-// are emitted; OpenAI's spec also allows `input_audio` etc., extend
-// as needed. `image_url.url` may be either a `data:` URL (base64) or
-// a regular HTTPS URL, we use Supabase Storage signed URLs so the
-// LLM provider fetches the bytes directly, skipping our worker.
+// `image_url.url` carries a Supabase Storage signed URL, not inline
+// base64, so the LLM provider fetches the bytes directly instead of
+// routing them through the worker.
 export type ChatMessageContentPart
   = | { type: 'text'; text: string }
     | { type: 'image_url'; image_url: { url: string } };
 
-// Union over the four valid turn shapes. `content` is nullable only on
-// assistant turns that exclusively carry `tool_calls`. User turns may
-// carry a multimodal array (image + text). `tool_call_id` is
-// mandatory on tool turns (OpenAI requires the bridge back to the
-// originating call) and forbidden elsewhere.
+// `content` is null only on assistant turns that carry `tool_calls`
+// alone. `tool_call_id` is mandatory on tool turns (OpenAI requires
+// the bridge back to the originating call) and forbidden elsewhere.
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
   content: string | null | ChatMessageContentPart[];

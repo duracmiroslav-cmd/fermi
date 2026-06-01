@@ -18,9 +18,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Bot not found' });
   }
 
-  // First successful reply, derived from agent_runs (the table is the
-  // single source of truth — see migration). The owner-scoped RPC mirrors
-  // the bot list's `get_bots_last_replied`; we pick out this bot's row.
+  // First successful reply, derived from agent_runs (the single source
+  // of truth, not a column). The owner-scoped RPC mirrors the bot list's
+  // `get_bots_last_replied`; this picks out the one bot's row.
   const { data: firstReplied, error: firstRepliedErr } = await admin
     .rpc('get_bots_first_replied', { p_owner_id: user.id });
   if (firstRepliedErr) throw firstRepliedErr;

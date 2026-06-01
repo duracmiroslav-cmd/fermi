@@ -72,9 +72,9 @@ export interface Toolset {
   execute: (name: string, argumentsJson: string, ctx: ToolContext) => Promise<string>;
 }
 
-// Module-level: reused across warm edge-function invocations of the same isolate.
-// Key = url only; the tool list is server-side static, independent of which PAT
-// calls it. TTL handles server-side deploys; per-user isolation is unnecessary.
+// Cached across warm invocations of the same isolate. Key = url only:
+// the tool list is server-side static, independent of which PAT calls
+// it. TTL handles deploys; per-user isolation is unnecessary.
 interface CachedTools {
   tools:     McpTool[];
   expiresAt: number;
@@ -157,13 +157,12 @@ export const buildToolset = async (
             mcpToolCache.set(cacheKey, { tools: mcpTools, expiresAt: Date.now() + TOOL_CACHE_TTL_MS });
           }
 
-          // Two allowlist shapes:
-          //   - `tools` flat: github's hardcoded read-only subset
-          //   - `toolGroups` + `enabledGroups`: each agent picks which groups
-          //     of a many-tool MCP it wants surfaced (e.g. twinkle-hub),
-          //     allowlist = union of the chosen groups' tools.
-          // `enabledGroups` is per-agent state and shallow-merges on top of
-          // the capability's `defaultEnabledGroups` at load time.
+          // Two allowlist shapes: `tools` flat (a hardcoded read-only
+          // subset) or `toolGroups` + `enabledGroups` (the agent picks
+          // which groups of a many-tool MCP to surface; allowlist =
+          // union of the chosen groups). `enabledGroups` is per-agent
+          // state, shallow-merged over the capability's
+          // `defaultEnabledGroups` at load time.
           let allowlist: Set<string> | null = null;
           if (capability.config.toolGroups) {
             const enabled = capability.config.enabledGroups

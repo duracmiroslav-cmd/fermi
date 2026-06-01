@@ -8,10 +8,10 @@ export type AvatarSize = '3xs' | '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl
 <script setup lang="ts">
 import Avatar from 'vue-boring-avatars';
 
-// fermi's branded boring-avatars wiring lives here, with the only two
-// variants we sanction. The palette is private because nothing outside a
-// generated avatar consumes it — co-locating it with the lib call keeps
-// the brand decision in one place.
+// fermi's branded boring-avatars wiring, with the only two sanctioned
+// variants. The palette is private because nothing outside a generated
+// avatar consumes it — co-locating it with the lib call keeps the brand
+// decision in one place.
 //
 // Warm-led with cool accents: three apricot-leaning warm tones plus a
 // teal and indigo. The warm majority keeps it on-brand; the two cool

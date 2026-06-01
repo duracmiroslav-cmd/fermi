@@ -16,7 +16,6 @@ interface FetchProvider {
 }
 
 // Page text is capped so a single fetch can't swamp the model's context.
-// Generous vs search snippets (300) since the point here is to read a body.
 const MAX_CHARS = 8000;
 
 // ---- Provider 1: Tavily Extract --------------------------------------------

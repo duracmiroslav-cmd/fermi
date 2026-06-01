@@ -1,10 +1,8 @@
-// LINE channel adapter: all LINE Messaging API (reply / push) and Content
-// API (binary download) I/O for the agent worker. The worker depends on this
-// module's surface rather than on LINE URLs/shapes directly, so a future
-// platform (Telegram, etc.) becomes a sibling adapter under `channels/`
-// instead of scattered edits. A cross-platform `Channel` interface is
-// deliberately deferred until a second platform exists and the real common
-// shape is visible.
+// LINE channel adapter: all Messaging API (reply / push) and Content API
+// (binary download) I/O for the worker. The worker depends on this
+// surface, not on LINE URLs/shapes, so a second platform becomes a
+// sibling under `channels/`. A shared `Channel` interface waits until a
+// second platform reveals the real common shape.
 
 export class LineContentError extends Error {
   constructor(public readonly status: number, message: string) {
@@ -39,9 +37,6 @@ export interface LineMessageContent {
   sizeBytes: number;
 }
 
-// Fetches binary content of a LINE message (image, video, audio, file) via
-// the LINE Content API. Generic across modalities: returns raw bytes plus
-// the declared content type.
 export const fetchMessageContent = async (
   channelAccessToken: string,
   messageId: string,
@@ -70,22 +65,18 @@ export const fetchMessageContent = async (
 
 // ---- Outbound: Messaging API (api.line.me) ---------------------------------
 
-// LINE outbound message shapes we emit. Adding a new variant (flex, sticker,
-// video) extends the union here; the JSON.stringify body just forwards the
-// discriminated objects straight to LINE's API.
 export type LineMessage
   = | { type: 'text';  text: string }
     | { type: 'audio'; originalContentUrl: string; duration: number }
     | { type: 'image'; originalContentUrl: string; previewImageUrl: string };
 
 // LINE reply tokens are valid roughly one minute from webhook delivery.
-// Switch to Push API once we've burned ~25s, leaving comfortable headroom
-// for the LLM call still in flight and the LINE round-trip, and avoiding a
-// Reply 400 wasting the only delivery attempt.
+// Switch to Push API after ~25s elapsed, leaving headroom for the LLM
+// call still in flight and the LINE round-trip, and avoiding a Reply
+// 400 that wastes the only delivery attempt.
 export const REPLY_BUDGET_MS = 25_000;
 
-// LINE Reply / Push API both accept up to 5 messages in one call. We cap at
-// the API limit to keep the contract explicit.
+// LINE Reply / Push API both accept up to 5 messages per call.
 const LINE_MESSAGES_PER_CALL = 5;
 
 const replyMessages = async (

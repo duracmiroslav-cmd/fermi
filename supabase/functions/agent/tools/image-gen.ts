@@ -8,9 +8,8 @@ import {
   DEFAULT_IMAGE_MODEL,
   ImageGenError,
   type ImageSize,
-  // The client function and the tool object share the natural name
-  // `generateImage`; alias the client locally so the tool export
-  // can keep the camelCase-of-function-name convention.
+  // Both the client and the tool object want the name `generateImage`;
+  // alias the client so the tool keeps the export.
   generateImage as runImageGen,
 } from '../imagegen.ts';
 import { COUNTER_ENV, consumeQuota } from '../quota.ts';
@@ -59,10 +58,8 @@ export const generateImage: Tool = {
     additionalProperties: false,
   },
   execute: async (rawArgs, ctx) => {
-    // Quota gate first: cheaper fast-fail before fal credential
-    // resolution and the (paid) fal.ai call. Tool-result JSON routes
-    // the CTA through the LLM, which then phrases it in the user's
-    // language alongside the natural-language refusal.
+    // Quota gate first: a cheap fast-fail before fal credential
+    // resolution and the paid fal.ai call.
     const quota = await consumeQuota(ctx.admin, COUNTER_ENV, {
       ownerId: ctx.ownerId,
       purpose: 'image_gen',
@@ -112,9 +109,8 @@ export const generateImage: Tool = {
         size: parseSize(size),
         safetyTolerance: parseSafetyTolerance(ctx.capabilityConfig?.safetyTolerance),
       });
-      // Use the LLM-issued tool call ID as the storage object name.
-      // The path becomes an audit handle back to the `tool_called` /
-      // `tool_responded` rows in `agent_run_steps`.
+      // Path doubles as an audit handle: the tool call ID ties the
+      // object back to the `tool_called` / `tool_responded` step rows.
       const { storagePath } = await uploadGeneratedImage(ctx.admin, {
         ownerId: ctx.ownerId,
         threadId: ctx.threadId,
@@ -124,9 +120,7 @@ export const generateImage: Tool = {
       });
       const signedUrl = await signMessageImageUrl(ctx.admin, storagePath);
 
-      // Side-effect: stage the image for LINE delivery. The worker
-      // drains ctx.attachments after the agent loop ends and appends
-      // matching LINE messages to the outbound array.
+      // Staged for the worker to drain into LINE messages after the loop.
       ctx.attachments.push({
         type: 'image',
         mime: generated.mime,
@@ -138,9 +132,8 @@ export const generateImage: Tool = {
 
       return {
         status: 'success',
-        // Brief result for the LLM. The actual image is delivered
-        // out-of-band via attachments. The model uses this status to
-        // know the call succeeded and write a fitting text reply.
+        // The image is delivered out-of-band via attachments; the model
+        // uses this status to know the call succeeded and write a reply.
         message: 'Image generated and delivered. Write a short text reply describing what you created.',
         width: generated.width,
         height: generated.height,

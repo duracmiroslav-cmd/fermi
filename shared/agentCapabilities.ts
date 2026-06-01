@@ -8,10 +8,9 @@ export interface AttachedCapability {
   config: CapabilityConfig;
 }
 
-// Loads the capabilities the agent currently has attached and enabled, with
-// their effective config. Joined against `capabilities` so a soft-deleted
-// catalog row stops contributing even if the `agent_capabilities` binding is
-// still there (the binding's `on delete cascade` only fires on a hard delete).
+// Joined against `capabilities` so a soft-deleted catalog row stops
+// contributing even if the `agent_capabilities` binding is still there
+// (the binding's `on delete cascade` only fires on a hard delete).
 export const loadActiveCapabilities = async (
   admin: SupabaseClient,
   agentId: string,

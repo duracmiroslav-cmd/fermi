@@ -1,7 +1,6 @@
-// OpenAI Whisper client. Direct fetch wrapper for the
-// `/v1/audio/transcriptions` endpoint. OpenRouter doesn't route
-// audio transcription, so the BYOK / platform-key resolution for
-// this call uses `purpose: 'openai'` (separate from `openrouter`).
+// OpenRouter doesn't route audio transcription, so BYOK / platform-key
+// resolution for this call uses `purpose: 'openai'`, separate from
+// `openrouter`.
 
 import type { AudioMime } from '../../../shared/audio.ts';
 

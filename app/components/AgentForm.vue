@@ -63,7 +63,6 @@ const formatContext = (n: number) =>
 const state = reactive<AgentFormValue>({
   name:             props.initialValue?.name ?? '',
   systemPrompt:     props.initialValue?.systemPrompt ?? '',
-  // New agents seed both pickers with the worker fallbacks; edit preserves stored values.
   defaultTextModel: props.initialValue
     ? (props.initialValue.defaultTextModel ?? null)
     : DEFAULT_TEXT_MODEL,

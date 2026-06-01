@@ -52,10 +52,10 @@ const admin = createClient(supabaseUrl, supabaseServiceRoleKey, {
 });
 
 const HISTORY_WINDOW = 20;
-// Hard cap on LLM iterations within a single agent run. One iteration
-// = one OpenRouter call. A typical multi-step query (read calendar →
-// search docs → answer) finishes in 3-5; 8 leaves headroom without
-// risking the Edge Function's 400s wall clock when tools are slow.
+// Hard cap on LLM iterations per run. A typical multi-step query
+// (read calendar → search docs → answer) finishes in 3-5; 8 leaves
+// headroom without risking the Edge Function's 400s wall clock when
+// tools are slow.
 const MAX_AGENT_STEPS = 8;
 
 interface LineSource {
@@ -154,8 +154,7 @@ const isAudioMessageFromUser = (event: LineEvent): event is LineEvent & {
   && typeof event.source.userId === 'string'
 );
 
-// Reply-bearing user message of any modality fermi accepts. Lets
-// early-return paths (no agent / no openrouter key) still surface a
+// Lets early-return paths (no agent / no openrouter key) surface a
 // configuration notice regardless of the input modality.
 const isReplyableUserMessage = (event: LineEvent): event is LineEvent & {
   replyToken: string;
@@ -448,10 +447,9 @@ const runAgentLoop = async (params: {
       = agent.voiceReplyMode === 'always'
         || (agent.voiceReplyMode === 'auto' && userInput.type === 'audio');
 
-    // Synthesize TTS first (if requested) so the primary `messages`
-    // row knows whether to store an audio variant (with transcript)
-    // or plain text. Mirrors the user-side STT shape: a voice turn
-    // is one audio row with transcript embedded.
+    // Synthesize TTS before persisting: the `messages` row shape depends
+    // on the outcome — an audio variant (with transcript) vs plain text.
+    // Mirrors the user-side STT shape: one audio row, transcript embedded.
     let ttsAudio: { storagePath: string; signedUrl: string; mime: string; sizeBytes: number; durationMs: number } | null = null;
     // Distinguishes quota block (suffix CTA on text fallback) from
     // generic TTS failure (silent text fallback). Both end up as text;
@@ -517,9 +515,8 @@ const runAgentLoop = async (params: {
       await appendMessage(admin, threadId, 'assistant', { type: 'text', text: finalText });
     }
 
-    // Persist tool-produced media as additional assistant rows so
-    // history rebuild on subsequent turns can re-sign URLs and feed
-    // them to the LLM.
+    // Tool media persists as separate assistant rows so later history
+    // rebuilds can re-sign the URLs.
     for (const att of attachments) {
       if (att.type === 'image') {
         await appendMessage(admin, threadId, 'assistant', {
@@ -642,10 +639,9 @@ const runAgentLoop = async (params: {
   }
 };
 
-// Wraps a runtime error for display in a LINE chat. The error classes
-// (OpenRouterError / LineReplyError / LinePushError) already self-
-// format with their status code, so we just prefix `⚠️` and truncate
-// to keep the message well under LINE's 5000-char limit.
+// OpenRouterError / LineReplyError / LinePushError already self-format
+// with their status code, so this only prefixes `⚠️` and truncates
+// well under LINE's 5000-char limit.
 const formatErrorForLine = (err: unknown): string => {
   const maxLen = 400;
   const message = err instanceof OpenRouterError
@@ -899,11 +895,10 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       continue;
     }
 
-    // Fallback for message events whose subtype is unsupported:
-    // sticker / video / file / location / imagemap. Reply once with a
-    // clear scope notice so the user knows what to send instead.
-    // Non-message events (follow / unfollow / postback / ...) drop
-    // through silently, they have no replyToken to address.
+    // Unsupported message subtypes (sticker / video / file / location /
+    // imagemap) get one scope-notice reply. Non-message events (follow /
+    // unfollow / postback / ...) drop silently — they have no replyToken
+    // to address.
     if (
       event.type === 'message'
       && typeof event.replyToken === 'string'

@@ -30,8 +30,6 @@ describe('PKCE helpers', () => {
 
   describe('deriveChallenge', () => {
     it('matches RFC 7636 appendix B vector', async () => {
-      // verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
-      // expected challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
       const challenge = await deriveChallenge('dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk');
       expect(challenge).toBe('E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM');
     });

@@ -53,9 +53,8 @@ const mapRow = (data: {
   voiceReplyMode:     parseVoiceReplyMode(data.voice_reply_mode),
 });
 
-// Filters trashed agents so callers can treat a non-null return as
-// "safe to load persona config." Worker / API paths rely on this
-// instead of repeating the check downstream.
+// Filters trashed agents so a non-null return is safe to load as
+// persona config.
 export const findAgentById = async (
   admin: SupabaseClient,
   agentId: string,

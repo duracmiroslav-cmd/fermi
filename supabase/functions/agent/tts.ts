@@ -1,8 +1,6 @@
-// OpenAI text-to-speech client. Direct fetch wrapper for the
-// `/v1/audio/speech` endpoint. Returns raw AAC bytes (ADTS frames)
-// because OpenAI's `response_format=aac` is the closest to LINE's
-// expected m4a. Some clients accept it as-is; if LINE rejects we
-// add an MP4 muxing pass downstream rather than baking it in here.
+// Returns raw AAC bytes (ADTS frames): OpenAI's `response_format=aac`
+// is the closest to LINE's expected m4a. An MP4 muxing pass can be
+// added downstream if LINE rejects the raw frames.
 
 import {
   DEFAULT_TTS_MODEL,

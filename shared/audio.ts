@@ -4,9 +4,9 @@
 // by browsers as HTML) but file-type spoofing still lets a mislabelled
 // blob into the Whisper pipeline and burn quota; cheap to defend.
 //
-// LINE audio messages are always M4A (AAC inside an MP4 container).
-// We only accept that one format. If the LINE API surface ever adds
-// raw mp3 / ogg etc. uploads, extend here.
+// LINE audio messages are always M4A (AAC inside an MP4 container),
+// the only accepted format. Extend here if LINE ever adds raw mp3 /
+// ogg uploads.
 
 export type AudioMime = 'audio/m4a';
 

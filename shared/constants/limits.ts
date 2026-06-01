@@ -16,8 +16,6 @@ export type Purpose
 export const PURPOSES: readonly Purpose[]
   = ['image_gen', 'tts', 'stt', 'extended_run', 'line_push'] as const;
 
-// User-facing labels for the dashboard /usage page. Worker / server
-// code never reads these; only Vue components.
 export const PURPOSE_LABEL: Record<Purpose, string> = {
   image_gen:    '圖片生成',
   tts:          '語音回覆',

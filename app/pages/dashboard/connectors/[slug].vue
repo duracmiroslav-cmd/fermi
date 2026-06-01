@@ -37,7 +37,6 @@ const headline = computed(() => {
   if (!cap) return null;
   if (cap.credentialType === 'coming_soon') return 'Coming soon';
   if (cap.credentialType === 'none') return 'Built-in';
-  // Self-provider hero uses TimeAgo, rendered inline in template.
   if (isSelfProvider.value) return null;
   const anyConnected = (cap.providers ?? []).some(p => p.status === 'connected');
   return anyConnected ? 'Connected' : 'Available';
@@ -139,7 +138,6 @@ const twinkleHub = makeAction('/api/connectors/twinkle-hub', 'Twinkle Hub', 'tok
           {{ capability.description }}
         </p>
 
-        <!-- Self-provider: flat openrouter-style layout -->
         <template v-if="isSelfProvider && selfProvider!.status !== 'coming_soon'">
           <template v-if="selfProvider!.slug === 'github'">
             <p class="text-sm text-toned">
@@ -201,7 +199,6 @@ const twinkleHub = makeAction('/api/connectors/twinkle-hub', 'Twinkle Hub', 'tok
           </template>
         </template>
 
-        <!-- Multi-provider: per-provider cards with name+status header -->
         <template v-else-if="capability.credentialType === 'providers' && capability.providers?.length">
           <div class="flex flex-col gap-3">
             <h2 class="text-base font-semibold">

@@ -1,8 +1,8 @@
 import { getCurrentUser } from '~~/server/utils/auth';
 import { type AgentCapabilityRow, listCapabilitiesForUser } from '~~/server/utils/capabilities';
 
-// Returns the full capability catalog this user can see, each row
-// overlaid with whether THIS agent has it attached.
+// Each catalog row the user can see, overlaid with whether THIS agent
+// has it attached.
 
 export default defineEventHandler(async (event): Promise<AgentCapabilityRow[]> => {
   const user = await getCurrentUser(event);

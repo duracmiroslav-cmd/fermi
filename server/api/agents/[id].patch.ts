@@ -13,8 +13,6 @@ export default defineEventHandler(async (event) => {
   }
   const input = parsed.data;
 
-  // Explicit camel→snake mapping picks the writable columns. Unknown
-  // keys never reach this map because the schema is `.strict()`.
   const patch: Record<string, unknown> = {};
   if ('name' in input) patch.name = input.name;
   if ('systemPrompt' in input) patch.system_prompt = input.systemPrompt;

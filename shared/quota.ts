@@ -49,7 +49,6 @@ export const consumeQuota = async (
   });
 };
 
-// Read-only variant for the dashboard /usage page. Doesn't INCR.
 export const peekQuota = async (
   admin: SupabaseClient,
   env:   CounterEnv,

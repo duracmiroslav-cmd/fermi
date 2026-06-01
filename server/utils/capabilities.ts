@@ -52,11 +52,11 @@ export type AgentCapabilityRow = CapabilityRow & {
   agentConfig: Record<string, unknown>;
 };
 
-// Lists capabilities visible to a user, joined with provider credential
-// status read off the user's account-level encrypted_credentials rows. For
-// built-in rows (owner_id NULL), display metadata comes from the code
-// registry; the DB row is just an FK target. BYO rows (owner_id set) carry
-// their own user-supplied metadata.
+// Joined with provider credential status read off the user's
+// account-level encrypted_credentials rows. For built-in rows
+// (owner_id NULL), display metadata comes from the code registry; the
+// DB row is just an FK target. BYO rows (owner_id set) carry their own
+// user-supplied metadata.
 export const listCapabilitiesForUser = async (
   admin: SupabaseClient,
   userId: string,

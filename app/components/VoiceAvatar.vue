@@ -10,10 +10,9 @@ withDefaults(defineProps<{
 </script>
 
 <template>
-  <!-- `beam` (a little face) sets voices apart from the agent picker's
-       `marble` blobs; both share the brand palette via GeneratedAvatar,
-       so the two pickers read as one family. The caller seeds by voice id
-       so each character keeps a stable face. -->
+  <!-- `beam` sets voices apart from the agent picker's `marble` blobs;
+       both share the brand palette via GeneratedAvatar, so the two
+       pickers read as one family. -->
   <GeneratedAvatar
     :seed="seed"
     variant="beam"

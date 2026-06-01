@@ -60,7 +60,7 @@ const { data: agent, error, pending } = useApiFetch<AgentDetail>(
 const { data: models } = useApiFetch<ProviderModel[]>('/api/providers/openrouter/models');
 
 // OpenRouter names come as "Provider: Model"; the provider logo already
-// carries the provider so we strip the prefix to avoid duplicating it.
+// carries the provider, so the prefix is stripped to avoid duplicating it.
 const stripProviderPrefix = (name: string) => name.replace(/^[^:]+:\s*/, '');
 
 // The effective text model a run uses: the agent's own pick, or the

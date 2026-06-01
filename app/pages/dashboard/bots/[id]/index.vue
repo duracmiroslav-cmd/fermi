@@ -49,8 +49,8 @@ const isBotActive = computed(() => !!bot.value && !bot.value.disabledAt);
 const hasFirstReplied = computed(() => !!bot.value?.firstRepliedAt);
 
 // Poll OpenRouter status while not yet connected. OAuth runs in a
-// separate tab with no callback to this one, so polling is how we
-// surface the change here. Stop once connected.
+// separate tab with no callback to this one, so polling surfaces the
+// change here. Stop once connected.
 const openrouterPoll = useIntervalFn(() => refreshOpenrouter(), 4000, { immediate: false });
 watchEffect(() => {
   const shouldPoll = !isOpenrouterConnected.value;
@@ -58,11 +58,11 @@ watchEffect(() => {
   if (!shouldPoll && openrouterPoll.isActive.value) openrouterPoll.pause();
 });
 
-// Poll bot detail while setup is complete but we're still waiting for
-// the first reply. `firstRepliedAt` is derived from agent_runs, so it
-// flips as soon as the worker logs a succeeded run; polling just surfaces
-// it to the UI. Stop once detected (or if the bot is paused, since a
-// paused bot never pushes).
+// Poll bot detail while setup is complete but the first reply hasn't
+// landed. `firstRepliedAt` is derived from agent_runs, so it flips as
+// soon as the worker logs a succeeded run; polling just surfaces it to
+// the UI. Stop once detected (or if the bot is paused, since a paused
+// bot never pushes).
 const firstReplyPoll = useIntervalFn(() => refresh(), 4000, { immediate: false });
 watchEffect(() => {
   const shouldPoll = isBotActive.value && isSetupComplete.value && !hasFirstReplied.value;

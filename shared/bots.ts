@@ -1,12 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Both lookups filter `deleted_at is null` AND `disabled_at is null`,
-// so callers can treat a non-null return as "active, replyable bot."
-// Downstream credential loaders and the agent worker trust this
-// invariant instead of re-checking. A disabled bot still accepts
-// webhook events at the HTTP layer (no 4xx, so LINE stops retrying)
-// but the worker no-ops on it, pause means "stop replying," not
-// "drop the connection."
+// so a non-null return is an "active, replyable bot." A disabled bot
+// still accepts webhook events at the HTTP layer (no 4xx, so LINE
+// stops retrying) but the worker no-ops on it: pause means "stop
+// replying," not "drop the connection."
 
 export interface BotRef {
   id:      string;

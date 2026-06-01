@@ -1,13 +1,8 @@
-// DNS-pinned HTTP/1.1 client. Built on Deno.connect / connectTls so we
-// control the connection target IP directly instead of letting `fetch`
-// re-resolve the hostname under the hood. This closes the DNS-rebinding
-// window: validate the hostname's A + AAAA records, pick a public IP,
-// open the socket to that IP, and (for TLS) pass the original hostname
-// as `serverName` so cert validation still works.
-//
-// Scope is deliberately narrow: GET only, no compression, no HTTP/2, no
-// keep-alive, no cookies. fermi only needs to read a single page body
-// safely. Anything beyond that goes via Tavily (the preferred provider).
+// DNS-pinned HTTP/1.1 client: connects to a validated IP via
+// Deno.connect / connectTls instead of letting `fetch` re-resolve the
+// host, closing the DNS-rebinding window. Validates A + AAAA, picks a
+// public IP, and passes the original hostname as TLS `serverName` so
+// the cert still validates. Scope is narrow: GET only, no keep-alive.
 
 export const isPrivateIpv4 = (ip: string): boolean => {
   const parts = ip.split('.').map(Number);

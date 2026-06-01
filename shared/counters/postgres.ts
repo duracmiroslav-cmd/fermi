@@ -10,8 +10,8 @@ import type {
 
 export const createPostgresRateLimiter = (admin: SupabaseClient): RateLimiter => ({
   async check(input: RateLimitCheckInput): Promise<RateLimitCheckResult> {
-    // Parallel RPCs: each window is an independent atomic INCR. Three
-    // round-trips become one wall-clock period instead of three.
+    // Each window is an independent atomic INCR, so the RPCs run in
+    // parallel.
     const results = await Promise.all(
       input.windows.map(async (window) => {
         const { data, error: incrErr } = await admin.rpc('incr_rate_limit_bucket', {

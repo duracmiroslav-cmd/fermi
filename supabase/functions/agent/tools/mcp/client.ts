@@ -1,14 +1,8 @@
-// Minimal MCP client over Streamable HTTP (JSON-RPC 2.0). Deno/edge-friendly,
-// zero dependencies. Covers only the subset fermi needs: initialize,
-// tools/list, tools/call. We hand-roll this instead of pulling
-// @modelcontextprotocol/sdk because the SDK drags ~14MB of server/stdio deps
-// (express, hono, ajv, cross-spawn) into the edge bundle even on the client
-// path; the wire protocol we need is a few JSON-RPC calls.
-//
-// A Streamable HTTP server may answer a POST with either a single
-// `application/json` body or a `text/event-stream` SSE frame; both are
-// handled. Sessions are optional: we capture `Mcp-Session-Id` if the server
-// issues one on initialize and echo it, but don't require it (stateless OK).
+// Minimal MCP client over Streamable HTTP (JSON-RPC 2.0): initialize,
+// tools/list, tools/call only. Hand-rolled instead of the official SDK,
+// which drags ~14MB of server/stdio deps into the edge bundle even on
+// the client path. Handles both `application/json` and SSE responses;
+// `Mcp-Session-Id` is echoed if issued but not required (stateless OK).
 
 const PROTOCOL_VERSION = '2025-06-18';
 
@@ -125,7 +119,6 @@ export class McpClient {
     return message.result;
   }
 
-  // Notifications carry no id and expect no response (202 Accepted, empty body).
   async #notify(method: string): Promise<void> {
     const res = await fetch(this.#url, {
       method: 'POST',

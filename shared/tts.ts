@@ -1,5 +1,4 @@
-// OpenAI TTS model + voice catalog. Backs both the per-agent
-// voice config and the dashboard preview button.
+// OpenAI TTS model + voice catalog.
 //
 // Default model is gpt-4o-mini-tts: ~25x cheaper than tts-1
 // ($0.60 vs $15 per 1M chars), better quality, and the only one
@@ -30,8 +29,8 @@ export const TTS_MODELS: readonly { name: string; value: TtsModel }[] = [
 
 // Built-in voices listed in OpenAI's audio docs. The catalog
 // page claims 13 voices total; only these 10 are named in the
-// public spec, so we expose the named set and treat unknown
-// stored values defensively at the parser. TTS_VOICE_IDS is the
+// public spec, so only the named set is exposed; unknown stored
+// values are handled defensively at the parser. TTS_VOICE_IDS is the
 // source of truth for the TtsVoice union and Zod enum; TTS_VOICES
 // pairs each ID with its display name for dropdown rendering.
 export const TTS_VOICE_IDS = [

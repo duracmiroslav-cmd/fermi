@@ -38,7 +38,7 @@ const modelsById = computed(
 // Resolve the stored model slug to its friendly name + provider logo.
 // Falls back to the raw slug while the catalog loads or if it's unlisted.
 // OpenRouter names come as "Provider: Model"; the logo already carries
-// the provider so we strip the prefix to avoid duplicating it.
+// the provider, so the prefix is stripped to avoid duplicating it.
 const getModel = (id: string): ProviderModel => {
   const m = modelsById.value.get(id) ?? { id, name: id, avatar: { icon: 'i-lucide-sparkles' } };
   return { ...m, name: m.name.replace(/^[^:]+:\s*/, '') };

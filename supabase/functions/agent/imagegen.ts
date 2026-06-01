@@ -1,8 +1,6 @@
-// fal.ai image generation client. Direct fetch wrapper for the
-// synchronous `https://fal.run/{model}` endpoint. fal also exposes
-// a queue API for long-running jobs but nano-banana finishes in
-// well under the worker's 400s wall clock, so we keep it sync and
-// skip the polling complexity.
+// Uses fal's synchronous `https://fal.run/{model}` endpoint rather
+// than the queue API: nano-banana finishes well under the worker's
+// 400s wall clock, so polling buys nothing.
 
 export class ImageGenError extends Error {
   constructor(public readonly status: number, message: string) {
@@ -31,13 +29,8 @@ const aspectRatioMap: Record<ImageSize, string> = {
 const WATERMARK_SUFFIX = ", with small 'fermi' text watermark in bottom-right corner";
 
 export interface ImageResult {
-  // Raw bytes downloaded from fal's hosted result URL. Worker uploads
-  // these to Supabase Storage before delivering to LINE so we control
-  // retention (fal's hosted URL expires).
   bytes: Uint8Array;
   mime: string;
-  // Hint from fal: width/height of the generated image. Not always
-  // returned; null when missing.
   width: number | null;
   height: number | null;
 }

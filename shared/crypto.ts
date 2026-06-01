@@ -11,8 +11,8 @@ const KEY_LENGTH = 256;
 const IV_LENGTH = 12;
 const KEY_BYTES = 32;
 
-// Web Crypto API rejects shared-buffer-backed views, so we pin all
-// byte buffers in this module to a plain ArrayBuffer.
+// Web Crypto API rejects shared-buffer-backed views, so byte buffers
+// in this module are pinned to a plain ArrayBuffer.
 type Bytes = Uint8Array<ArrayBuffer>;
 
 export interface EncryptedCredential {

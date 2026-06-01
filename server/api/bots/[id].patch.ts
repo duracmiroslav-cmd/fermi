@@ -13,8 +13,6 @@ export default defineEventHandler(async (event) => {
   }
   const input = parsed.data;
 
-  // Explicit camel→snake mapping picks writable columns. Strict schema
-  // rejects unknown keys upstream.
   const patch: Record<string, unknown> = {};
   if ('agentId' in input) patch.agent_id = input.agentId;
   if ('disabledAt' in input) patch.disabled_at = input.disabledAt;

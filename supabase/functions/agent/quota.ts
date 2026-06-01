@@ -1,7 +1,5 @@
-// Worker-side adapter for shared/quota.ts: binds Deno.env into the
-// CounterEnv shape and re-exports the rest. Call sites import from
-// here so they don't have to thread env through every consumeQuota
-// call.
+// Binds Deno.env into the CounterEnv shape so call sites import quota
+// helpers from here without threading env through every call.
 
 export { consumeQuota, peekQuota, type QuotaResult } from '../../../shared/quota.ts';
 

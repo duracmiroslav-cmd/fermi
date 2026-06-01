@@ -6,11 +6,9 @@
 export type ImageMime = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
 
 const SIGNATURES: { mime: ImageMime; prefix: number[] }[] = [
-  // FF D8 FF
   { mime: 'image/jpeg', prefix: [0xFF, 0xD8, 0xFF] },
-  // 89 50 4E 47 0D 0A 1A 0A
   { mime: 'image/png', prefix: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A] },
-  // 47 49 46 38 (covers both GIF87a and GIF89a)
+  // 47 49 46 38 covers both GIF87a and GIF89a
   { mime: 'image/gif', prefix: [0x47, 0x49, 0x46, 0x38] },
 ];
 

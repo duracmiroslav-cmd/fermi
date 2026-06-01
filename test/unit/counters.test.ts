@@ -13,8 +13,7 @@ import {
 // Each setup() returns a fresh impl over fresh state. Two impls are
 // tested through the same contract describe to keep them lock-stepped:
 // any new invariant added below must hold for both backends, by
-// construction. Drift between backends used to cost an evening of
-// "works on Upstash, fails on Postgres" debugging.
+// construction.
 
 const setupPostgres = (): { usage: UsageCounter; limiter: RateLimiter } => {
   const counters = new Map<string, number>();

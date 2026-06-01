@@ -44,7 +44,7 @@ const ALLOWED_PROVIDERS = new Set([
   'x-ai',
 ]);
 
-// id prefix → Iconify icon. Unknown providers fall back to a letter avatar.
+// Model id prefix → Iconify icon.
 const PROVIDER_ICONS: Record<string, string> = {
   'amazon':     'i-simple-icons-amazonaws',
   'anthropic':  'i-simple-icons-anthropic',

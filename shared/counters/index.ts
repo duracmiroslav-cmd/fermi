@@ -48,7 +48,5 @@ export interface ConsumeQuotaResult {
 
 export interface UsageCounter {
   consume(input: ConsumeQuotaInput): Promise<ConsumeQuotaResult>;
-  // Read without incrementing. Dashboard /usage page calls this for
-  // all 5 purposes per page load; impl should be cheap.
   peek(input: { key: string }): Promise<number>;
 }

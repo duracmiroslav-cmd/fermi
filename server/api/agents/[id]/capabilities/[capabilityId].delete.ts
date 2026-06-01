@@ -1,7 +1,6 @@
 import { getCurrentUser } from '~~/server/utils/auth';
 
-// Detaches a capability from one of the caller's agents. Idempotent:
-// detaching an unbound capability is a no-op.
+// Idempotent: detaching an unbound capability is a no-op.
 
 export default defineEventHandler(async (event) => {
   const user = await getCurrentUser(event);

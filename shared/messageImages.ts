@@ -2,9 +2,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 const BUCKET = 'message-images';
 
-// LLM provider fetches the URL inline during chat completion, well
-// inside 1h. Fresh URL on each call so a queued request finishing
-// late doesn't hand the model a dead link.
+// Fresh signed URL minted per call so a late-finishing queued request
+// never hands the model a dead link; 1h covers the provider's inline
+// fetch during chat completion.
 const SIGNED_URL_TTL_SECONDS = 3600;
 
 const extFromMime = (mime: string): string => {

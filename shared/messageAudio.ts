@@ -22,11 +22,8 @@ const extFromMime = (mime: string): string => {
 // fermi → user). Matches `message-images` for cross-bucket symmetry;
 // future modalities slot into the same in/out taxonomy.
 
-// Uploads user-sent audio (LINE voice message bytes after Whisper
-// extracted the transcript). `lineMessageId` is the LINE webhook
-// event ID. Same audit-handle and upsert-idempotency story as
-// `uploadUserImage`. Retained for a future thread replay UI; no
-// consumer reads this today.
+// `lineMessageId` is the LINE webhook event ID. Same audit-handle and
+// upsert-idempotency story as `uploadUserImage`.
 export const uploadUserAudio = async (
   admin: SupabaseClient,
   params: {
