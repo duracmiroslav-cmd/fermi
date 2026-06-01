@@ -3,7 +3,10 @@ import type { AgentCapabilityEditorContext } from '~/composables/useAgentCapabil
 
 const props = defineProps<{
   ctx:          AgentCapabilityEditorContext;
-  sectionLabel: string;
+  // Null when the capability has nothing to configure (no tools, no
+  // settings) — section + body slot are skipped entirely so the page
+  // doesn't show an empty "Tools" header.
+  sectionLabel: string | null;
 }>();
 
 // Destructuring an object of refs preserves the refs themselves, so the
@@ -78,7 +81,10 @@ const {
           :actions="[{ label: lockedHint.text, to: lockedHint.to, color: 'warning', variant: 'soft', size: 'md' }]"
         />
 
-        <section class="flex flex-col gap-3">
+        <section
+          v-if="sectionLabel"
+          class="flex flex-col gap-3"
+        >
           <div class="flex items-center justify-between gap-4">
             <h2 class="font-semibold">
               {{ sectionLabel }}

@@ -27,9 +27,15 @@ const {
 const hasGroupedTools = (cap: NonNullable<typeof capability['value']>) => !!cap.toolGroups;
 const hasSettings = (cap: NonNullable<typeof capability['value']>) => !!cap.settings?.length;
 
-const sectionLabel = computed(() => {
+// Null when the capability has neither tool selection nor settings —
+// editor then skips the section entirely instead of rendering an empty
+// "Tools" header (web-fetch / web-search / time).
+const sectionLabel = computed((): string | null => {
   const cap = capability.value;
-  return cap && hasSettings(cap) ? 'Settings' : 'Tools';
+  if (!cap) return null;
+  if (hasSettings(cap)) return 'Settings';
+  if (hasGroupedTools(cap)) return 'Tools';
+  return null;
 });
 </script>
 
@@ -56,7 +62,7 @@ const sectionLabel = computed(() => {
               <button
                 v-if="getGroupCounts(group.tools).on < group.tools.length"
                 type="button"
-                class="text-xs text-toned hover:text-highlighted transition-colors"
+                class="text-xs text-toned hover:text-highlighted transition-colors cursor-pointer"
                 @click="onGroupSelectAll(group.tools)"
               >
                 Select all
@@ -64,7 +70,7 @@ const sectionLabel = computed(() => {
               <button
                 v-else
                 type="button"
-                class="text-xs text-toned hover:text-highlighted transition-colors"
+                class="text-xs text-toned hover:text-highlighted transition-colors cursor-pointer"
                 @click="onGroupClearAll(group.tools)"
               >
                 Clear all
