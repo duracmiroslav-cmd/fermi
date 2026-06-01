@@ -121,4 +121,4 @@ export const parseTtsVoice = (raw: string | null): TtsVoice | null => {
 // Chinese, surfacing the accent caveat in-product without separate
 // caveat copy in the UI.
 export const TTS_PREVIEW_SAMPLE_TEXT
-  = '你好，這是 fermi 試聽。Hello, this is a fermi preview.';
+  = '你好，這是費米試聽。Hello, this is a fermi preview.';
