@@ -11,7 +11,11 @@ export default defineEventHandler(async (event) => {
   }
 
   if (Object.keys(parsed.data).length === 0) {
-    throw createError({ statusCode: 400, statusMessage: 'No fields to update' });
+    throw createError({
+      statusCode:    400,
+      statusMessage: 'No fields to update',
+      data:          { code: '__errorNoFieldsToUpdate' },
+    });
   }
 
   const admin = useSupabaseAdmin();

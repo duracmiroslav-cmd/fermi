@@ -18,7 +18,13 @@ export default defineEventHandler(async (event): Promise<AgentCapabilityRow[]> =
     .is('deleted_at', null)
     .maybeSingle();
   if (agentErr) throw agentErr;
-  if (!agent) throw createError({ statusCode: 404, statusMessage: 'Agent not found' });
+  if (!agent) {
+    throw createError({
+      statusCode:    404,
+      statusMessage: 'Agent not found',
+      data:          { code: '__errorAgentNotFound' },
+    });
+  }
 
   const [catalog, bindings] = await Promise.all([
     listCapabilitiesForUser(admin, user.id),

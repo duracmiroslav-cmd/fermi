@@ -12,13 +12,25 @@ export default defineEventHandler(async (event) => {
   });
   if (error) {
     if (error.message?.includes('agent_not_found')) {
-      throw createError({ statusCode: 404, statusMessage: 'Agent not found' });
+      throw createError({
+        statusCode:    404,
+        statusMessage: 'Agent not found',
+        data:          { code: '__errorAgentNotFound' },
+      });
     }
     if (error.message?.includes('cannot_delete_default_agent')) {
-      throw createError({ statusCode: 409, statusMessage: 'The default agent cannot be deleted' });
+      throw createError({
+        statusCode:    409,
+        statusMessage: 'The default agent cannot be deleted',
+        data:          { code: '__errorAgentDefaultCannotDelete' },
+      });
     }
     if (error.message?.includes('agent_in_use')) {
-      throw createError({ statusCode: 409, statusMessage: 'Agent is bound to one or more bots, rebind them first' });
+      throw createError({
+        statusCode:    409,
+        statusMessage: 'Agent is bound to one or more bots, rebind them first',
+        data:          { code: '__errorAgentBoundToBots' },
+      });
     }
     throw error;
   }

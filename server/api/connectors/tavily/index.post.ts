@@ -23,11 +23,15 @@ const verifyTavilyKey = async (apiKey: string): Promise<void> => {
     }),
   });
   if (res.ok) return;
+  const isAuthFail = res.status === 401 || res.status === 403;
   throw createError({
-    statusCode:    res.status === 401 || res.status === 403 ? 401 : 400,
-    statusMessage: res.status === 401 || res.status === 403
+    statusCode:    isAuthFail ? 401 : 400,
+    statusMessage: isAuthFail
       ? 'Invalid Tavily API key'
       : `Tavily verification failed (${res.status})`,
+    data: isAuthFail
+      ? { code: '__errorInvalidTavilyKey' }
+      : { code: '__errorTavilyVerificationFailed', status: res.status },
   });
 };
 
@@ -35,7 +39,11 @@ export default defineEventHandler(async (event) => {
   const user = await getCurrentUser(event);
   const parsed = bodySchema.safeParse(await readBody(event));
   if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: 'apiKey is required' });
+    throw createError({
+      statusCode:    400,
+      statusMessage: 'apiKey is required',
+      data:          { code: '__errorApiKeyRequired' },
+    });
   }
   const { apiKey } = parsed.data;
 

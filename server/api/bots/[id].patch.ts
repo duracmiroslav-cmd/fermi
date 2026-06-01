@@ -18,7 +18,11 @@ export default defineEventHandler(async (event) => {
   if ('disabledAt' in input) patch.disabled_at = input.disabledAt;
 
   if (Object.keys(patch).length === 0) {
-    throw createError({ statusCode: 400, statusMessage: 'No fields to update' });
+    throw createError({
+      statusCode:    400,
+      statusMessage: 'No fields to update',
+      data:          { code: '__errorNoFieldsToUpdate' },
+    });
   }
 
   const admin = useSupabaseAdmin();
@@ -33,7 +37,11 @@ export default defineEventHandler(async (event) => {
       .maybeSingle();
     if (agentErr) throw agentErr;
     if (!agent) {
-      throw createError({ statusCode: 404, statusMessage: 'Agent not found' });
+      throw createError({
+        statusCode:    404,
+        statusMessage: 'Agent not found',
+        data:          { code: '__errorAgentNotFound' },
+      });
     }
   }
 
@@ -51,12 +59,17 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode:    409,
         statusMessage: 'Agent is already bound to another bot',
+        data:          { code: '__errorAgentAlreadyBound' },
       });
     }
     throw error;
   }
   if (!data) {
-    throw createError({ statusCode: 404, statusMessage: 'Bot not found' });
+    throw createError({
+      statusCode:    404,
+      statusMessage: 'Bot not found',
+      data:          { code: '__errorBotNotFound' },
+    });
   }
 
   return {

@@ -30,10 +30,18 @@ export default defineEventHandler(async (event) => {
   });
   if (updateErr) {
     if (updateErr.message?.includes('agent_not_found')) {
-      throw createError({ statusCode: 404, statusMessage: 'Agent not found' });
+      throw createError({
+        statusCode:    404,
+        statusMessage: 'Agent not found',
+        data:          { code: '__errorAgentNotFound' },
+      });
     }
     if (updateErr.message?.includes('binding_not_found')) {
-      throw createError({ statusCode: 404, statusMessage: 'Capability not attached' });
+      throw createError({
+        statusCode:    404,
+        statusMessage: 'Capability not attached',
+        data:          { code: '__errorCapabilityNotAttached' },
+      });
     }
     throw updateErr;
   }

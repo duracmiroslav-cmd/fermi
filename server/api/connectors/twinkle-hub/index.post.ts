@@ -35,12 +35,17 @@ const verifyTwinkleToken = async (token: string): Promise<void> => {
     signal: AbortSignal.timeout(10000),
   });
   if (res.status === 401 || res.status === 403) {
-    throw createError({ statusCode: 401, statusMessage: 'Invalid Twinkle Hub token' });
+    throw createError({
+      statusCode:    401,
+      statusMessage: 'Invalid Twinkle Hub token',
+      data:          { code: '__errorInvalidTwinkleHubToken' },
+    });
   }
   if (!res.ok) {
     throw createError({
       statusCode:    400,
       statusMessage: `Twinkle Hub verification failed (${res.status})`,
+      data:          { code: '__errorTwinkleHubVerificationFailed', status: res.status },
     });
   }
 };
@@ -49,7 +54,11 @@ export default defineEventHandler(async (event) => {
   const user = await getCurrentUser(event);
   const parsed = bodySchema.safeParse(await readBody(event));
   if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: 'token is required' });
+    throw createError({
+      statusCode:    400,
+      statusMessage: 'token is required',
+      data:          { code: '__errorTokenRequired' },
+    });
   }
   const { token } = parsed.data;
 

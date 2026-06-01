@@ -15,7 +15,11 @@ export default defineEventHandler(async (event) => {
     .maybeSingle();
   if (error) throw error;
   if (!data) {
-    throw createError({ statusCode: 404, statusMessage: 'Bot not found' });
+    throw createError({
+      statusCode:    404,
+      statusMessage: 'Bot not found',
+      data:          { code: '__errorBotNotFound' },
+    });
   }
 
   // First successful reply, derived from agent_runs (the single source

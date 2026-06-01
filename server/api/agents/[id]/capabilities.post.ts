@@ -14,7 +14,11 @@ export default defineEventHandler(async (event) => {
 
   const agentId = getRouterParam(event, 'id');
   if (!agentId) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing agent id' });
+    throw createError({
+      statusCode:    400,
+      statusMessage: 'Missing agent id',
+      data:          { code: '__errorMissingAgentId' },
+    });
   }
 
   const body = await readBody(event);
@@ -31,10 +35,18 @@ export default defineEventHandler(async (event) => {
   });
   if (attachErr) {
     if (attachErr.message?.includes('agent_not_found')) {
-      throw createError({ statusCode: 404, statusMessage: 'Agent not found' });
+      throw createError({
+        statusCode:    404,
+        statusMessage: 'Agent not found',
+        data:          { code: '__errorAgentNotFound' },
+      });
     }
     if (attachErr.message?.includes('capability_not_found')) {
-      throw createError({ statusCode: 404, statusMessage: 'Capability not found' });
+      throw createError({
+        statusCode:    404,
+        statusMessage: 'Capability not found',
+        data:          { code: '__errorCapabilityNotFound' },
+      });
     }
     throw attachErr;
   }

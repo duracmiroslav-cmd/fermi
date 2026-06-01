@@ -26,7 +26,11 @@ export default defineEventHandler(async (event) => {
     default: {
       // Adding a new platform without a case here will fail compile.
       const exhaustive: never = input.platform;
-      throw createError({ statusCode: 400, statusMessage: `Unsupported platform: ${String(exhaustive)}` });
+      throw createError({
+        statusCode:    400,
+        statusMessage: `Unsupported platform: ${String(exhaustive)}`,
+        data:          { code: '__errorUnsupportedPlatform', platform: String(exhaustive) },
+      });
     }
   }
 });

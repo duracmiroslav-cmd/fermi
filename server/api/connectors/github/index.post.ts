@@ -21,10 +21,18 @@ const verifyGithubToken = async (token: string): Promise<string> => {
     },
   });
   if (res.status === 401 || res.status === 403) {
-    throw createError({ statusCode: 401, statusMessage: 'Invalid GitHub token' });
+    throw createError({
+      statusCode:    401,
+      statusMessage: 'Invalid GitHub token',
+      data:          { code: '__errorInvalidGithubToken' },
+    });
   }
   if (!res.ok) {
-    throw createError({ statusCode: 400, statusMessage: `GitHub verification failed (${res.status})` });
+    throw createError({
+      statusCode:    400,
+      statusMessage: `GitHub verification failed (${res.status})`,
+      data:          { code: '__errorGithubVerificationFailed', status: res.status },
+    });
   }
   const data = await res.json() as { login?: string };
   return data.login ?? 'unknown';
@@ -34,7 +42,11 @@ export default defineEventHandler(async (event) => {
   const user = await getCurrentUser(event);
   const parsed = bodySchema.safeParse(await readBody(event));
   if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: 'token is required' });
+    throw createError({
+      statusCode:    400,
+      statusMessage: 'token is required',
+      data:          { code: '__errorTokenRequired' },
+    });
   }
   const { token } = parsed.data;
 

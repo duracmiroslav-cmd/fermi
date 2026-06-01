@@ -8,10 +8,18 @@ export default defineEventHandler(async (event) => {
   const agentId = getRouterParam(event, 'id');
   const capabilityId = getRouterParam(event, 'capabilityId');
   if (!agentId) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing agent id' });
+    throw createError({
+      statusCode:    400,
+      statusMessage: 'Missing agent id',
+      data:          { code: '__errorMissingAgentId' },
+    });
   }
   if (!capabilityId) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing capability id' });
+    throw createError({
+      statusCode:    400,
+      statusMessage: 'Missing capability id',
+      data:          { code: '__errorMissingCapabilityId' },
+    });
   }
 
   const admin = useSupabaseAdmin();
@@ -22,7 +30,11 @@ export default defineEventHandler(async (event) => {
   });
   if (detachErr) {
     if (detachErr.message?.includes('agent_not_found')) {
-      throw createError({ statusCode: 404, statusMessage: 'Agent not found' });
+      throw createError({
+        statusCode:    404,
+        statusMessage: 'Agent not found',
+        data:          { code: '__errorAgentNotFound' },
+      });
     }
     throw detachErr;
   }

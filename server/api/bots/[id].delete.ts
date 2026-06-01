@@ -12,7 +12,11 @@ export default defineEventHandler(async (event) => {
   });
   if (error) {
     if (error.message?.includes('bot_not_found')) {
-      throw createError({ statusCode: 404, statusMessage: 'Bot not found' });
+      throw createError({
+        statusCode:    404,
+        statusMessage: 'Bot not found',
+        data:          { code: '__errorBotNotFound' },
+      });
     }
     throw error;
   }

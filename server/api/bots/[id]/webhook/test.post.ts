@@ -22,10 +22,18 @@ export default defineEventHandler(async (event) => {
     .maybeSingle();
   if (botErr) throw botErr;
   if (!bot) {
-    throw createError({ statusCode: 404, statusMessage: 'Bot not found' });
+    throw createError({
+      statusCode:    404,
+      statusMessage: 'Bot not found',
+      data:          { code: '__errorBotNotFound' },
+    });
   }
   if (bot.platform !== 'line') {
-    throw createError({ statusCode: 400, statusMessage: 'Webhook test only supports LINE bots' });
+    throw createError({
+      statusCode:    400,
+      statusMessage: 'Webhook test only supports LINE bots',
+      data:          { code: '__errorBotLineOnly' },
+    });
   }
 
   const { fermiKek } = useRuntimeConfig(event);

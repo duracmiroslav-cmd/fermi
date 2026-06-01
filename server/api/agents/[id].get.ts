@@ -15,7 +15,11 @@ export default defineEventHandler(async (event) => {
     .maybeSingle();
   if (error) throw error;
   if (!data) {
-    throw createError({ statusCode: 404, statusMessage: 'Agent not found' });
+    throw createError({
+      statusCode:    404,
+      statusMessage: 'Agent not found',
+      data:          { code: '__errorAgentNotFound' },
+    });
   }
 
   const { data: bots, error: botErr } = await admin

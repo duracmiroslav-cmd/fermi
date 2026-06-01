@@ -26,7 +26,11 @@ export default defineEventHandler(async (event) => {
   if ('avatarUrl' in input) patch.avatar_url = input.avatarUrl;
 
   if (Object.keys(patch).length === 0) {
-    throw createError({ statusCode: 400, statusMessage: 'No fields to update' });
+    throw createError({
+      statusCode:    400,
+      statusMessage: 'No fields to update',
+      data:          { code: '__errorNoFieldsToUpdate' },
+    });
   }
 
   const admin = useSupabaseAdmin();
@@ -40,7 +44,11 @@ export default defineEventHandler(async (event) => {
     .maybeSingle();
   if (error) throw error;
   if (!data) {
-    throw createError({ statusCode: 404, statusMessage: 'Agent not found' });
+    throw createError({
+      statusCode:    404,
+      statusMessage: 'Agent not found',
+      data:          { code: '__errorAgentNotFound' },
+    });
   }
 
   return {
