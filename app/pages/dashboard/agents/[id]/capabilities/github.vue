@@ -8,6 +8,7 @@ definePageMeta({ layout: false });
 // the resource × (read, write) matrix layout. Keeping it here means the
 // generic page never branches on the github slug.
 const route = useRoute();
+const { t } = useI18n();
 const ctx = useAgentCapabilityEditor({
   agentId: () => route.params.id as string,
   slug:    'github',
@@ -23,7 +24,7 @@ const {
 <template>
   <AgentCapabilityEditor
     :ctx="ctx"
-    section-label="Tools"
+    :section-label="t('__titleTools')"
   >
     <div
       v-if="capability"
@@ -31,8 +32,8 @@ const {
     >
       <div class="hidden sm:flex gap-4 p-4 pb-3 text-xs uppercase tracking-wider text-toned">
         <span class="w-32 shrink-0" />
-        <span class="flex-1">Read</span>
-        <span class="flex-1">Write</span>
+        <span class="flex-1">{{ $t('__labelRead') }}</span>
+        <span class="flex-1">{{ $t('__labelWrite') }}</span>
       </div>
 
       <div
@@ -44,7 +45,7 @@ const {
           {{ group.resource }}
         </p>
         <div class="flex-1 flex flex-col gap-1">
-          <span class="sm:hidden text-xs uppercase tracking-wider text-toned">Read</span>
+          <span class="sm:hidden text-xs uppercase tracking-wider text-toned">{{ $t('__labelRead') }}</span>
           <label
             v-for="tool in group.read"
             :key="tool"
@@ -60,7 +61,7 @@ const {
           </label>
         </div>
         <div class="flex-1 flex flex-col gap-1">
-          <span class="sm:hidden text-xs uppercase tracking-wider text-toned">Write</span>
+          <span class="sm:hidden text-xs uppercase tracking-wider text-toned">{{ $t('__labelWrite') }}</span>
           <label
             v-for="tool in group.write"
             :key="tool"

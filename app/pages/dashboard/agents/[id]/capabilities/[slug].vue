@@ -7,6 +7,7 @@ definePageMeta({ layout: false });
 // matrix) take a sibling route file (e.g. `github.vue`) so this file stays
 // free of slug-specific branches.
 const route = useRoute();
+const { t } = useI18n();
 const ctx = useAgentCapabilityEditor({
   agentId: () => route.params.id as string,
   slug:    () => route.params.slug as string,
@@ -33,8 +34,8 @@ const hasSettings = (cap: NonNullable<typeof capability['value']>) => !!cap.sett
 const sectionLabel = computed((): string | null => {
   const cap = capability.value;
   if (!cap) return null;
-  if (hasSettings(cap)) return 'Settings';
-  if (hasGroupedTools(cap)) return 'Tools';
+  if (hasSettings(cap)) return t('__titleSettings');
+  if (hasGroupedTools(cap)) return t('__titleTools');
   return null;
 });
 </script>
@@ -65,7 +66,7 @@ const sectionLabel = computed((): string | null => {
                 class="text-xs text-toned hover:text-highlighted transition-colors cursor-pointer"
                 @click="onGroupSelectAll(group.tools)"
               >
-                Select all
+                {{ $t('__actionSelectAll') }}
               </button>
               <button
                 v-else
@@ -73,7 +74,7 @@ const sectionLabel = computed((): string | null => {
                 class="text-xs text-toned hover:text-highlighted transition-colors cursor-pointer"
                 @click="onGroupClearAll(group.tools)"
               >
-                Clear all
+                {{ $t('__actionClearAll') }}
               </button>
             </div>
           </div>

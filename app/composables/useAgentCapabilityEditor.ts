@@ -63,6 +63,7 @@ export interface UseAgentCapabilityEditorOptions {
 export const useAgentCapabilityEditor = (
   opts: UseAgentCapabilityEditorOptions,
 ): AgentCapabilityEditorContext => {
+  const { t } = useI18n();
   const notify = useNotify();
 
   const agentId = computed(() => toValue(opts.agentId));
@@ -97,7 +98,7 @@ export const useAgentCapabilityEditor = (
     const cap = capability.value;
     if (!cap || !isLocked.value) return null;
     if (cap.credentialType === 'coming_soon') return null;
-    return { text: 'Connect a credential', to: `/dashboard/connectors/${cap.slug}` };
+    return { text: t('__actionConnectCredential'), to: `/dashboard/connectors/${cap.slug}` };
   });
 
   const hasSettings = (cap: AgentCapabilityRow) => !!cap.settings?.length;
@@ -203,14 +204,14 @@ export const useAgentCapabilityEditor = (
           method: 'POST',
           body:   { capabilityId: cap.id },
         });
-        notify.success(`${cap.displayName} attached`);
+        notify.success(t('__toastCapabilityAttached', { name: cap.displayName }));
       } else {
         await $fetch(`/api/agents/${agentId.value}/capabilities/${cap.id}`, { method: 'DELETE' });
-        notify.success(`${cap.displayName} detached`);
+        notify.success(t('__toastCapabilityDetached', { name: cap.displayName }));
       }
       await refreshRows();
     } catch (e) {
-      notify.error(next ? 'Attach failed' : 'Detach failed', e);
+      notify.error(next ? t('__toastAttachFailed') : t('__toastDetachFailed'), e);
     } finally {
       attaching.value = false;
     }
@@ -233,14 +234,14 @@ export const useAgentCapabilityEditor = (
         method: 'PATCH',
         body:   { config },
       });
-      notify.success('Saved');
+      notify.success(t('__toastSaved'));
       // Refresh first so saved agentConfig matches the local edit before we
       // drop the local override — otherwise the form briefly snaps to the
       // pre-edit saved state in the gap between clear and refetch.
       await refreshRows();
       onDiscard();
     } catch (e) {
-      notify.error('Save failed', e);
+      notify.error(t('__toastSaveFailed'), e);
     } finally {
       saving.value = false;
     }
@@ -255,7 +256,7 @@ export const useAgentCapabilityEditor = (
   };
 
   const breadcrumbItems = computed((): BreadcrumbItem[] => [
-    { label: 'Agents', to: '/dashboard/agents' },
+    { label: t('__labelAgent', 2), to: '/dashboard/agents' },
     { label: agent.value?.name ?? '', to: `/dashboard/agents/${agentId.value}/edit` },
     { label: capability.value?.displayName ?? '' },
   ]);
@@ -266,8 +267,8 @@ export const useAgentCapabilityEditor = (
   const statusHeadline = computed((): string => {
     const cap = capability.value;
     if (!cap) return '';
-    if (cap.credentialType === 'coming_soon') return 'Coming soon';
-    return cap.attached ? 'Attached' : 'Not attached';
+    if (cap.credentialType === 'coming_soon') return t('__statusComingSoon');
+    return cap.attached ? t('__statusAttached') : t('__statusNotAttached');
   });
 
   return {

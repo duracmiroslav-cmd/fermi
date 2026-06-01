@@ -38,7 +38,7 @@ const onRefresh = async () => {
   <div class="flex flex-col gap-3">
     <div class="flex items-center justify-between gap-4">
       <h2 class="font-semibold">
-        Capabilities
+        {{ $t('__titleCapabilities') }}
       </h2>
       <div class="flex items-center gap-3">
         <NuxtLink
@@ -47,7 +47,7 @@ const onRefresh = async () => {
           rel="noopener"
           class="text-xs text-toned hover:text-highlighted inline-flex items-center gap-1"
         >
-          Manage credentials
+          {{ $t('__actionManageCredentials') }}
           <UIcon
             name="i-lucide-external-link"
             class="size-3"
@@ -58,7 +58,7 @@ const onRefresh = async () => {
           color="neutral"
           variant="ghost"
           size="xs"
-          label="Refresh"
+          :label="$t('__actionRefresh')"
           :loading="isRefreshing"
           @click="onRefresh"
         />
@@ -127,7 +127,7 @@ const onRefresh = async () => {
             variant="subtle"
             size="sm"
           >
-            Coming soon
+            {{ $t('__statusComingSoon') }}
           </UBadge>
           <UBadge
             v-else-if="capability.attached"
@@ -135,7 +135,7 @@ const onRefresh = async () => {
             variant="subtle"
             size="sm"
           >
-            Attached
+            {{ $t('__statusAttached') }}
           </UBadge>
         </component>
       </template>

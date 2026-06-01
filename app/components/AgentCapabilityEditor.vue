@@ -76,8 +76,8 @@ const {
           icon="i-lucide-lock"
           color="warning"
           variant="subtle"
-          title="A credential is required"
-          :description="`Connect a provider on the Connectors page, then come back here to attach this capability to ${agent?.name ?? 'this agent'}.`"
+          :title="$t('__hintCredentialRequired')"
+          :description="$t('__descriptionLockedRequiresCredential', { agent: agent?.name ?? $t('__labelThisAgent') })"
           :actions="[{ label: lockedHint.text, to: lockedHint.to, color: 'warning', variant: 'soft', size: 'md' }]"
         />
 
@@ -99,7 +99,7 @@ const {
                 variant="outline"
                 size="sm"
               >
-                Cancel
+                {{ $t('__actionCancel') }}
               </UButton>
               <UButton
                 size="sm"
@@ -107,7 +107,7 @@ const {
                 :disabled="!isDirty"
                 @click="onSave"
               >
-                Save
+                {{ $t('__actionSave') }}
               </UButton>
             </div>
           </div>
@@ -122,9 +122,9 @@ const {
         <UEmpty
           variant="subtle"
           icon="i-lucide-search-x"
-          title="Capability not found"
-          description="This capability does not exist for this agent, or the link is wrong."
-          :actions="[{ label: 'Back to agent settings', icon: 'i-lucide-arrow-left', to: `/dashboard/agents/${agentId}/edit` }]"
+          :title="$t('__titleCapabilityNotFound')"
+          :description="$t('__descriptionCapabilityNotFound')"
+          :actions="[{ label: $t('__actionBackToAgentSettings'), icon: 'i-lucide-arrow-left', to: `/dashboard/agents/${agentId}/edit` }]"
         />
       </DashboardContainer>
     </NuxtLayout>
