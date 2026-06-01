@@ -18,6 +18,7 @@ const emit = defineEmits<{
   refresh: [];
 }>();
 
+const { t } = useI18n();
 const notify = useNotify();
 
 const webhookSettingUp = ref(false);
@@ -60,13 +61,13 @@ const setupWebhook = async () => {
       detail?:     string;
     }>(`/api/bots/${props.bot.id}/webhook/test`, { method: 'POST' });
     if (!result.success) {
-      notify.error('Webhook test failed', new Error(result.detail ?? result.reason ?? 'Unknown error'));
+      notify.error(t('__toastWebhookTestFailed'), new Error(result.detail ?? result.reason ?? t('__errorUnknown')));
       return;
     }
-    notify.success('Webhook connected');
+    notify.success(t('__toastWebhookConnected'));
     emit('refresh');
   } catch (e) {
-    notify.error('Webhook setup failed', e);
+    notify.error(t('__toastWebhookSetupFailed'), e);
   } finally {
     webhookSettingUp.value = false;
   }
@@ -107,7 +108,7 @@ const dismissCelebration = () => {
             name="i-lucide-rocket"
             class="size-5 text-warning"
           />
-          Finish setting up
+          {{ $t('__titleFinishSetup') }}
         </p>
       </template>
       <ul class="flex flex-col gap-3">
@@ -118,10 +119,10 @@ const dismissCelebration = () => {
           />
           <div class="flex-1 min-w-0 flex flex-col gap-2">
             <p :class="['text-sm', isOpenrouterConnected && 'text-toned']">
-              Connect OpenRouter
+              {{ $t('__titleConnectOpenrouter') }}
             </p>
             <p class="text-xs text-toned">
-              Bots reply through OpenRouter. One signup unlocks Claude, GPT, Gemini, and 200+ other LLMs.
+              {{ $t('__descriptionConnectOpenrouter') }}
             </p>
             <UButton
               v-if="!isOpenrouterConnected"
@@ -133,7 +134,7 @@ const dismissCelebration = () => {
               trailing-icon="i-lucide-external-link"
               class="self-start"
             >
-              Set up OpenRouter
+              {{ $t('__actionSetupOpenrouter') }}
             </UButton>
           </div>
         </li>
@@ -144,10 +145,10 @@ const dismissCelebration = () => {
           />
           <div class="flex-1 min-w-0 flex flex-col gap-2">
             <p :class="['text-sm', isWebhookVerified && 'text-toned']">
-              Connect webhook to LINE
+              {{ $t('__titleConnectWebhook') }}
             </p>
             <p class="text-xs text-toned">
-              fermi pushes the webhook URL to your LINE channel and runs a verify request. No need to touch LINE Developer Console.
+              {{ $t('__descriptionConnectWebhook') }}
             </p>
             <UButton
               v-if="!isWebhookVerified"
@@ -157,7 +158,7 @@ const dismissCelebration = () => {
               :disabled="!isOpenrouterConnected"
               @click="setupWebhook"
             >
-              Set up webhook
+              {{ $t('__actionSetupWebhook') }}
             </UButton>
           </div>
         </li>
@@ -169,10 +170,10 @@ const dismissCelebration = () => {
           <div class="flex-1 min-w-0 flex items-start gap-4">
             <div class="flex-1 min-w-0 flex flex-col gap-2">
               <p class="text-sm">
-                Send a test message
+                {{ $t('__titleSendTestMessage') }}
               </p>
               <p class="text-xs text-toned">
-                Add the bot on LINE and send it any message. fermi will celebrate the first reply.
+                {{ $t('__descriptionSendTestMessage') }}
               </p>
             </div>
             <a
@@ -184,10 +185,10 @@ const dismissCelebration = () => {
             >
               <img
                 :src="qrImageUrl"
-                alt="Scan to add bot on LINE"
+                :alt="$t('__hintScanToAddBot')"
                 class="size-24 rounded-md bg-white p-1"
               >
-              <span class="text-xs">Scan to add</span>
+              <span class="text-xs">{{ $t('__labelScanToAdd') }}</span>
             </a>
           </div>
         </li>
@@ -206,20 +207,20 @@ const dismissCelebration = () => {
               name="i-lucide-party-popper"
               class="size-5 text-success"
             />
-            You&apos;re all set
+            {{ $t('__titleAllSet') }}
           </p>
           <UButton
             icon="i-lucide-x"
             size="sm"
             color="neutral"
             variant="ghost"
-            aria-label="Dismiss"
+            :aria-label="$t('__actionDismiss')"
             @click="dismissCelebration"
           />
         </div>
       </template>
       <p class="text-sm text-toned">
-        Your bot is live and replying.
+        {{ $t('__descriptionBotIsLive') }}
       </p>
     </UCard>
   </Transition>

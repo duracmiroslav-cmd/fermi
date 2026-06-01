@@ -86,7 +86,7 @@ const copyWebhook = async () => {
       <template #title>
         <DashboardBreadcrumb
           :items="[
-            { label: 'Bots', to: '/dashboard/bots' },
+            { label: $t('__labelBot', 2), to: '/dashboard/bots' },
             { label: bot?.displayName ?? '' },
           ]"
           :loading="!bot"
@@ -99,9 +99,9 @@ const copyWebhook = async () => {
         <UEmpty
           variant="subtle"
           icon="i-lucide-search-x"
-          title="Bot not found"
-          description="This bot may have been deleted, or the link is wrong."
-          :actions="[{ label: 'Back to bots', icon: 'i-lucide-arrow-left', to: '/dashboard/bots' }]"
+          :title="$t('__titleBotNotFound')"
+          :description="$t('__descriptionBotNotFound')"
+          :actions="[{ label: $t('__actionBackToBots'), icon: 'i-lucide-arrow-left', to: '/dashboard/bots' }]"
         />
       </DashboardContainer>
 
@@ -115,7 +115,7 @@ const copyWebhook = async () => {
             />
             <UTooltip
               v-else
-              text="Sync avatar from LINE"
+              :text="$t('__hintSyncAvatarFromLine')"
             >
               <button
                 type="button"
@@ -142,15 +142,15 @@ const copyWebhook = async () => {
             <span
               class="absolute bottom-0 right-0 size-3 rounded-full ring-2 ring-default"
               :class="status ? BOT_STATUS_DOT[status] : 'bg-muted animate-pulse'"
-              :aria-label="status ? BOT_STATUS_LABEL[status] : 'Loading status'"
+              :aria-label="status ? $t(BOT_STATUS_LABEL_KEY[status]) : $t('__hintLoadingStatus')"
             />
           </div>
           <div class="min-w-0">
             <h1 class="text-2xl font-semibold truncate">
-              {{ bot.displayName || '(unnamed)' }}
+              {{ bot.displayName || $t('__labelUnnamed') }}
             </h1>
             <p class="text-sm text-toned mt-1">
-              {{ status ? BOT_STATUS_LABEL[status] : '' }}
+              {{ status ? $t(BOT_STATUS_LABEL_KEY[status]) : '' }}
             </p>
           </div>
         </div>
@@ -167,7 +167,7 @@ const copyWebhook = async () => {
         <div class="flex flex-col gap-3">
           <div class="flex items-center justify-between gap-4">
             <h2 class="font-semibold">
-              Details
+              {{ $t('__titleDetails') }}
             </h2>
             <UButton
               :to="`/dashboard/bots/${bot.id}/edit`"
@@ -176,19 +176,19 @@ const copyWebhook = async () => {
               variant="soft"
               size="sm"
             >
-              Edit
+              {{ $t('__actionEdit') }}
             </UButton>
           </div>
           <UCard>
             <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-7">
               <dt class="text-toned text-right">
-                External ID
+                {{ $t('__labelExternalId') }}
               </dt>
               <dd class="break-all">
                 {{ bot.externalId }}
               </dd>
               <dt class="text-toned text-right">
-                Agent
+                {{ $t('__labelAgent', 1) }}
               </dt>
               <dd class="min-w-0">
                 <div class="flex items-center gap-1.5 min-w-0">
@@ -213,7 +213,7 @@ const copyWebhook = async () => {
                 </div>
               </dd>
               <dt class="text-toned text-right">
-                Webhook URL
+                {{ $t('__labelWebhookUrl') }}
               </dt>
               <dd class="flex items-center gap-1.5 min-w-0">
                 <code class="font-mono truncate select-all">{{ bot.webhookUrl }}</code>
@@ -222,18 +222,18 @@ const copyWebhook = async () => {
                   variant="ghost"
                   size="sm"
                   :icon="webhookCopied ? 'i-lucide-check' : 'i-lucide-copy'"
-                  :aria-label="webhookCopied ? 'Copied' : 'Copy webhook URL'"
+                  :aria-label="webhookCopied ? $t('__hintCopied') : $t('__actionCopyWebhookUrl')"
                   @click="copyWebhook"
                 />
               </dd>
               <dt class="text-toned text-right">
-                Created
+                {{ $t('__labelCreated') }}
               </dt>
               <dd>
                 <TimeAgo :date="bot.createdAt" />
               </dd>
               <dt class="text-toned text-right">
-                Updated
+                {{ $t('__labelUpdated') }}
               </dt>
               <dd>
                 <TimeAgo :date="bot.updatedAt" />

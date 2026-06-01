@@ -14,9 +14,11 @@ const emit = defineEmits<{
   submit: [value: LineBotConnectFormValue];
 }>();
 
+const { t } = useI18n();
+
 const schema = z.object({
-  channelSecret:      z.string().min(1, 'Channel secret is required'),
-  channelAccessToken: z.string().min(1, 'Channel access token is required'),
+  channelSecret:      z.string().min(1, t('__errorChannelSecretRequired')),
+  channelAccessToken: z.string().min(1, t('__errorChannelAccessTokenRequired')),
 }).strict();
 
 const state = reactive<LineBotConnectFormValue>({
@@ -38,10 +40,10 @@ const onSubmit = () => {
     @submit="onSubmit"
   >
     <UFormField
-      label="Channel Secret"
+      :label="$t('__labelChannelSecret')"
       name="channelSecret"
       required
-      help="Find this in your LINE channel&apos;s &quot;Basic settings&quot; tab."
+      :help="$t('__hintChannelSecret')"
     >
       <UInput
         v-model.trim="state.channelSecret"
@@ -52,10 +54,10 @@ const onSubmit = () => {
     </UFormField>
 
     <UFormField
-      label="Channel Access Token"
+      :label="$t('__labelChannelAccessToken')"
       name="channelAccessToken"
       required
-      help="Find this in your LINE channel&apos;s &quot;Messaging API&quot; tab."
+      :help="$t('__hintChannelAccessToken')"
     >
       <UInput
         v-model.trim="state.channelAccessToken"

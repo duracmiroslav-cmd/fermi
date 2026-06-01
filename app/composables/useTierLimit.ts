@@ -6,6 +6,7 @@ const LIMIT_MAP = {
 } as const;
 
 export const useTierLimit = <T = unknown>(kind: 'agents' | 'bots') => {
+  const { t } = useI18n();
   const profile = useProfile();
   const items = useFetch<T[]>(`/api/${kind}`, {
     headers: useRequestHeaders(['cookie']),
@@ -16,11 +17,12 @@ export const useTierLimit = <T = unknown>(kind: 'agents' | 'bots') => {
   const used = computed(() => items.data.value?.length ?? 0);
   const atLimit = computed(() => used.value >= limit.value);
   const pending = computed(() => items.pending.value);
-  const limitMessage = computed(() =>
-    tier.value === 'free'
-      ? `Free tier limit (${used.value}/${limit.value}) · upgrade`
-      : `Plan limit reached (${used.value}/${limit.value})`,
-  );
+  const limitMessage = computed(() => {
+    const params = { used: used.value, limit: limit.value };
+    return tier.value === 'free'
+      ? t('__hintFreeTierLimit', params)
+      : t('__hintPlanLimitReached', params);
+  });
 
   return { items: items.data, tier, limit, used, atLimit, pending, limitMessage, refresh: items.refresh };
 };

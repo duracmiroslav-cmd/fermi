@@ -22,6 +22,8 @@ const props = defineProps<{
   bot: Bot;
 }>();
 
+const { t } = useI18n();
+
 // Status derives from bot fields + global OpenRouter connector state.
 // Each card fetches /api/oauth/openrouter via useBotStatus; Nuxt dedupes
 // by URL, so N cards share one fetch.
@@ -32,7 +34,7 @@ const statusDot = computed(() =>
   status.value ? BOT_STATUS_DOT[status.value] : 'bg-muted animate-pulse',
 );
 const statusAria = computed(() =>
-  status.value ? BOT_STATUS_LABEL[status.value] : 'Loading status',
+  status.value ? t(BOT_STATUS_LABEL_KEY[status.value]) : t('__hintLoadingStatus'),
 );
 </script>
 
@@ -65,7 +67,7 @@ const statusAria = computed(() =>
         </div>
         <div class="flex-1 min-w-0 flex flex-col gap-0.5">
           <p class="font-medium truncate">
-            {{ bot.displayName || '(unnamed)' }}
+            {{ bot.displayName || $t('__labelUnnamed') }}
           </p>
           <div class="flex items-center gap-3 min-w-0 text-sm text-toned">
             <span
@@ -79,7 +81,7 @@ const statusAria = computed(() =>
                 :seed="bot.agent.id"
                 size="2xs"
               />
-              <span class="truncate">{{ bot.agent?.name ?? 'No agent' }}</span>
+              <span class="truncate">{{ bot.agent?.name ?? $t('__labelNoAgent') }}</span>
             </span>
             <PlatformLabel
               :platform="bot.platform"
@@ -87,17 +89,21 @@ const statusAria = computed(() =>
             />
           </div>
         </div>
-        <span
+        <I18nT
           v-if="bot.lastRepliedAt"
+          keypath="__hintRepliedAt"
+          tag="span"
           class="text-xs text-toned shrink-0"
         >
-          Replied <TimeAgo :date="bot.lastRepliedAt" />
-        </span>
+          <template #time>
+            <TimeAgo :date="bot.lastRepliedAt" />
+          </template>
+        </I18nT>
         <span
           v-else
           class="text-xs text-toned shrink-0"
         >
-          No replies yet
+          {{ $t('__hintNoRepliesYet') }}
         </span>
       </div>
     </UCard>

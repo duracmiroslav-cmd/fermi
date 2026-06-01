@@ -33,12 +33,12 @@ const filteredBots = computed(() => {
   <div>
     <NuxtLayout name="dashboard">
       <template #title>
-        <DashboardBreadcrumb :items="[{ label: 'Bots' }]" />
+        <DashboardBreadcrumb :items="[{ label: $t('__labelBot', 2) }]" />
       </template>
       <DashboardContainer>
         <div class="flex items-center justify-between gap-4">
           <h1 class="text-2xl font-semibold">
-            Bots <span class="text-toned font-normal">({{ used }})</span>
+            {{ $t('__labelBot', 2) }} <span class="text-toned font-normal">({{ used }})</span>
           </h1>
           <template v-if="bots?.length">
             <UTooltip
@@ -49,7 +49,7 @@ const filteredBots = computed(() => {
                 icon="i-lucide-plus"
                 disabled
               >
-                Connect bot
+                {{ $t('__actionConnectBot') }}
               </UButton>
             </UTooltip>
             <UButton
@@ -57,7 +57,7 @@ const filteredBots = computed(() => {
               icon="i-lucide-plus"
               to="/dashboard/bots/new"
             >
-              Connect bot
+              {{ $t('__actionConnectBot') }}
             </UButton>
           </template>
         </div>
@@ -67,7 +67,7 @@ const filteredBots = computed(() => {
             v-if="bots?.length"
             v-model.trim="search"
             icon="i-lucide-search"
-            placeholder="Search bots..."
+            :placeholder="$t('__placeholderSearchBots')"
           >
             <template #trailing>
               <UButton
@@ -76,7 +76,7 @@ const filteredBots = computed(() => {
                 variant="link"
                 size="sm"
                 icon="i-lucide-x"
-                aria-label="Clear search"
+                :aria-label="$t('__actionClearSearch')"
                 @click="search = ''"
               />
             </template>
@@ -88,9 +88,9 @@ const filteredBots = computed(() => {
             v-else-if="!bots?.length"
             variant="subtle"
             icon="i-lucide-bot"
-            title="No bots yet"
-            description="A bot is a messaging channel registered in fermi. Add one, then attach an agent to bring it to life."
-            :actions="atLimit ? [] : [{ label: 'Connect your first bot', icon: 'i-lucide-plus', to: '/dashboard/bots/new' }]"
+            :title="$t('__titleBotsEmpty')"
+            :description="$t('__descriptionBotsEmpty')"
+            :actions="atLimit ? [] : [{ label: $t('__actionConnectFirstBot'), icon: 'i-lucide-plus', to: '/dashboard/bots/new' }]"
           />
 
           <div
@@ -103,7 +103,7 @@ const filteredBots = computed(() => {
               :bot="bot"
             >
               <template #avatar-fallback>
-                <UTooltip text="Sync avatar from LINE">
+                <UTooltip :text="$t('__hintSyncAvatarFromLine')">
                   <button
                     type="button"
                     :disabled="syncingId === bot.id"
@@ -134,7 +134,7 @@ const filteredBots = computed(() => {
             v-else
             class="text-sm text-toned text-center py-8"
           >
-            No bots match "{{ search }}".
+            {{ $t('__descriptionNoBotsMatchSearch', { query: search }) }}
           </p>
         </div>
       </DashboardContainer>

@@ -91,14 +91,14 @@ const onSubmit = () => {
     @submit="onSubmit"
   >
     <UFormField
-      label="Agent"
+      :label="$t('__labelAgent', 1)"
       name="agentId"
     >
       <USelectMenu
         v-model="displayAgentId"
         :items="agentItems"
         value-key="value"
-        placeholder="Select an agent"
+        :placeholder="$t('__placeholderSelectAgent')"
         :loading="agentsPending || isAgentPickerOpening"
         :ui="{ itemTrailingIcon: 'hidden' }"
         @pointerdown="isAgentPickerOpening = true"
@@ -110,7 +110,7 @@ const onSubmit = () => {
             @pointerdown.stop
           >
             <span class="text-xs">
-              {{ agents?.length ?? 0 }} agent{{ (agents?.length ?? 0) === 1 ? '' : 's' }}
+              {{ agents?.length ?? 0 }} {{ $t('__labelAgent', agents?.length ?? 0) }}
             </span>
             <div class="flex items-center gap-1">
               <UButton
@@ -118,7 +118,7 @@ const onSubmit = () => {
                 color="neutral"
                 variant="ghost"
                 size="xs"
-                label="Refresh"
+                :label="$t('__actionRefresh')"
                 :loading="isRefreshing"
                 @click.stop="onRefresh"
                 @pointerdown.stop
@@ -131,7 +131,7 @@ const onSubmit = () => {
                 color="neutral"
                 variant="ghost"
                 size="xs"
-                label="New agent"
+                :label="$t('__actionNewAgent')"
                 @pointerdown.stop
               />
             </div>
@@ -168,7 +168,7 @@ const onSubmit = () => {
               variant="subtle"
               size="xs"
             >
-              Default
+              {{ $t('__labelDefault') }}
             </UBadge>
           </span>
         </template>
@@ -181,7 +181,7 @@ const onSubmit = () => {
               class="size-4"
             />
           </span>
-          <UTooltip text="View agent">
+          <UTooltip :text="$t('__actionViewAgent')">
             <UButton
               :to="`/dashboard/agents/${item.value}`"
               target="_blank"
@@ -190,7 +190,7 @@ const onSubmit = () => {
               color="neutral"
               variant="ghost"
               size="sm"
-              aria-label="View agent"
+              :aria-label="$t('__actionViewAgent')"
               class="hover:bg-accented! group-data-[state=checked]:hover:bg-primary/20!"
               @click.stop
               @pointerdown.stop
@@ -200,15 +200,15 @@ const onSubmit = () => {
       </USelectMenu>
 
       <template #help>
-        The persona that drives this bot's replies.
+        {{ $t('__hintAgentField') }}
       </template>
     </UFormField>
 
     <SettingsToggle
       v-if="props.isSetupComplete"
       v-model="enabled"
-      label="Enabled"
-      description="When off, the bot won't reply."
+      :label="$t('__labelEnabled')"
+      :description="$t('__hintEnabledBot')"
     />
   </UForm>
 </template>

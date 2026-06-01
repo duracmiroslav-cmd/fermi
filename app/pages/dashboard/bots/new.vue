@@ -3,6 +3,7 @@ definePageMeta({ layout: false });
 
 type Platform = 'line';
 
+const { t } = useI18n();
 const notify = useNotify();
 const connecting = ref(false);
 
@@ -26,10 +27,10 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
         channelAccessToken: value.channelAccessToken,
       },
     });
-    notify.success('Bot connected');
+    notify.success(t('__toastBotConnected'));
     await navigateTo(`/dashboard/bots/${created.id}`);
   } catch (e) {
-    notify.error('Connect failed', e);
+    notify.error(t('__toastConnectFailed'), e);
   } finally {
     connecting.value = false;
   }
@@ -42,22 +43,22 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
       <template #title>
         <DashboardBreadcrumb
           :items="[
-            { label: 'Bots', to: '/dashboard/bots' },
-            { label: 'Connect' },
+            { label: $t('__labelBot', 2), to: '/dashboard/bots' },
+            { label: $t('__actionConnect') },
           ]"
         />
       </template>
 
       <DashboardContainer>
         <h1 class="text-2xl font-semibold">
-          New bot
+          {{ $t('__titleNewBot') }}
         </h1>
 
         <UCard>
           <template #header>
             <div class="flex items-center justify-between gap-4">
               <p class="font-medium">
-                Settings
+                {{ $t('__titleSettings') }}
               </p>
               <div class="flex items-center gap-2">
                 <UButton
@@ -66,7 +67,7 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
                   variant="ghost"
                   size="sm"
                 >
-                  Cancel
+                  {{ $t('__actionCancel') }}
                 </UButton>
                 <UButton
                   v-if="platform === 'line'"
@@ -75,7 +76,7 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
                   :loading="connecting"
                   size="sm"
                 >
-                  Connect
+                  {{ $t('__actionConnect') }}
                 </UButton>
               </div>
             </div>
@@ -83,14 +84,14 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
 
           <div class="flex flex-col gap-6">
             <UFormField
-              label="Platform"
-              help="Which messaging service this bot connects to."
+              :label="$t('__labelPlatform')"
+              :help="$t('__hintPlatform')"
             >
               <USelect
                 v-model="platform"
                 :items="platformOptions"
                 :icon="selectedPlatformIcon"
-                placeholder="Pick a platform..."
+                :placeholder="$t('__placeholderPlatform')"
               />
             </UFormField>
 

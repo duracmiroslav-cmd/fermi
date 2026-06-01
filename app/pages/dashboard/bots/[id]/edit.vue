@@ -17,6 +17,7 @@ interface BotDetail {
 }
 
 const route = useRoute();
+const { t } = useI18n();
 const notify = useNotify();
 
 const { data: bot, error, pending } = useApiFetch<BotDetail>(
@@ -35,11 +36,11 @@ const onSubmit = async (value: { agentId: string; disabledAt: string | null }) =
       method: 'PATCH',
       body:   value,
     });
-    notify.success('Bot updated');
+    notify.success(t('__toastBotUpdated'));
     await refreshNuxtData(route.params.id as string);
     await navigateTo(`/dashboard/bots/${route.params.id}`);
   } catch (e) {
-    notify.error('Update failed', e);
+    notify.error(t('__toastUpdateFailed'), e);
   } finally {
     saving.value = false;
   }
@@ -49,10 +50,10 @@ const onDelete = async () => {
   deleting.value = true;
   try {
     await $fetch(`/api/bots/${route.params.id}`, { method: 'DELETE' });
-    notify.success('Bot deleted');
+    notify.success(t('__toastBotDeleted'));
     await navigateTo('/dashboard/bots');
   } catch (e) {
-    notify.error('Delete failed', e);
+    notify.error(t('__toastDeleteFailed'), e);
     deleting.value = false;
   }
 };
@@ -64,9 +65,9 @@ const onDelete = async () => {
       <template #title>
         <DashboardBreadcrumb
           :items="[
-            { label: 'Bots', to: '/dashboard/bots' },
+            { label: $t('__labelBot', 2), to: '/dashboard/bots' },
             { label: bot?.displayName ?? '', to: `/dashboard/bots/${route.params.id}` },
-            { label: 'Edit' },
+            { label: $t('__actionEdit') },
           ]"
           :loading="!bot"
         />
@@ -78,9 +79,9 @@ const onDelete = async () => {
         <UEmpty
           variant="subtle"
           icon="i-lucide-search-x"
-          title="Bot not found"
-          description="This bot may have been deleted, or the link is wrong."
-          :actions="[{ label: 'Back to bots', icon: 'i-lucide-arrow-left', to: '/dashboard/bots' }]"
+          :title="$t('__titleBotNotFound')"
+          :description="$t('__descriptionBotNotFound')"
+          :actions="[{ label: $t('__actionBackToBots'), icon: 'i-lucide-arrow-left', to: '/dashboard/bots' }]"
         />
       </DashboardContainer>
 
@@ -103,15 +104,15 @@ const onDelete = async () => {
             <span
               class="absolute bottom-0 right-0 size-3 rounded-full ring-2 ring-default"
               :class="status ? BOT_STATUS_DOT[status] : 'bg-muted animate-pulse'"
-              :aria-label="status ? BOT_STATUS_LABEL[status] : 'Loading status'"
+              :aria-label="status ? $t(BOT_STATUS_LABEL_KEY[status]) : $t('__hintLoadingStatus')"
             />
           </div>
           <div class="min-w-0">
             <h1 class="text-2xl font-semibold truncate">
-              {{ bot.displayName || '(unnamed)' }}
+              {{ bot.displayName || $t('__labelUnnamed') }}
             </h1>
             <p class="text-sm text-toned mt-1">
-              {{ status ? BOT_STATUS_LABEL[status] : '' }}
+              {{ status ? $t(BOT_STATUS_LABEL_KEY[status]) : '' }}
             </p>
           </div>
         </div>
@@ -119,7 +120,7 @@ const onDelete = async () => {
         <div class="flex flex-col gap-3">
           <div class="flex items-center justify-between gap-4">
             <h2 class="font-semibold">
-              Settings
+              {{ $t('__titleSettings') }}
             </h2>
             <div class="flex items-center gap-2">
               <UButton
@@ -128,7 +129,7 @@ const onDelete = async () => {
                 variant="outline"
                 size="sm"
               >
-                Cancel
+                {{ $t('__actionCancel') }}
               </UButton>
               <UButton
                 type="submit"
@@ -136,7 +137,7 @@ const onDelete = async () => {
                 :loading="saving"
                 size="sm"
               >
-                Save
+                {{ $t('__actionSave') }}
               </UButton>
             </div>
           </div>
@@ -155,16 +156,16 @@ const onDelete = async () => {
 
         <div class="flex flex-col gap-3">
           <h2 class="font-semibold text-error">
-            Danger zone
+            {{ $t('__titleDangerZone') }}
           </h2>
           <UCard>
             <div class="grid grid-cols-12 gap-4 md:items-center">
               <div class="col-span-12 md:col-span-9 min-w-0">
                 <p class="text-sm font-medium">
-                  Delete this bot
+                  {{ $t('__titleDeleteBot') }}
                 </p>
                 <p class="text-xs text-toned mt-1">
-                  Permanent. The saved tokens are removed and any attached agent is unlinked.
+                  {{ $t('__descriptionDeleteBot') }}
                 </p>
               </div>
               <UButton
@@ -174,7 +175,7 @@ const onDelete = async () => {
                 class="col-span-12 md:col-span-3 justify-self-end"
                 @click="deleteDialogOpen = true"
               >
-                Delete bot
+                {{ $t('__actionDeleteBot') }}
               </UButton>
             </div>
           </UCard>
@@ -182,17 +183,20 @@ const onDelete = async () => {
 
         <DeleteConfirmDialog
           v-model:open="deleteDialogOpen"
-          title="Delete bot"
+          :title="$t('__titleDeleteBot')"
           :item-name="bot.displayName || bot.externalId"
-          confirm-label="Delete"
+          :confirm-label="$t('__actionDelete')"
           :loading="deleting"
           @confirm="onDelete"
         >
-          <p>
-            Permanently deletes
-            <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{{ bot.displayName || bot.externalId }}</span>
-            and its saved tokens. Any attached agent is detached but kept.
-          </p>
+          <I18nT
+            keypath="__descriptionDeleteBotConfirm"
+            tag="p"
+          >
+            <template #name>
+              <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{{ bot.displayName || bot.externalId }}</span>
+            </template>
+          </I18nT>
         </DeleteConfirmDialog>
       </DashboardContainer>
     </NuxtLayout>
