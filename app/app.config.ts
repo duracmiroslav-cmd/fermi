@@ -111,5 +111,11 @@ export default defineAppConfig({
         base: 'cursor-pointer',
       },
     },
+    slider: {
+      slots: {
+        thumb: 'cursor-pointer',
+        track: 'cursor-pointer',
+      },
+    },
   },
 });
