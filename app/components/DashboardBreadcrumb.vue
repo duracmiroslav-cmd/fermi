@@ -6,10 +6,12 @@ const props = defineProps<{
   loading?: boolean;
 }>();
 
+const { t } = useI18n();
+
 const fullItems = computed<BreadcrumbItem[]>(() => {
   const lastIdx = props.items.length - 1;
   return [
-    { label: 'Home', to: '/dashboard' },
+    { label: t('__labelHome'), to: '/dashboard' },
     ...props.items.map((item, i) => ({
       ...item,
       slot: props.loading && i === lastIdx ? 'loading' : undefined,

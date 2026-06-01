@@ -16,12 +16,14 @@ export type Purpose
 export const PURPOSES: readonly Purpose[]
   = ['image_gen', 'tts', 'stt', 'extended_run', 'line_push'] as const;
 
-export const PURPOSE_LABEL: Record<Purpose, string> = {
-  image_gen:    'Image generation',
-  tts:          'Voice replies',
-  stt:          'Voice messages',
-  extended_run: 'Long conversations',
-  line_push:    'Push messages',
+// Maps purpose to an i18n key. Call sites resolve via $t() so the
+// rendered string stays locale-aware.
+export const PURPOSE_LABEL_KEY: Record<Purpose, string> = {
+  image_gen:    '__labelImageGeneration',
+  tts:          '__labelVoiceReplies',
+  stt:          '__labelVoiceMessages',
+  extended_run: '__labelLongConversations',
+  line_push:    '__labelPushMessages',
 };
 
 // Monthly quota caps by tier × purpose. Numbers derived in

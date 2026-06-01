@@ -11,7 +11,7 @@ definePageMeta({ layout: false });
 
       <DashboardContainer>
         <p class="text-sm text-toned">
-          Pick a section from the sidebar to get started.
+          {{ $t('__descriptionPickFromSidebar') }}
         </p>
       </DashboardContainer>
     </NuxtLayout>

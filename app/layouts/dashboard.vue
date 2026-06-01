@@ -31,7 +31,7 @@ watch(() => route.path, () => {
           color="neutral"
           variant="ghost"
           size="sm"
-          aria-label="Open menu"
+          :aria-label="$t('__actionOpenMenu')"
           class="md:hidden"
           @click="drawerOpen = true"
         />

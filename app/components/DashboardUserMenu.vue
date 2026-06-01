@@ -23,13 +23,13 @@ const signOut = async () => {
     <span class="flex-1 min-w-0 font-mono text-xs text-toned truncate">
       {{ email }}
     </span>
-    <UTooltip text="Sign out">
+    <UTooltip :text="$t('__actionSignOut')">
       <UButton
         color="neutral"
         variant="ghost"
         icon="i-lucide-log-out"
         size="sm"
-        aria-label="Sign out"
+        :aria-label="$t('__actionSignOut')"
         @click="signOut"
       />
     </UTooltip>

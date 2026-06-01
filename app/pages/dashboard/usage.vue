@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PURPOSE_LABEL, type Purpose } from '~~/shared/constants/limits';
+import { PURPOSE_LABEL_KEY, type Purpose } from '~~/shared/constants/limits';
 
 definePageMeta({ layout: false });
 
@@ -30,17 +30,23 @@ const getPercent = (item: UsageItem): number => (
   <div>
     <NuxtLayout name="dashboard">
       <template #title>
-        <DashboardBreadcrumb :items="[{ label: 'Usage' }]" />
+        <DashboardBreadcrumb :items="[{ label: $t('__labelUsage') }]" />
       </template>
 
       <DashboardContainer>
         <header class="flex flex-col gap-2">
           <h1 class="text-2xl font-semibold">
-            Usage
+            {{ $t('__labelUsage') }}
           </h1>
-          <p class="text-sm text-toned">
-            Monthly caps reset on the 1st of each month (UTC). Current window: <span class="font-mono">{{ periodLabel }}</span>.
-          </p>
+          <I18nT
+            keypath="__descriptionUsagePeriod"
+            tag="p"
+            class="text-sm text-toned"
+          >
+            <template #period>
+              <span class="font-mono">{{ periodLabel }}</span>
+            </template>
+          </I18nT>
         </header>
 
         <section
@@ -76,7 +82,7 @@ const getPercent = (item: UsageItem): number => (
           >
             <div class="flex items-baseline justify-between">
               <span class="text-sm font-medium">
-                {{ PURPOSE_LABEL[item.purpose] }}
+                {{ $t(PURPOSE_LABEL_KEY[item.purpose]) }}
               </span>
               <span class="text-sm text-toned font-mono">
                 {{ item.used }} / {{ item.cap }}
@@ -92,10 +98,10 @@ const getPercent = (item: UsageItem): number => (
         >
           <div class="flex flex-col gap-1">
             <span class="font-medium">
-              Upgrade to Pro for higher caps
+              {{ $t('__titleUpgradeForCaps') }}
             </span>
             <span class="text-sm text-toned">
-              Pro raises monthly caps to 200 image generations, 500 voice replies, 500 voice messages, and 100 long conversations. Hit a cap? Connect your own OpenAI / fal.ai key for true unlimited.
+              {{ $t('__descriptionUpgradeForCaps') }}
             </span>
           </div>
           <UButton
@@ -103,7 +109,7 @@ const getPercent = (item: UsageItem): number => (
             color="primary"
             class="self-start"
           >
-            Upgrade to Pro
+            {{ $t('__actionUpgradeToPro') }}
           </UButton>
         </section>
       </DashboardContainer>

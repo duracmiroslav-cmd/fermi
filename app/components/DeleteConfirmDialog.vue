@@ -45,11 +45,14 @@ const onConfirm = () => {
 
           <UFormField>
             <template #label>
-              <span>
-                Type
-                <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{{ itemName }}</span>
-                to confirm
-              </span>
+              <I18nT
+                keypath="__hintTypeToConfirm"
+                tag="span"
+              >
+                <template #name>
+                  <span class="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{{ itemName }}</span>
+                </template>
+              </I18nT>
             </template>
             <UInput
               v-model.trim="confirmInput"
@@ -65,7 +68,7 @@ const onConfirm = () => {
               variant="ghost"
               @click="onClose"
             >
-              Cancel
+              {{ $t('__actionCancel') }}
             </UButton>
             <UButton
               color="error"
