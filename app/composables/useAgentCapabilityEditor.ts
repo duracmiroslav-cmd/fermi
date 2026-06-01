@@ -1,7 +1,7 @@
 import type { BreadcrumbItem } from '@nuxt/ui';
 import type { ComputedRef, MaybeRefOrGetter, Ref } from 'vue';
 import type { AgentCapabilityRow } from '~~/server/utils/capabilities';
-import { CAPABILITY_TOOL_GROUPS, DEFAULT_TOOLS } from '~~/shared/capabilityTools';
+import { DEFAULT_TOOLS } from '~~/shared/capabilityTools';
 
 interface AgentSummary {
   id:   string;
@@ -100,10 +100,7 @@ export const useAgentCapabilityEditor = (
     return { text: 'Connect a credential', to: `/dashboard/connectors/${cap.slug}` };
   });
 
-  const hasGroupedTools = (cap: AgentCapabilityRow) => !!cap.toolGroups;
-  const hasMatrixLayout = (cap: AgentCapabilityRow) => !!CAPABILITY_TOOL_GROUPS[cap.slug];
   const hasSettings = (cap: AgentCapabilityRow) => !!cap.settings?.length;
-  const hasToolSelection = (cap: AgentCapabilityRow) => hasGroupedTools(cap) || hasMatrixLayout(cap);
 
   const stripToolPrefix = (tool: string) => tool.replace(/^twtools-|^opendata-/, '');
 
@@ -263,20 +260,14 @@ export const useAgentCapabilityEditor = (
     { label: capability.value?.displayName ?? '' },
   ]);
 
-  // Single line of header status, mirroring the connectors detail page's
-  // "Connected / Available" headline. For attached capabilities with a tool
-  // selection, appends the count so the user sees the scope without scrolling.
+  // Single-word header status, mirroring the connectors detail page's
+  // "Connected / Available" headline. Per-group N/M lives in the body
+  // where the actual selection is — no need to duplicate scope info up here.
   const statusHeadline = computed((): string => {
     const cap = capability.value;
     if (!cap) return '';
     if (cap.credentialType === 'coming_soon') return 'Coming soon';
-    if (cap.attached) {
-      if (hasToolSelection(cap)) {
-        return `Attached · ${effectiveTools.value.size} of ${getDefaultTools(cap).length} default tools selected`;
-      }
-      return 'Attached';
-    }
-    return 'Not attached';
+    return cap.attached ? 'Attached' : 'Not attached';
   });
 
   return {
