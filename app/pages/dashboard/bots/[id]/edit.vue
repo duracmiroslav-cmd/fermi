@@ -17,46 +17,22 @@ interface BotDetail {
 }
 
 const route = useRoute();
-const { t } = useI18n();
-const notify = useNotify();
+const { update, remove, isSubmitting, isDeleting } = useBots();
 
 const { data: bot, error, pending } = useApiFetch<BotDetail>(
   () => `/api/bots/${route.params.id}`,
 );
 const { status, isSetupComplete } = useBotStatus(bot);
 
-const saving = ref(false);
-const deleting = ref(false);
 const deleteDialogOpen = ref(false);
 
 const onSubmit = async (value: { agentId: string; disabledAt: string | null }) => {
-  saving.value = true;
-  try {
-    await $fetch(`/api/bots/${route.params.id}`, {
-      method: 'PATCH',
-      body:   value,
-    });
-    notify.success(t('__toastBotUpdated'));
-    await refreshNuxtData(route.params.id as string);
-    await navigateTo(`/dashboard/bots/${route.params.id}`);
-  } catch (e) {
-    notify.error(t('__toastUpdateFailed'), e);
-  } finally {
-    saving.value = false;
-  }
+  const id = route.params.id as string;
+  if (await update(id, value)) await navigateTo(`/dashboard/bots/${id}`);
 };
 
 const onDelete = async () => {
-  deleting.value = true;
-  try {
-    await $fetch(`/api/bots/${route.params.id}`, { method: 'DELETE' });
-    await refreshNuxtData('bots');
-    notify.success(t('__toastBotDeleted'));
-    await navigateTo('/dashboard/bots');
-  } catch (e) {
-    notify.error(t('__toastDeleteFailed'), e);
-    deleting.value = false;
-  }
+  if (await remove(route.params.id as string)) await navigateTo('/dashboard/bots');
 };
 </script>
 
@@ -135,7 +111,7 @@ const onDelete = async () => {
               <UButton
                 type="submit"
                 form="bot-form"
-                :loading="saving"
+                :loading="isSubmitting"
                 size="sm"
               >
                 {{ $t('__actionSave') }}
@@ -187,7 +163,7 @@ const onDelete = async () => {
           :title="$t('__titleDeleteBot')"
           :item-name="bot.displayName || bot.externalId"
           :confirm-label="$t('__actionDelete')"
-          :loading="deleting"
+          :loading="isDeleting"
           @confirm="onDelete"
         >
           <I18nT

@@ -3,9 +3,7 @@ definePageMeta({ layout: false });
 
 type Platform = 'line';
 
-const { t } = useI18n();
-const notify = useNotify();
-const connecting = ref(false);
+const { create, isSubmitting } = useBots();
 
 const platformOptions: Array<{ label: string; value: Platform; icon: string }> = [
   { label: 'LINE', value: 'line', icon: 'i-simple-icons-line' },
@@ -17,24 +15,12 @@ const selectedPlatformIcon = computed(
 );
 
 const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: string }) => {
-  connecting.value = true;
-  try {
-    const created = await $fetch<{ id: string }>('/api/bots', {
-      method: 'POST',
-      body:   {
-        platform:           'line',
-        channelSecret:      value.channelSecret,
-        channelAccessToken: value.channelAccessToken,
-      },
-    });
-    await refreshNuxtData('bots');
-    notify.success(t('__toastBotConnected'));
-    await navigateTo(`/dashboard/bots/${created.id}`);
-  } catch (e) {
-    notify.error(t('__toastConnectFailed'), e);
-  } finally {
-    connecting.value = false;
-  }
+  const created = await create({
+    platform:           'line',
+    channelSecret:      value.channelSecret,
+    channelAccessToken: value.channelAccessToken,
+  });
+  if (created) await navigateTo(`/dashboard/bots/${created.id}`);
 };
 </script>
 
@@ -73,7 +59,7 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
                 v-if="platform === 'line'"
                 type="submit"
                 form="line-bot-connect-form"
-                :loading="connecting"
+                :loading="isSubmitting"
                 size="sm"
               >
                 {{ $t('__actionConnect') }}

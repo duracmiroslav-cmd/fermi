@@ -24,12 +24,12 @@ const route = useRoute();
 const { t } = useI18n();
 const notify = useNotify();
 
+const { update, remove, isSubmitting, isDeleting } = useAgents();
+
 const { data: agent, error, pending } = useApiFetch<AgentDetail>(
   () => `/api/agents/${route.params.id}`,
 );
 
-const saving = ref(false);
-const deleting = ref(false);
 const deleteDialogOpen = ref(false);
 
 const onSubmit = async (value: {
@@ -43,30 +43,19 @@ const onSubmit = async (value: {
   voiceReplyMode:       VoiceReplyMode;
   normalizeTraditional: boolean;
 }) => {
-  saving.value = true;
-  try {
-    await $fetch(`/api/agents/${route.params.id}`, {
-      method: 'PATCH',
-      body:   {
-        name:                 value.name,
-        systemPrompt:         value.systemPrompt || null,
-        defaultTextModel:     value.defaultTextModel,
-        defaultVisionModel:   value.defaultVisionModel,
-        defaultTtsModel:      value.defaultTtsModel,
-        defaultTtsVoice:      value.defaultTtsVoice,
-        ttsInstructions:      value.ttsInstructions || null,
-        voiceReplyMode:       value.voiceReplyMode,
-        normalizeTraditional: value.normalizeTraditional,
-      },
-    });
-    notify.success(t('__toastAgentUpdated'));
-    await refreshNuxtData(route.params.id as string);
-    await navigateTo(`/dashboard/agents/${route.params.id}`);
-  } catch (e) {
-    notify.error(t('__toastUpdateFailed'), e);
-  } finally {
-    saving.value = false;
-  }
+  const id = route.params.id as string;
+  const ok = await update(id, {
+    name:                 value.name,
+    systemPrompt:         value.systemPrompt || null,
+    defaultTextModel:     value.defaultTextModel,
+    defaultVisionModel:   value.defaultVisionModel,
+    defaultTtsModel:      value.defaultTtsModel,
+    defaultTtsVoice:      value.defaultTtsVoice,
+    ttsInstructions:      value.ttsInstructions || null,
+    voiceReplyMode:       value.voiceReplyMode,
+    normalizeTraditional: value.normalizeTraditional,
+  });
+  if (ok) await navigateTo(`/dashboard/agents/${id}`);
 };
 
 const onAvatarChange = async (url: string | null) => {
@@ -83,16 +72,7 @@ const onAvatarChange = async (url: string | null) => {
 };
 
 const onDelete = async () => {
-  deleting.value = true;
-  try {
-    await $fetch(`/api/agents/${route.params.id}`, { method: 'DELETE' });
-    await refreshNuxtData('agents');
-    notify.success(t('__toastAgentDeleted'));
-    await navigateTo('/dashboard/agents');
-  } catch (e) {
-    notify.error(t('__toastDeleteFailed'), e);
-    deleting.value = false;
-  }
+  if (await remove(route.params.id as string)) await navigateTo('/dashboard/agents');
 };
 </script>
 
@@ -163,7 +143,7 @@ const onDelete = async () => {
               <UButton
                 type="submit"
                 form="agent-form"
-                :loading="saving"
+                :loading="isSubmitting"
                 size="sm"
               >
                 {{ $t('__actionSave') }}
@@ -246,7 +226,7 @@ const onDelete = async () => {
           :title="$t('__titleDeleteAgent')"
           :item-name="agent.name"
           :confirm-label="$t('__actionDelete')"
-          :loading="deleting"
+          :loading="isDeleting"
           @confirm="onDelete"
         >
           <I18nT

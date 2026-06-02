@@ -1,33 +1,19 @@
 <script setup lang="ts">
 definePageMeta({ layout: false });
 
-const { t } = useI18n();
-const notify = useNotify();
-const saving = ref(false);
+const { create, isSubmitting } = useAgents();
 
 const onSubmit = async (value: {
   name:             string;
   systemPrompt:     string;
   defaultTextModel: string | null;
 }) => {
-  saving.value = true;
-  try {
-    const created = await $fetch<{ id: string }>('/api/agents', {
-      method: 'POST',
-      body:   {
-        name:             value.name,
-        systemPrompt:     value.systemPrompt || null,
-        defaultTextModel: value.defaultTextModel,
-      },
-    });
-    await refreshNuxtData('agents');
-    notify.success(t('__toastAgentCreated'));
-    await navigateTo(`/dashboard/agents/${created.id}`);
-  } catch (e) {
-    notify.error(t('__toastCreateFailed'), e);
-  } finally {
-    saving.value = false;
-  }
+  const created = await create({
+    name:             value.name,
+    systemPrompt:     value.systemPrompt || null,
+    defaultTextModel: value.defaultTextModel,
+  });
+  if (created) await navigateTo(`/dashboard/agents/${created.id}`);
 };
 </script>
 
@@ -65,7 +51,7 @@ const onSubmit = async (value: {
               <UButton
                 type="submit"
                 form="agent-form"
-                :loading="saving"
+                :loading="isSubmitting"
                 size="sm"
               >
                 {{ $t('__actionCreate') }}
