@@ -30,7 +30,7 @@
       />
     </nav>
 
-    <div class="p-3">
+    <div class="p-3 border-t border-default">
       <DashboardUserMenu />
     </div>
   </div>

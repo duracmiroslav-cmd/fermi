@@ -52,10 +52,6 @@ const items = computed<DropdownMenuItem[][]>(() => [
           {{ tierLabel }}
         </p>
       </div>
-      <UIcon
-        name="i-lucide-chevrons-up-down"
-        class="size-4 text-muted shrink-0"
-      />
     </button>
 
     <template #content-top>

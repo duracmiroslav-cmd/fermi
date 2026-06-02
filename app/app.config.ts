@@ -51,6 +51,11 @@ export default defineAppConfig({
         variant: 'static',
       },
     },
+    dropdownMenu: {
+      slots: {
+        item: 'cursor-pointer',
+      },
+    },
     empty: {
       slots: {
         root: 'rounded-md',
