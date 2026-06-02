@@ -37,7 +37,7 @@ watch(() => route.path, () => {
     <div class="flex-1 flex flex-col min-w-0">
       <header class="border-b border-default px-4 sm:px-8 h-14 flex items-center gap-4 shrink-0">
         <UButton
-          icon="i-lucide-menu"
+          icon="i-lucide-panel-left-open"
           color="neutral"
           variant="ghost"
           size="sm"
