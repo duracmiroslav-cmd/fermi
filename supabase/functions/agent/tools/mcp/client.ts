@@ -4,7 +4,13 @@
 // the client path. Handles both `application/json` and SSE responses;
 // `Mcp-Session-Id` is echoed if issued but not required (stateless OK).
 
+import { resolveAndValidate, type DnsResolver } from '../safe-http.ts';
+
 const PROTOCOL_VERSION = '2025-06-18';
+
+// Bounds a paginated tools/list against a malicious server that returns an
+// unbounded nextCursor chain to drain the Edge Function's time budget.
+const MAX_LIST_TOOLS_PAGES = 10;
 
 interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -38,6 +44,8 @@ export interface McpClientOptions {
   token?: string;
   clientName?: string;
   timeoutMs?: number;
+  // Injected for tests; production resolves via Deno.resolveDns (safe-http).
+  resolve?: DnsResolver;
 }
 
 export class McpClient {
@@ -48,17 +56,25 @@ export class McpClient {
   #nextId = 1;
   #timeoutMs: number;
   #clientName: string;
+  #resolve?: DnsResolver;
 
   constructor(opts: McpClientOptions) {
     this.#url = opts.url;
     this.#token = opts.token;
     this.#timeoutMs = opts.timeoutMs ?? 15000;
     this.#clientName = opts.clientName ?? 'fermi';
+    this.#resolve = opts.resolve;
   }
 
   // Handshake: initialize, adopt the server's negotiated protocol version and
   // session id, then send the required `initialized` notification.
   async connect(): Promise<void> {
+    // SSRF guard (BYO MCP prereq d): block a user-supplied URL resolving
+    // to a private / link-local address before any request leaves. Narrows
+    // but doesn't fully close the DNS-rebinding window — the fetch below
+    // re-resolves; closing it fully needs safe-http's DNS-pinned transport.
+    // Applied uniformly; fermi's own built-in hosts resolve public and pass.
+    await resolveAndValidate(new URL(this.#url).hostname, this.#resolve);
     const res = await this.#request('initialize', {
       protocolVersion: this.#protocolVersion,
       capabilities: {},
@@ -72,7 +88,11 @@ export class McpClient {
   async listTools(): Promise<McpTool[]> {
     const all: McpTool[] = [];
     let cursor: string | undefined;
+    let pages = 0;
     do {
+      if (++pages > MAX_LIST_TOOLS_PAGES) {
+        throw new Error(`MCP tools/list exceeded ${MAX_LIST_TOOLS_PAGES} pages`);
+      }
       const result = await this.#request(
         'tools/list',
         cursor ? { cursor } : undefined,
