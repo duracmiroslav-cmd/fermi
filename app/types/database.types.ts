@@ -394,6 +394,7 @@ export type Database = {
         Row: {
           alg: string
           bot_id: string | null
+          capability_id: string | null
           ciphertext: string
           created_at: string
           expires_at: string | null
@@ -413,6 +414,7 @@ export type Database = {
         Insert: {
           alg?: string
           bot_id?: string | null
+          capability_id?: string | null
           ciphertext: string
           created_at?: string
           expires_at?: string | null
@@ -432,6 +434,7 @@ export type Database = {
         Update: {
           alg?: string
           bot_id?: string | null
+          capability_id?: string | null
           ciphertext?: string
           created_at?: string
           expires_at?: string | null
@@ -454,6 +457,13 @@ export type Database = {
             columns: ["bot_id"]
             isOneToOne: false
             referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "encrypted_credentials_capability_id_fkey"
+            columns: ["capability_id"]
+            isOneToOne: false
+            referencedRelation: "capabilities"
             referencedColumns: ["id"]
           },
           {
@@ -688,6 +698,17 @@ export type Database = {
         Returns: undefined
       }
       consume_usage_quota: { Args: { quota_key: string }; Returns: number }
+      create_byo_capability: {
+        Args: {
+          p_auth_key_type?: string
+          p_description?: string
+          p_display_name: string
+          p_owner_id: string
+          p_slug: string
+          p_url: string
+        }
+        Returns: string
+      }
       delete_agent: {
         Args: { p_agent_id: string; p_owner_id: string }
         Returns: string
@@ -695,6 +716,10 @@ export type Database = {
       delete_bot: {
         Args: { p_bot_id: string; p_owner_id: string }
         Returns: string
+      }
+      delete_byo_capability: {
+        Args: { p_capability_id: string; p_owner_id: string }
+        Returns: undefined
       }
       dequeue_webhook_events: {
         Args: { batch_size?: number; visibility_timeout?: number }
