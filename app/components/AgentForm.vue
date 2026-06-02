@@ -90,11 +90,9 @@ const previewingVoice = ref<TtsVoice | null>(null);
 const playingVoice = ref<TtsVoice | null>(null);
 const previewAudio = ref<HTMLAudioElement | null>(null);
 
-// The create form is intentionally minimal: name, system prompt, and
-// text model only. Vision model, TTS (model / voice / instructions),
-// voice reply, and Traditional conversion render on edit only and fall
-// back to their column defaults at creation, keeping onboarding light.
-// initialValue is present only on the edit page.
+// Behavioral fields render on edit only, keeping the create form minimal;
+// at creation they fall back to their column defaults. initialValue is
+// present only on the edit page.
 const isEditing = computed(() => props.initialValue != null);
 
 // Hide value while loading to avoid a UUID flash before names arrive.

@@ -25,9 +25,7 @@ export const createAgentInputSchema = z.object({
   // the stored value unchanged — putting `.default()` here would make
   // PATCH silently reset it on every save.
   voiceReplyMode:       z.enum(VOICE_REPLY_MODES).optional(),
-  // Optional (not .default) for the same reason as voiceReplyMode: POST
-  // applies the `true` default at the handler (matching the DB default),
-  // so PATCH can omit it to leave the stored value unchanged.
+  // Optional (not .default), same rationale as voiceReplyMode above.
   normalizeTraditional: z.boolean().optional(),
   avatarUrl:            z.string().url().max(2048).nullish(),
 }).strict();

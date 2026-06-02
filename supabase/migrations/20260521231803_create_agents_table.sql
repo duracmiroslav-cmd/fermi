@@ -23,11 +23,10 @@
 -- read. `tts_instructions` is honored only when the model is
 -- `gpt-4o-mini-tts` (older models ignore it).
 --
--- `normalize_traditional` runs the reply text through OpenCC s2tw
--- (Simplified → Taiwan Traditional, char-level) before delivery. A
--- worker post-process the LLM never invokes, so it's an always-on
--- column, not a capability. Defaults true: fermi is TW-first and the
--- transform is idempotent on already-Traditional / non-Chinese text.
+-- `normalize_traditional`: when true, the worker converts the reply to
+-- Taiwan Traditional (OpenCC s2tw) before delivery. A post-process the
+-- LLM never invokes, so it's an always-on column, not a capability.
+-- Defaults true — fermi is TW-first.
 
 create table public.agents (
   id                    uuid primary key default gen_random_uuid(),

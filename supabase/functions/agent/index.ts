@@ -446,10 +446,9 @@ const runAgentLoop = async (params: {
     }
 
     // Single conversion point: TTS, the persisted transcript, history,
-    // and the LINE text all derive from finalText below, so normalizing
-    // here keeps every output channel consistent. Runs before the
-    // fermi-authored suffix is appended (those notices are already
-    // Traditional). Detection is unnecessary — s2tw is idempotent.
+    // and the outbound LINE text all derive from finalText, so converting
+    // here keeps every channel consistent — and before the fermi-authored
+    // suffix (already Traditional) is appended below.
     if (agent.normalizeTraditional) {
       finalText = normalizeTraditional(finalText);
     }
