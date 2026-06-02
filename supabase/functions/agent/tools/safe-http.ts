@@ -3,42 +3,12 @@
 // host, closing the DNS-rebinding window. Validates A + AAAA, picks a
 // public IP, and passes the original hostname as TLS `serverName` so
 // the cert still validates. Scope is narrow: GET only, no keep-alive.
+//
+// The private-address policy (which IPs / literal hosts to block) lives in
+// shared/ssrf.ts so the Nitro connect endpoint enforces the same rules; the
+// DNS-pinned transport below is what makes this module Deno-specific.
 
-export const isPrivateIpv4 = (ip: string): boolean => {
-  const parts = ip.split('.').map(Number);
-  if (parts.length !== 4 || parts.some(n => Number.isNaN(n) || n < 0 || n > 255)) return false;
-  const [a, b] = parts;
-  if (a === 0 || a === 10 || a === 127) return true;
-  if (a === 169 && b === 254) return true;
-  if (a === 172 && b >= 16 && b <= 31) return true;
-  if (a === 192 && b === 168) return true;
-  if (a === 100 && b >= 64 && b <= 127) return true;
-  return false;
-};
-
-// IPv6 private / loopback / link-local / ULA / mapped IPv4. Done on the
-// already-resolved address string (lowercased, no zone suffix), so the
-// prefix-based test covers the canonical normalized forms returned by
-// Deno.resolveDns.
-export const isPrivateIpv6 = (raw: string): boolean => {
-  const ip = raw.toLowerCase().replace(/%.*$/, '');
-  if (ip === '::' || ip === '::1') return true;
-  if (ip.startsWith('fc') || ip.startsWith('fd')) return true;
-  if (ip.startsWith('fe80:') || ip.startsWith('fe80::')) return true;
-  if (ip.startsWith('2001:db8:')) return true;
-  if (ip.startsWith('::ffff:')) return isPrivateIpv4(ip.slice('::ffff:'.length));
-  return false;
-};
-
-export const isBlockedLiteralHost = (host: string): boolean => {
-  const h = host.toLowerCase().replace(/^\[|\]$/g, '');
-  if (h === 'localhost' || h.endsWith('.localhost')) return true;
-  if (h.endsWith('.local') || h.endsWith('.internal')) return true;
-  if (h === 'metadata.google.internal') return true;
-  if (h.includes(':')) return isPrivateIpv6(h);
-  if (/^\d+\.\d+\.\d+\.\d+$/.test(h)) return isPrivateIpv4(h);
-  return false;
-};
+import { isBlockedLiteralHost, isPrivateIpv4, isPrivateIpv6 } from '../../../../shared/ssrf.ts';
 
 // Resolves A + AAAA together. Fails closed: any private address in the
 // returned set blocks the host, an empty result blocks the host. The

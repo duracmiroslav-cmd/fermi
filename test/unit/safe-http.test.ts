@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { type DnsResolver, decodeChunkedBody, isBlockedLiteralHost, isPrivateIpv4, isPrivateIpv6, parseResponse, resolveAndValidate, safeFetch } from '../../supabase/functions/agent/tools/safe-http';
+import { isBlockedLiteralHost, isPrivateIpv4, isPrivateIpv6 } from '../../shared/ssrf';
+import { type DnsResolver, decodeChunkedBody, parseResponse, resolveAndValidate, safeFetch } from '../../supabase/functions/agent/tools/safe-http';
 
 const enc = (s: string): Uint8Array => new TextEncoder().encode(s);
 const dec = (b: Uint8Array): string => new TextDecoder().decode(b);
