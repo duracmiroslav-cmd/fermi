@@ -554,7 +554,7 @@ const runAgentLoop = async (params: {
       : finalText;
     const outbound: LineMessage[] = ttsAudio
       ? [{ type: 'audio', originalContentUrl: ttsAudio.signedUrl, duration: ttsAudio.durationMs }]
-      : [{ type: 'text', text: `🤖 ${textWithSuffix}` }];
+      : [{ type: 'text', text: textWithSuffix }];
     for (const att of attachments) {
       if (att.type === 'image') {
         outbound.push({
