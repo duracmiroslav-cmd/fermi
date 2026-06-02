@@ -53,7 +53,7 @@ const onConfirmDelete = async () => {
             size="sm"
             class="shrink-0"
           >
-            {{ $t('__actionAddMcpServer') }}
+            {{ $t('__actionConnectMcpServer') }}
           </UButton>
         </header>
 
@@ -133,7 +133,7 @@ const onConfirmDelete = async () => {
           icon="i-lucide-server"
           :title="$t('__titleNoMcpServers')"
           :description="$t('__descriptionNoMcpServers')"
-          :actions="[{ label: $t('__actionAddMcpServer'), icon: 'i-lucide-plus', to: '/dashboard/connectors/mcp/new' }]"
+          :actions="[{ label: $t('__actionConnectFirstMcpServer'), icon: 'i-lucide-plus', to: '/dashboard/connectors/mcp/new' }]"
         />
       </DashboardContainer>
 

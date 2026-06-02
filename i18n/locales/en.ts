@@ -1,5 +1,4 @@
 export default {
-  __actionAddMcpServer:                   'Add custom MCP server',
   __actionAddSystemPrompt:                'Add system prompt',
   __actionBackToAgentSettings:            'Back to agent settings',
   __actionBackToAgents:                   'Back to agents',
@@ -12,6 +11,8 @@ export default {
   __actionConnectBot:                     'Connect bot',
   __actionConnectCredential:              'Connect a credential',
   __actionConnectFirstBot:                'Connect your first bot',
+  __actionConnectFirstMcpServer:          'Connect your first MCP server',
+  __actionConnectMcpServer:               'Connect MCP server',
   __actionContinueWithGithub:             'Continue with GitHub',
   __actionContinueWithGoogle:             'Continue with Google',
   __actionCopyWebhookUrl:                 'Copy webhook URL',
@@ -266,6 +267,7 @@ export default {
   __titleModelProviders:                  'Model providers',
   __titleNewAgent:                        'New agent',
   __titleNewBot:                          'New bot',
+  __titleNewMcpServer:                    'New MCP server',
   __titleNoCapabilitiesEnabled:           'No capabilities enabled.',
   __titleNoMcpServers:                    'No custom MCP servers',
   __titleProviders:                       'Providers',

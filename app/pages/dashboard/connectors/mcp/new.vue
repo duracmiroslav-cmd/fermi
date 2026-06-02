@@ -36,14 +36,14 @@ const onSubmit = async () => {
           :items="[
             { label: $t('__labelConnector', 2), to: '/dashboard/connectors' },
             { label: $t('__titleCustomMcpServers'), to: '/dashboard/connectors/mcp' },
-            { label: $t('__actionAddMcpServer') },
+            { label: $t('__actionConnect') },
           ]"
         />
       </template>
 
       <DashboardContainer>
         <h1 class="text-2xl font-semibold">
-          {{ $t('__actionAddMcpServer') }}
+          {{ $t('__titleNewMcpServer') }}
         </h1>
 
         <div class="flex flex-col gap-3">

@@ -1,7 +1,6 @@
 import en from './en';
 
 export default {
-  __actionAddMcpServer:                   '新增自訂 MCP 伺服器',
   __actionAddSystemPrompt:                '新增系統提示詞',
   __actionBackToAgentSettings:            '返回 Agent 設定',
   __actionBackToAgents:                   '返回 Agent 列表',
@@ -14,6 +13,8 @@ export default {
   __actionConnectBot:                     '連接機器人',
   __actionConnectCredential:              '連接憑證',
   __actionConnectFirstBot:                '連接你的第一個機器人',
+  __actionConnectFirstMcpServer:          '連接你的第一台 MCP 伺服器',
+  __actionConnectMcpServer:               '連接 MCP 伺服器',
   __actionContinueWithGithub:             '使用 GitHub 繼續',
   __actionContinueWithGoogle:             '使用 Google 繼續',
   __actionCopyWebhookUrl:                 '複製 Webhook URL',
@@ -268,6 +269,7 @@ export default {
   __titleModelProviders:                  '模型提供者',
   __titleNewAgent:                        '新 Agent',
   __titleNewBot:                          '新機器人',
+  __titleNewMcpServer:                    '新 MCP 伺服器',
   __titleNoCapabilitiesEnabled:           '尚未啟用任何能力。',
   __titleNoMcpServers:                    '尚無自訂 MCP 伺服器',
   __titleProviders:                       '提供者',
