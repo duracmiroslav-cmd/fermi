@@ -386,108 +386,110 @@ onUnmounted(stopPreviewAudio);
       />
     </UFormField>
 
-    <UFormField
-      :label="$t('__labelTextModel', 1)"
-      name="defaultTextModel"
-      :help="$t('__hintTextModel')"
-    >
-      <USelectMenu
-        v-model="displayTextModelId"
-        :items="allModelItems"
-        value-key="value"
-        :placeholder="`${defaultTextModelInfo.name} ${t('__labelDefaultSuffix')}`"
-        :loading="modelsPending || isTextModelPickerOpening"
-        :ui="{ itemTrailingIcon: 'hidden' }"
-        @pointerdown="isTextModelPickerOpening = true"
-        @update:open="isTextModelPickerOpening = false"
+    <div class="flex flex-col gap-2">
+      <UFormField
+        :label="$t('__labelTextModel', 1)"
+        name="defaultTextModel"
+        :help="$t('__hintTextModel')"
       >
-        <template #content-top>
-          <div
-            class="flex items-center justify-between gap-2 px-2 py-1.5 border-b border-default"
-            @pointerdown.stop
-          >
-            <span class="text-xs">
-              {{ allModelItems.length }} {{ $t('__labelTextModel', allModelItems.length) }}
-            </span>
-            <UButton
-              icon="i-lucide-refresh-cw"
-              color="neutral"
-              variant="ghost"
-              size="xs"
-              :label="$t('__actionRefresh')"
-              :loading="isRefreshing"
-              @click.stop="onRefresh"
+        <USelectMenu
+          v-model="displayTextModelId"
+          :items="allModelItems"
+          value-key="value"
+          :placeholder="`${defaultTextModelInfo.name} ${t('__labelDefaultSuffix')}`"
+          :loading="modelsPending || isTextModelPickerOpening"
+          :ui="{ itemTrailingIcon: 'hidden' }"
+          @pointerdown="isTextModelPickerOpening = true"
+          @update:open="isTextModelPickerOpening = false"
+        >
+          <template #content-top>
+            <div
+              class="flex items-center justify-between gap-2 px-2 py-1.5 border-b border-default"
               @pointerdown.stop
-            />
-          </div>
-        </template>
-        <template #item-leading="{ item }">
-          <UIcon
-            :name="item.avatar.icon"
-            class="size-5 text-toned"
-          />
-        </template>
-        <template #leading>
-          <UIcon
-            v-if="isTextModelPickerOpening"
-            name="i-lucide-loader-circle"
-            class="size-5 animate-spin text-toned"
-          />
-          <UIcon
-            v-else-if="selectedTextModel"
-            :name="selectedTextModel.avatar.icon"
-            class="size-5 text-toned"
-          />
-          <UIcon
-            v-else
-            :name="defaultTextModelInfo.avatar.icon"
-            class="size-5 text-toned"
-          />
-        </template>
-        <template #empty="{ searchTerm }">
-          <span v-if="modelsPending">{{ $t('__hintLoadingModels') }}</span>
-          <span v-else-if="searchTerm">{{ $t('__descriptionNoModelsMatchSearch', { query: searchTerm }) }}</span>
-          <span v-else>{{ $t('__descriptionNoModelsAvailable') }}</span>
-        </template>
-        <template #item-label="{ item }">
-          <span class="inline-flex items-center gap-1.5 truncate">
-            {{ item.label }}
-            <UBadge
-              v-if="item.isFree"
-              color="neutral"
-              variant="subtle"
-              size="xs"
             >
-              {{ $t('__labelFree') }}
-            </UBadge>
-          </span>
-        </template>
-        <template #item-trailing="{ item }">
-          <!-- size-7 box aligns the check with the trailing button -->
-          <span class="flex items-center justify-center size-7 shrink-0">
+              <span class="text-xs">
+                {{ allModelItems.length }} {{ $t('__labelTextModel', allModelItems.length) }}
+              </span>
+              <UButton
+                icon="i-lucide-refresh-cw"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                :label="$t('__actionRefresh')"
+                :loading="isRefreshing"
+                @click.stop="onRefresh"
+                @pointerdown.stop
+              />
+            </div>
+          </template>
+          <template #item-leading="{ item }">
             <UIcon
-              v-if="state.defaultTextModel === item.value"
-              name="i-lucide-check"
-              class="size-4"
+              :name="item.avatar.icon"
+              class="size-5 text-toned"
             />
-          </span>
-          <UTooltip :text="$t('__actionViewOnOpenrouter')">
-            <UButton
-              :to="`https://openrouter.ai/${item.value}`"
-              target="_blank"
-              rel="noopener"
-              icon="i-lucide-external-link"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              :aria-label="$t('__actionViewOnOpenrouter')"
-              class="hover:bg-accented! group-data-[state=checked]:hover:bg-primary/20!"
-              @click.stop
-              @pointerdown.stop
+          </template>
+          <template #leading>
+            <UIcon
+              v-if="isTextModelPickerOpening"
+              name="i-lucide-loader-circle"
+              class="size-5 animate-spin text-toned"
             />
-          </UTooltip>
-        </template>
-      </USelectMenu>
+            <UIcon
+              v-else-if="selectedTextModel"
+              :name="selectedTextModel.avatar.icon"
+              class="size-5 text-toned"
+            />
+            <UIcon
+              v-else
+              :name="defaultTextModelInfo.avatar.icon"
+              class="size-5 text-toned"
+            />
+          </template>
+          <template #empty="{ searchTerm }">
+            <span v-if="modelsPending">{{ $t('__hintLoadingModels') }}</span>
+            <span v-else-if="searchTerm">{{ $t('__descriptionNoModelsMatchSearch', { query: searchTerm }) }}</span>
+            <span v-else>{{ $t('__descriptionNoModelsAvailable') }}</span>
+          </template>
+          <template #item-label="{ item }">
+            <span class="inline-flex items-center gap-1.5 truncate">
+              {{ item.label }}
+              <UBadge
+                v-if="item.isFree"
+                color="neutral"
+                variant="subtle"
+                size="xs"
+              >
+                {{ $t('__labelFree') }}
+              </UBadge>
+            </span>
+          </template>
+          <template #item-trailing="{ item }">
+            <!-- size-7 box aligns the check with the trailing button -->
+            <span class="flex items-center justify-center size-7 shrink-0">
+              <UIcon
+                v-if="state.defaultTextModel === item.value"
+                name="i-lucide-check"
+                class="size-4"
+              />
+            </span>
+            <UTooltip :text="$t('__actionViewOnOpenrouter')">
+              <UButton
+                :to="`https://openrouter.ai/${item.value}`"
+                target="_blank"
+                rel="noopener"
+                icon="i-lucide-external-link"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                :aria-label="$t('__actionViewOnOpenrouter')"
+                class="hover:bg-accented! group-data-[state=checked]:hover:bg-primary/20!"
+                @click.stop
+                @pointerdown.stop
+              />
+            </UTooltip>
+          </template>
+        </USelectMenu>
+      </UFormField>
       <UAlert
         v-if="isTextModelStale"
         color="warning"
@@ -496,7 +498,6 @@ onUnmounted(stopPreviewAudio);
         :title="$t('__descriptionModelUnavailable', { name: state.defaultTextModel })"
         :description="$t('__descriptionModelStaleResetCta', { name: defaultTextModelInfo.name })"
         :actions="[{ label: $t('__actionResetToDefault'), color: 'warning', variant: 'soft', onClick: onTextModelReset }]"
-        class="mt-2"
       />
       <UAlert
         v-else-if="isTextModelFree"
@@ -504,112 +505,113 @@ onUnmounted(stopPreviewAudio);
         variant="subtle"
         icon="i-lucide-triangle-alert"
         :description="$t('__hintFreeModelRateLimited')"
-        class="mt-2"
       />
-    </UFormField>
+    </div>
 
-    <UFormField
-      :label="$t('__labelVisionModel', 1)"
-      name="defaultVisionModel"
-      :help="$t('__hintVisionModel')"
-    >
-      <USelectMenu
-        v-model="displayVisionModelId"
-        :items="visionModelItems"
-        value-key="value"
-        :placeholder="`${defaultVisionModelInfo.name} ${t('__labelDefaultSuffix')}`"
-        :loading="modelsPending || isVisionModelPickerOpening"
-        :ui="{ itemTrailingIcon: 'hidden' }"
-        @pointerdown="isVisionModelPickerOpening = true"
-        @update:open="isVisionModelPickerOpening = false"
+    <div class="flex flex-col gap-2">
+      <UFormField
+        :label="$t('__labelVisionModel', 1)"
+        name="defaultVisionModel"
+        :help="$t('__hintVisionModel')"
       >
-        <template #content-top>
-          <div
-            class="flex items-center justify-between gap-2 px-2 py-1.5 border-b border-default"
-            @pointerdown.stop
-          >
-            <span class="text-xs">
-              {{ visionModelItems.length }} {{ $t('__labelVisionModel', visionModelItems.length) }}
-            </span>
-            <UButton
-              icon="i-lucide-refresh-cw"
-              color="neutral"
-              variant="ghost"
-              size="xs"
-              :label="$t('__actionRefresh')"
-              :loading="isRefreshing"
-              @click.stop="onRefresh"
+        <USelectMenu
+          v-model="displayVisionModelId"
+          :items="visionModelItems"
+          value-key="value"
+          :placeholder="`${defaultVisionModelInfo.name} ${t('__labelDefaultSuffix')}`"
+          :loading="modelsPending || isVisionModelPickerOpening"
+          :ui="{ itemTrailingIcon: 'hidden' }"
+          @pointerdown="isVisionModelPickerOpening = true"
+          @update:open="isVisionModelPickerOpening = false"
+        >
+          <template #content-top>
+            <div
+              class="flex items-center justify-between gap-2 px-2 py-1.5 border-b border-default"
               @pointerdown.stop
-            />
-          </div>
-        </template>
-        <template #item-leading="{ item }">
-          <UIcon
-            :name="item.avatar.icon"
-            class="size-5 text-toned"
-          />
-        </template>
-        <template #leading>
-          <UIcon
-            v-if="isVisionModelPickerOpening"
-            name="i-lucide-loader-circle"
-            class="size-5 animate-spin text-toned"
-          />
-          <UIcon
-            v-else-if="selectedVisionModel"
-            :name="selectedVisionModel.avatar.icon"
-            class="size-5 text-toned"
-          />
-          <UIcon
-            v-else
-            :name="defaultVisionModelInfo.avatar.icon"
-            class="size-5 text-toned"
-          />
-        </template>
-        <template #empty="{ searchTerm }">
-          <span v-if="modelsPending">{{ $t('__hintLoadingModels') }}</span>
-          <span v-else-if="searchTerm">{{ $t('__descriptionNoModelsMatchSearch', { query: searchTerm }) }}</span>
-          <span v-else>{{ $t('__descriptionNoVisionModelsAvailable') }}</span>
-        </template>
-        <template #item-label="{ item }">
-          <span class="inline-flex items-center gap-1.5 truncate">
-            {{ item.label }}
-            <UBadge
-              v-if="item.isFree"
-              color="neutral"
-              variant="subtle"
-              size="xs"
             >
-              {{ $t('__labelFree') }}
-            </UBadge>
-          </span>
-        </template>
-        <template #item-trailing="{ item }">
-          <!-- size-7 box aligns the check with the trailing button -->
-          <span class="flex items-center justify-center size-7 shrink-0">
+              <span class="text-xs">
+                {{ visionModelItems.length }} {{ $t('__labelVisionModel', visionModelItems.length) }}
+              </span>
+              <UButton
+                icon="i-lucide-refresh-cw"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                :label="$t('__actionRefresh')"
+                :loading="isRefreshing"
+                @click.stop="onRefresh"
+                @pointerdown.stop
+              />
+            </div>
+          </template>
+          <template #item-leading="{ item }">
             <UIcon
-              v-if="state.defaultVisionModel === item.value"
-              name="i-lucide-check"
-              class="size-4"
+              :name="item.avatar.icon"
+              class="size-5 text-toned"
             />
-          </span>
-          <UTooltip :text="$t('__actionViewOnOpenrouter')">
-            <UButton
-              :to="`https://openrouter.ai/${item.value}`"
-              target="_blank"
-              rel="noopener"
-              icon="i-lucide-external-link"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              :aria-label="$t('__actionViewOnOpenrouter')"
-              class="hover:bg-accented! group-data-[state=checked]:hover:bg-primary/20!"
-              @click.stop
-              @pointerdown.stop
+          </template>
+          <template #leading>
+            <UIcon
+              v-if="isVisionModelPickerOpening"
+              name="i-lucide-loader-circle"
+              class="size-5 animate-spin text-toned"
             />
-          </UTooltip>
-        </template>
-      </USelectMenu>
+            <UIcon
+              v-else-if="selectedVisionModel"
+              :name="selectedVisionModel.avatar.icon"
+              class="size-5 text-toned"
+            />
+            <UIcon
+              v-else
+              :name="defaultVisionModelInfo.avatar.icon"
+              class="size-5 text-toned"
+            />
+          </template>
+          <template #empty="{ searchTerm }">
+            <span v-if="modelsPending">{{ $t('__hintLoadingModels') }}</span>
+            <span v-else-if="searchTerm">{{ $t('__descriptionNoModelsMatchSearch', { query: searchTerm }) }}</span>
+            <span v-else>{{ $t('__descriptionNoVisionModelsAvailable') }}</span>
+          </template>
+          <template #item-label="{ item }">
+            <span class="inline-flex items-center gap-1.5 truncate">
+              {{ item.label }}
+              <UBadge
+                v-if="item.isFree"
+                color="neutral"
+                variant="subtle"
+                size="xs"
+              >
+                {{ $t('__labelFree') }}
+              </UBadge>
+            </span>
+          </template>
+          <template #item-trailing="{ item }">
+            <!-- size-7 box aligns the check with the trailing button -->
+            <span class="flex items-center justify-center size-7 shrink-0">
+              <UIcon
+                v-if="state.defaultVisionModel === item.value"
+                name="i-lucide-check"
+                class="size-4"
+              />
+            </span>
+            <UTooltip :text="$t('__actionViewOnOpenrouter')">
+              <UButton
+                :to="`https://openrouter.ai/${item.value}`"
+                target="_blank"
+                rel="noopener"
+                icon="i-lucide-external-link"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                :aria-label="$t('__actionViewOnOpenrouter')"
+                class="hover:bg-accented! group-data-[state=checked]:hover:bg-primary/20!"
+                @click.stop
+                @pointerdown.stop
+              />
+            </UTooltip>
+          </template>
+        </USelectMenu>
+      </UFormField>
       <UAlert
         v-if="isVisionModelStale"
         color="warning"
@@ -618,9 +620,8 @@ onUnmounted(stopPreviewAudio);
         :title="$t('__descriptionModelUnavailable', { name: state.defaultVisionModel })"
         :description="$t('__descriptionModelStaleResetCta', { name: defaultVisionModelInfo.name })"
         :actions="[{ label: $t('__actionResetToDefault'), color: 'warning', variant: 'soft', onClick: onVisionModelReset }]"
-        class="mt-2"
       />
-    </UFormField>
+    </div>
 
     <UFormField
       :label="$t('__labelVoiceReply')"
