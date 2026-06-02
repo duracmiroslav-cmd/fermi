@@ -15,7 +15,10 @@ import { getCurrentUser } from '~~/server/utils/auth';
 import { type KeyType, storeCredential } from '~~/shared/credentials';
 import { getKek } from '~~/shared/kek';
 
-export type ByokKeyType = Extract<KeyType, 'openai' | 'anthropic' | 'gemini'>;
+// OpenAI is the only model-provider key fermi holds directly: it backs
+// TTS / STT, which OpenRouter can't route. Chat (text / vision / MCP) goes
+// through OpenRouter; provider keys for chat belong in OpenRouter's own BYOK.
+export type ByokKeyType = Extract<KeyType, 'openai'>;
 
 const bodySchema = z.object({
   apiKey: z.string().trim().min(10),
@@ -46,37 +49,8 @@ const verifyOpenaiKey: VerifyFn = async (apiKey) => {
   throwUpstream('OpenAI', res.status);
 };
 
-const verifyAnthropicKey: VerifyFn = async (apiKey) => {
-  // Anthropic's models endpoint requires the version header even on
-  // GETs; without it Anthropic returns 400, which we'd otherwise
-  // surface as "verification failed" instead of "bad key".
-  const res = await fetch('https://api.anthropic.com/v1/models', {
-    headers: {
-      'x-api-key':         apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-  });
-  if (res.ok) return;
-  if (res.status === 401 || res.status === 403) throwBadKey('Anthropic');
-  throwUpstream('Anthropic', res.status);
-};
-
-const verifyGeminiKey: VerifyFn = async (apiKey) => {
-  // Gemini takes the key in the query string, not a header. A
-  // missing/bad key returns 400 with INVALID_ARGUMENT, not 401, so
-  // we treat both 400 and 403 as auth failures here.
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
-  );
-  if (res.ok) return;
-  if (res.status === 400 || res.status === 401 || res.status === 403) throwBadKey('Gemini');
-  throwUpstream('Gemini', res.status);
-};
-
 const VERIFY_BY_KEY_TYPE: Record<ByokKeyType, VerifyFn> = {
-  openai:    verifyOpenaiKey,
-  anthropic: verifyAnthropicKey,
-  gemini:    verifyGeminiKey,
+  openai: verifyOpenaiKey,
 };
 
 // Stripe-style masked preview so the UI can echo which key fermi is
