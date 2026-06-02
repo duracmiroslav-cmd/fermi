@@ -238,6 +238,17 @@ const runAgentLoop = async (params: {
   // during execute; the loop tail drains them into LINE delivery.
   const attachments: ToolAttachment[] = [];
 
+  // Keep LINE's "..." alive for the whole run — including while a single slow
+  // LLM call is in flight — by re-firing on a timer, not at loop boundaries.
+  // Prime now (the webhook's prime may have lapsed during cron-drain delay),
+  // then refresh under LINE's 60s cap. Cleared in `finally` so it never leaks.
+  void showLoadingAnimation(lineAccessToken, externalUserId)
+    .catch(err => console.error('loading animation prime failed', err));
+  const loadingTimer = setInterval(() => {
+    void showLoadingAnimation(lineAccessToken, externalUserId)
+      .catch(err => console.error('loading animation refresh failed', err));
+  }, LOADING_REFRESH_MS);
+
   try {
     // Resolved once per run: capability attachment changes mid-loop
     // (e.g. user toggles in dashboard) shouldn't reshape the tool set
@@ -279,24 +290,8 @@ const runAgentLoop = async (params: {
     // with a CTA. Already-paid LLM cost up to this point is sunk;
     // the gate prevents further iterations on the same run.
     let extendedRunConsumed = false;
-
-    // The webhook primed LINE's "..." once on receipt; re-fire before each
-    // iteration once that window is about to lapse so a long tool loop keeps
-    // signalling "working" instead of looking dead. Best-effort.
-    let lastLoadingAt = 0;
-    const keepLoadingAlive = async (): Promise<void> => {
-      if (Date.now() - lastLoadingAt < LOADING_REFRESH_MS) return;
-      lastLoadingAt = Date.now();
-      try {
-        await showLoadingAnimation(lineAccessToken, externalUserId);
-      } catch (err) {
-        console.error('loading animation refresh failed', err);
-      }
-    };
-
     while (iteration < MAX_AGENT_STEPS) {
       iteration++;
-      await keepLoadingAlive();
 
       if (!extendedRunConsumed && (Date.now() - eventTimestamp) >= REPLY_BUDGET_MS) {
         const exQuota = await consumeQuota(admin, COUNTER_ENV, {
@@ -648,6 +643,8 @@ const runAgentLoop = async (params: {
     // (maybe the next attempt lands while LINE is back up).
     if (userNotified) return;
     throw err;
+  } finally {
+    clearInterval(loadingTimer);
   }
 };
 
