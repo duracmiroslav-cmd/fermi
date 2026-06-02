@@ -16,9 +16,19 @@ watch(() => route.path, () => {
     <USlideover
       v-model:open="drawerOpen"
       side="left"
+      :ui="{ content: 'max-w-xs' }"
     >
       <template #content>
-        <div class="h-full bg-default w-60">
+        <div class="relative h-full w-full bg-default">
+          <UButton
+            icon="i-lucide-panel-left-close"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="$t('__actionDismiss')"
+            class="absolute top-4 right-4 z-10"
+            @click="drawerOpen = false"
+          />
           <DashboardSidebar />
         </div>
       </template>
