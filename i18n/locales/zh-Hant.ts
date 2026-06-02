@@ -1,4 +1,4 @@
-import type { MessageKey } from './en';
+import en from './en';
 
 export default {
   __actionAddSystemPrompt:                '新增系統提示詞',
@@ -40,6 +40,7 @@ export default {
   __actionSignIn:                         '登入',
   __actionSignOut:                        '登出',
   __actionStopPreview:                    '停止預覽',
+  __actionSwitchLanguage:                 '切換語言',
   __actionUpgradeToPro:                   '升級到 Pro',
   __actionViewAgent:                      '查看 Agent',
   __actionViewOnOpenrouter:               '在 OpenRouter 查看',
@@ -287,4 +288,4 @@ export default {
   __toastWebhookConnected:                'Webhook 已連接',
   __toastWebhookSetupFailed:              'Webhook 設定失敗',
   __toastWebhookTestFailed:               'Webhook 測試失敗',
-} satisfies Record<MessageKey, string>;
+} satisfies Record<keyof typeof en, string>;

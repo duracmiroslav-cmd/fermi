@@ -1,4 +1,4 @@
-const messages = {
+export default {
   __actionAddSystemPrompt:                'Add system prompt',
   __actionBackToAgentSettings:            'Back to agent settings',
   __actionBackToAgents:                   'Back to agents',
@@ -38,6 +38,7 @@ const messages = {
   __actionSignIn:                         'sign in',
   __actionSignOut:                        'Sign out',
   __actionStopPreview:                    'Stop preview',
+  __actionSwitchLanguage:                 'Switch language',
   __actionUpgradeToPro:                   'Upgrade to Pro',
   __actionViewAgent:                      'View agent',
   __actionViewOnOpenrouter:               'View on OpenRouter',
@@ -286,7 +287,3 @@ const messages = {
   __toastWebhookSetupFailed:              'Webhook setup failed',
   __toastWebhookTestFailed:               'Webhook test failed',
 };
-
-export type MessageKey = keyof typeof messages;
-
-export default messages;
