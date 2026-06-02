@@ -221,6 +221,7 @@ export type Database = {
           is_default: boolean
           model_provider_id: string
           name: string
+          normalize_traditional: boolean
           owner_id: string
           system_prompt: string | null
           tts_instructions: string | null
@@ -239,6 +240,7 @@ export type Database = {
           is_default?: boolean
           model_provider_id: string
           name: string
+          normalize_traditional?: boolean
           owner_id: string
           system_prompt?: string | null
           tts_instructions?: string | null
@@ -257,6 +259,7 @@ export type Database = {
           is_default?: boolean
           model_provider_id?: string
           name?: string
+          normalize_traditional?: boolean
           owner_id?: string
           system_prompt?: string | null
           tts_instructions?: string | null
@@ -737,6 +740,7 @@ export type Database = {
           p_limit: number
           p_model_provider_id: string
           p_name: string
+          p_normalize_traditional: boolean
           p_owner_id: string
           p_system_prompt: string
           p_tts_instructions: string

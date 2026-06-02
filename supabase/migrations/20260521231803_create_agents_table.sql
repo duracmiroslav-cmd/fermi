@@ -22,6 +22,12 @@
 -- Zod validates on write and `shared/tts.ts` parses defensively on
 -- read. `tts_instructions` is honored only when the model is
 -- `gpt-4o-mini-tts` (older models ignore it).
+--
+-- `normalize_traditional` runs the reply text through OpenCC s2tw
+-- (Simplified → Taiwan Traditional, char-level) before delivery. A
+-- worker post-process the LLM never invokes, so it's an always-on
+-- column, not a capability. Defaults true: fermi is TW-first and the
+-- transform is idempotent on already-Traditional / non-Chinese text.
 
 create table public.agents (
   id                    uuid primary key default gen_random_uuid(),
@@ -36,6 +42,7 @@ create table public.agents (
   model_provider_id     uuid not null references public.model_providers(id),
   voice_reply_mode      text not null default 'off'
                           check (voice_reply_mode in ('off', 'auto', 'always')),
+  normalize_traditional boolean not null default true,
   avatar_url            text,
   is_default            boolean not null default false,
   created_at            timestamptz not null default now(),
@@ -89,6 +96,7 @@ create function public.insert_agent_if_under_limit(
   p_tts_instructions     text,
   p_model_provider_id    uuid,
   p_voice_reply_mode     text,
+  p_normalize_traditional boolean,
   p_avatar_url           text,
   p_limit                int
 ) returns table (id uuid)
@@ -110,11 +118,11 @@ begin
   end if;
 
   return query
-    insert into public.agents (owner_id, name, system_prompt, default_text_model, default_vision_model, default_tts_model, default_tts_voice, tts_instructions, model_provider_id, voice_reply_mode, avatar_url)
-    values (p_owner_id, p_name, p_system_prompt, p_default_text_model, p_default_vision_model, p_default_tts_model, p_default_tts_voice, p_tts_instructions, p_model_provider_id, p_voice_reply_mode, p_avatar_url)
+    insert into public.agents (owner_id, name, system_prompt, default_text_model, default_vision_model, default_tts_model, default_tts_voice, tts_instructions, model_provider_id, voice_reply_mode, normalize_traditional, avatar_url)
+    values (p_owner_id, p_name, p_system_prompt, p_default_text_model, p_default_vision_model, p_default_tts_model, p_default_tts_voice, p_tts_instructions, p_model_provider_id, p_voice_reply_mode, p_normalize_traditional, p_avatar_url)
     returning agents.id;
 end;
 $$;
 
-revoke execute on function public.insert_agent_if_under_limit(uuid, text, text, text, text, text, text, text, uuid, text, text, int) from public;
-grant  execute on function public.insert_agent_if_under_limit(uuid, text, text, text, text, text, text, text, uuid, text, text, int) to service_role;
+revoke execute on function public.insert_agent_if_under_limit(uuid, text, text, text, text, text, text, text, uuid, text, boolean, text, int) from public;
+grant  execute on function public.insert_agent_if_under_limit(uuid, text, text, text, text, text, text, text, uuid, text, boolean, text, int) to service_role;

@@ -35,18 +35,19 @@ export default defineEventHandler(async (event) => {
   }
 
   const { data: rows, error: insertErr } = await admin.rpc('insert_agent_if_under_limit', {
-    p_owner_id:             user.id,
-    p_name:                 input.name,
-    p_system_prompt:        input.systemPrompt ?? null,
-    p_default_text_model:   input.defaultTextModel ?? null,
-    p_default_vision_model: input.defaultVisionModel ?? null,
-    p_default_tts_model:    input.defaultTtsModel ?? null,
-    p_default_tts_voice:    input.defaultTtsVoice ?? null,
-    p_tts_instructions:     input.ttsInstructions ?? null,
-    p_model_provider_id:    modelProviderId,
-    p_voice_reply_mode:     input.voiceReplyMode ?? 'off',
-    p_avatar_url:           input.avatarUrl ?? null,
-    p_limit:                limit,
+    p_owner_id:              user.id,
+    p_name:                  input.name,
+    p_system_prompt:         input.systemPrompt ?? null,
+    p_default_text_model:    input.defaultTextModel ?? null,
+    p_default_vision_model:  input.defaultVisionModel ?? null,
+    p_default_tts_model:     input.defaultTtsModel ?? null,
+    p_default_tts_voice:     input.defaultTtsVoice ?? null,
+    p_tts_instructions:      input.ttsInstructions ?? null,
+    p_model_provider_id:     modelProviderId,
+    p_voice_reply_mode:      input.voiceReplyMode ?? 'off',
+    p_normalize_traditional: input.normalizeTraditional ?? true,
+    p_avatar_url:            input.avatarUrl ?? null,
+    p_limit:                 limit,
   });
   if (insertErr) {
     if (insertErr.message?.includes('agent_limit_reached')) {
@@ -63,16 +64,17 @@ export default defineEventHandler(async (event) => {
   }
 
   return {
-    id:                 agent.id,
-    name:               input.name,
-    systemPrompt:       input.systemPrompt ?? null,
-    defaultTextModel:   input.defaultTextModel ?? null,
-    defaultVisionModel: input.defaultVisionModel ?? null,
-    defaultTtsModel:    input.defaultTtsModel ?? null,
-    defaultTtsVoice:    input.defaultTtsVoice ?? null,
-    ttsInstructions:    input.ttsInstructions ?? null,
+    id:                   agent.id,
+    name:                 input.name,
+    systemPrompt:         input.systemPrompt ?? null,
+    defaultTextModel:     input.defaultTextModel ?? null,
+    defaultVisionModel:   input.defaultVisionModel ?? null,
+    defaultTtsModel:      input.defaultTtsModel ?? null,
+    defaultTtsVoice:      input.defaultTtsVoice ?? null,
+    ttsInstructions:      input.ttsInstructions ?? null,
     modelProviderId,
-    voiceReplyMode:     input.voiceReplyMode ?? 'off',
-    avatarUrl:          input.avatarUrl ?? null,
+    voiceReplyMode:       input.voiceReplyMode ?? 'off',
+    normalizeTraditional: input.normalizeTraditional ?? true,
+    avatarUrl:            input.avatarUrl ?? null,
   };
 });

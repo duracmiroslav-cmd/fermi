@@ -46,6 +46,7 @@ import {
 } from './threads.ts';
 import { type ToolAttachment, buildToolset } from './tools/index.ts';
 import { checkInjection, wrapSystemPrompt } from './prompt-guard.ts';
+import { normalizeTraditional } from './opencc.ts';
 import { captureException } from './sentry.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -172,6 +173,7 @@ const runAgentLoop = async (params: {
     defaultTtsVoice: TtsVoice | null;
     ttsInstructions: string | null;
     voiceReplyMode: VoiceReplyMode;
+    normalizeTraditional: boolean;
   };
   ownerLocale: Locale;
   openrouterKey: string;
@@ -441,6 +443,15 @@ const runAgentLoop = async (params: {
         ownerId: bot.ownerId,
         pattern: injectionCheck.pattern,
       });
+    }
+
+    // Single conversion point: TTS, the persisted transcript, history,
+    // and the LINE text all derive from finalText below, so normalizing
+    // here keeps every output channel consistent. Runs before the
+    // fermi-authored suffix is appended (those notices are already
+    // Traditional). Detection is unnecessary — s2tw is idempotent.
+    if (agent.normalizeTraditional) {
+      finalText = normalizeTraditional(finalText);
     }
 
     // Voice-reply mode resolves to a yes/no per-turn:

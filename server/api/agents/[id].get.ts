@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const admin = useSupabaseAdmin();
   const { data, error } = await admin
     .from('agents')
-    .select('id, name, system_prompt, default_text_model, default_vision_model, default_tts_model, default_tts_voice, tts_instructions, model_provider_id, voice_reply_mode, avatar_url, is_default, created_at, updated_at')
+    .select('id, name, system_prompt, default_text_model, default_vision_model, default_tts_model, default_tts_voice, tts_instructions, model_provider_id, voice_reply_mode, normalize_traditional, avatar_url, is_default, created_at, updated_at')
     .eq('id', id)
     .eq('owner_id', user.id)
     .is('deleted_at', null)
@@ -40,21 +40,22 @@ export default defineEventHandler(async (event) => {
   );
 
   return {
-    id:                 data.id,
-    name:               data.name,
-    systemPrompt:       data.system_prompt,
-    defaultTextModel:   data.default_text_model,
-    defaultVisionModel: data.default_vision_model,
-    defaultTtsModel:    data.default_tts_model,
-    defaultTtsVoice:    data.default_tts_voice,
-    ttsInstructions:    data.tts_instructions,
-    modelProviderId:    data.model_provider_id,
-    voiceReplyMode:     data.voice_reply_mode,
-    avatarUrl:          data.avatar_url,
-    isDefault:          data.is_default,
-    createdAt:          data.created_at,
-    updatedAt:          data.updated_at,
-    bots:               (bots ?? []).map(b => ({
+    id:                   data.id,
+    name:                 data.name,
+    systemPrompt:         data.system_prompt,
+    defaultTextModel:     data.default_text_model,
+    defaultVisionModel:   data.default_vision_model,
+    defaultTtsModel:      data.default_tts_model,
+    defaultTtsVoice:      data.default_tts_voice,
+    ttsInstructions:      data.tts_instructions,
+    modelProviderId:      data.model_provider_id,
+    voiceReplyMode:       data.voice_reply_mode,
+    normalizeTraditional: data.normalize_traditional,
+    avatarUrl:            data.avatar_url,
+    isDefault:            data.is_default,
+    createdAt:            data.created_at,
+    updatedAt:            data.updated_at,
+    bots:                 (bots ?? []).map(b => ({
       id:                b.id,
       displayName:       b.display_name,
       platform:          b.platform,
