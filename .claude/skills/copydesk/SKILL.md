@@ -3,9 +3,10 @@ name: copydesk
 description: >-
   Write or review fermi product copy in the house voice. Covers dashboard UI
   strings (headers, descriptions, helper text, empty/error states, toasts),
-  LLM-facing capability/tool descriptions, and marketing + transactional email.
-  Use when writing new copy, auditing a page or component for off-voice
-  strings, or making copy sound more like fermi / more human / less generic-AI.
+  LLM-facing capability/tool descriptions, marketing + transactional email,
+  and zh-Hant localization. Use when writing new copy, auditing a page or
+  component for off-voice strings, translating UI into zh-Hant, or making copy
+  sound more like fermi / more human / less generic-AI.
 ---
 
 # copydesk
@@ -182,6 +183,45 @@ feel unpolished.
   (OpenRouter, a model vendor). Don't call a provider an "agent".
 - **agentic** — fine in marketing; don't gloss it in UI.
 
+## zh-Hant localization
+
+The UI ships zh-Hant + en only. Translating is not the default — the test is
+**whether a clean, unambiguous, Taiwan-native term exists.**
+
+- **Translate** when it does: Bot → 機器人, Capability → 能力, Connector →
+  連接器, provider → 提供者, System Prompt → 系統提示詞.
+- **Keep English** in two cases:
+  - *Protocol / copy-paste identifiers* — `token`, `webhook`, `API key`. A
+    translation won't match what the user sees in an external console.
+  - *No clean zh-Hant term* — `Agent` (代理人 reads as insurance/real-estate;
+    代理 collides with proxy; 智能體 is Simplified-register; 智慧體 is
+    academic), `MCP`, `LLM`, `OpenRouter`.
+
+Agent stays English because no good word exists, **not** because it's a core
+product noun — Bot is just as core and *is* translated. Don't reach for the
+"core noun" reasoning; reach for "is there a clean TW term".
+
+TW-native usage:
+
+- 用戶 → **使用者** (用戶 reads Mainland).
+- Written noun lists take **與**, not the spoken 跟: `名稱、系統提示詞與預設模型`.
+- Latin acronyms inside CJK take **full-width parens**: （PAT）（UTC）, matching
+  （預設） — not half-width `(PAT)`.
+
+## Ellipsis (both languages)
+
+Use `…` (U+2026). Never ASCII `...`. Never `⋯` (U+22EF is a *math* operator —
+wrong codepoint, breaks a11y / search / copy). Never `……` (that's the Chinese
+*prose* ellipsis; UI affordances don't use it).
+
+Whether a placeholder carries `…` depends on the control:
+
+- **Select / dropdown** — none. You pick from a fixed list, you don't keep
+  typing: `選擇平台`, `Pick a platform`.
+- **Search input / loading state** — `…`: `搜尋…`, `登入中…`, `Loading…`.
+- **Free-text example placeholder** — case by case: `你是…助理…` (sentence
+  continues) yes; `my agent` (complete example) no.
+
 ## AI-tell blocklist
 
 These are the tells that copy was machine-generated. Ban on sight; this list is
@@ -199,6 +239,7 @@ how the "human feel" is enforced.
 - **Em dash (`—`)** — fermi avoids it. Use a period, comma, parens, or colon.
   (A few legacy instances exist, e.g. the `index.vue` hero subhead and the
   time-capability seed; review mode should flag them.)
+- ASCII `...` or `⋯` used as an ellipsis — use `…` (see **Ellipsis** above).
 - Hedging: `simply`, `just`, `easily` (if it were easy you wouldn't say so).
 
 ## Pre-ship checklist
@@ -207,8 +248,9 @@ Before declaring copy done:
 
 - [ ] Right register, right case for the surface.
 - [ ] No AI-tell from the blocklist.
-- [ ] No em dash.
+- [ ] No em dash. Ellipsis is `…`; selects carry none.
 - [ ] Lexicon terms used consistently.
+- [ ] zh-Hant: translated only where a clean TW term exists; identifiers / no-term stay English; 使用者 not 用戶.
 - [ ] Within the surface's length budget.
 - [ ] Error/empty states offer a next step.
 - [ ] LLM-facing strings say *when to use*, not *what it does*.
