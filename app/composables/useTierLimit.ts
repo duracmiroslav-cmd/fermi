@@ -8,7 +8,11 @@ const LIMIT_MAP = {
 export const useTierLimit = <T = unknown>(kind: 'agents' | 'bots') => {
   const { t } = useI18n();
   const profile = useProfile();
+  // Explicit key (the bare kind) so create/delete sites can invalidate this
+  // list via refreshNuxtData(kind) before navigating back, avoiding a stale
+  // flash. Mirrors the detail pages' `key: id` + refreshNuxtData(id) pattern.
   const items = useFetch<T[]>(`/api/${kind}`, {
+    key:     kind,
     headers: useRequestHeaders(['cookie']),
   });
 

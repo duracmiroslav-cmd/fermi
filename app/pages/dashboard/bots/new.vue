@@ -27,6 +27,7 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
         channelAccessToken: value.channelAccessToken,
       },
     });
+    await refreshNuxtData('bots');
     notify.success(t('__toastBotConnected'));
     await navigateTo(`/dashboard/bots/${created.id}`);
   } catch (e) {

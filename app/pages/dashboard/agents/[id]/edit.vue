@@ -86,6 +86,7 @@ const onDelete = async () => {
   deleting.value = true;
   try {
     await $fetch(`/api/agents/${route.params.id}`, { method: 'DELETE' });
+    await refreshNuxtData('agents');
     notify.success(t('__toastAgentDeleted'));
     await navigateTo('/dashboard/agents');
   } catch (e) {

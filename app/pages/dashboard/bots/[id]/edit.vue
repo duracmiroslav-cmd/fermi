@@ -50,6 +50,7 @@ const onDelete = async () => {
   deleting.value = true;
   try {
     await $fetch(`/api/bots/${route.params.id}`, { method: 'DELETE' });
+    await refreshNuxtData('bots');
     notify.success(t('__toastBotDeleted'));
     await navigateTo('/dashboard/bots');
   } catch (e) {

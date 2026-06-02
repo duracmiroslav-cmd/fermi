@@ -20,6 +20,7 @@ const onSubmit = async (value: {
         defaultTextModel: value.defaultTextModel,
       },
     });
+    await refreshNuxtData('agents');
     notify.success(t('__toastAgentCreated'));
     await navigateTo(`/dashboard/agents/${created.id}`);
   } catch (e) {
