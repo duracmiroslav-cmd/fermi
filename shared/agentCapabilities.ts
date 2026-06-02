@@ -4,6 +4,7 @@ import { BUILT_IN_CAPABILITIES, type CapabilityConfig } from './capabilities.ts'
 export type { CapabilityConfig } from './capabilities.ts';
 
 export interface AttachedCapability {
+  id:     string;
   slug:   string;
   config: CapabilityConfig;
 }
@@ -17,7 +18,7 @@ export const loadActiveCapabilities = async (
 ): Promise<AttachedCapability[]> => {
   const { data, error } = await admin
     .from('agent_capabilities')
-    .select('config, capability:capabilities!inner(slug, owner_id, config, deleted_at)')
+    .select('config, capability:capabilities!inner(id, slug, owner_id, config, deleted_at)')
     .eq('agent_id', agentId)
     .is('disabled_at', null)
     .is('capability.deleted_at', null);
@@ -29,8 +30,8 @@ export const loadActiveCapabilities = async (
   const rows = (data ?? []) as unknown as Array<{
     config:     CapabilityConfig | null;
     capability:
-      | { slug: string; owner_id: string | null; config: CapabilityConfig | null }
-      | { slug: string; owner_id: string | null; config: CapabilityConfig | null }[]
+      | { id: string; slug: string; owner_id: string | null; config: CapabilityConfig | null }
+      | { id: string; slug: string; owner_id: string | null; config: CapabilityConfig | null }[]
       | null;
   }>;
   return rows.flatMap((r) => {
@@ -44,7 +45,7 @@ export const loadActiveCapabilities = async (
       const baseConfig: CapabilityConfig = c.owner_id === null
         ? (BUILT_IN_CAPABILITIES[c.slug]?.config ?? {})
         : (c.config ?? {});
-      return { slug: c.slug, config: { ...baseConfig, ...(r.config ?? {}) } };
+      return { id: c.id, slug: c.slug, config: { ...baseConfig, ...(r.config ?? {}) } };
     });
   });
 };

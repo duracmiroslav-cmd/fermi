@@ -73,9 +73,11 @@ export interface Toolset {
   execute: (name: string, argumentsJson: string, ctx: ToolContext) => Promise<string>;
 }
 
-// Cached across warm invocations of the same isolate. Key = url only:
-// the tool list is server-side static, independent of which PAT calls
-// it. TTL handles deploys; per-user isolation is unnecessary.
+// Cached across warm invocations of the same isolate, keyed by capability
+// id. Built-in capabilities are a single shared row → one shared entry
+// (their tool list is server-side static). BYO capabilities are per-owner
+// rows → per-owner entries, so a server returning a token-dependent tool
+// list can't leak one user's tools into another's prompt. TTL handles deploys.
 interface CachedTools {
   tools:     McpTool[];
   expiresAt: number;
@@ -87,12 +89,16 @@ const TOOL_CACHE_TTL_MS = 5 * 60 * 1000;
 const loadToken = async (
   base: { admin: SupabaseClient; kek: CryptoKey; ownerId: string },
   authKeyType: string,
+  capabilityId: string,
 ): Promise<string | undefined> => {
   try {
     const cred = await loadCredential(base.admin, base.kek, {
       userId: base.ownerId,
       botId: null,
       keyType: authKeyType as KeyType,
+      // byo_mcp tokens are scoped per capability; built-in MCP keys
+      // (github / twinkle) stay account-level (capability_id null).
+      capabilityId: authKeyType === 'byo_mcp' ? capabilityId : null,
     });
     return cred.plaintext;
   } catch (err) {
@@ -130,10 +136,10 @@ export const buildToolset = async (
       .map(async (capability) => {
         try {
           const token = capability.config.authKeyType
-            ? await loadToken(base, capability.config.authKeyType)
+            ? await loadToken(base, capability.config.authKeyType, capability.id)
             : undefined;
 
-          const cacheKey = capability.config.url!;
+          const cacheKey = capability.id;
 
           // Promise-coalesced lazy connect: all tools on this capability share one
           // McpClient. On a cache hit the connect is deferred to the first
