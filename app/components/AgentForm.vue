@@ -153,6 +153,8 @@ const isVisionModelStale = computed(() =>
   && !selectedVisionModel.value,
 );
 
+const isVisionModelFree = computed(() => selectedVisionModel.value?.isFree ?? false);
+
 const isTtsModelStale = computed(() =>
   !!state.defaultTtsModel
   && !TTS_MODELS.some(m => m.value === state.defaultTtsModel),
@@ -620,6 +622,13 @@ onUnmounted(stopPreviewAudio);
         :title="$t('__descriptionModelUnavailable', { name: state.defaultVisionModel })"
         :description="$t('__descriptionModelStaleResetCta', { name: defaultVisionModelInfo.name })"
         :actions="[{ label: $t('__actionResetToDefault'), color: 'warning', variant: 'soft', onClick: onVisionModelReset }]"
+      />
+      <UAlert
+        v-else-if="isVisionModelFree"
+        color="warning"
+        variant="subtle"
+        icon="i-lucide-triangle-alert"
+        :description="$t('__hintFreeModelRateLimited')"
       />
     </div>
 
