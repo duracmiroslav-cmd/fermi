@@ -11,7 +11,8 @@ export type KeyType
     | 'tavily'
     | 'fal'
     | 'github'
-    | 'twinkle';
+    | 'twinkle'
+    | 'byo_mcp';
 
 type Bytes = Uint8Array<ArrayBuffer>;
 
@@ -27,13 +28,25 @@ const pgHexToBytes = (hex: string): Bytes => {
   return bytes;
 };
 
-const buildAad = (userId: string, keyType: KeyType, botId: string | null): string =>
-  `${userId}:${keyType}:${botId ?? ''}`;
+// AAD binds the ciphertext to its full scope so a row can't be swapped
+// across users / key types / owners. Colon-joined and injective: every
+// field is a UUID or the KeyType enum, none of which contain `:`, so no
+// two distinct tuples collapse to the same string. Fixed 4-segment arity
+// — a null scope column is the empty segment, not an omitted one.
+const buildAad = (
+  userId: string,
+  keyType: KeyType,
+  botId: string | null,
+  capabilityId: string | null,
+): string => `${userId}:${keyType}:${botId ?? ''}:${capabilityId ?? ''}`;
 
 export interface LoadCredentialParams {
-  userId:  string;
-  botId:   string | null;
-  keyType: KeyType;
+  userId:        string;
+  botId:         string | null;
+  keyType:       KeyType;
+  // BYO MCP token scope. Mutually exclusive with botId (DB CHECK). Omit
+  // (defaults null) for account-level and bot-scoped credentials.
+  capabilityId?: string | null;
 }
 
 export interface StoreCredentialParams extends LoadCredentialParams {
@@ -47,12 +60,13 @@ export const storeCredential = async (
   kek: CryptoKey,
   params: StoreCredentialParams,
 ): Promise<void> => {
-  const { userId, botId, keyType, plaintext, refreshPlaintext, metadata } = params;
-  const aad = buildAad(userId, keyType, botId);
+  const { userId, botId, keyType, plaintext, refreshPlaintext, metadata, capabilityId = null } = params;
+  const aad = buildAad(userId, keyType, botId, capabilityId);
   const enc = await encryptCredential(plaintext, kek, aad, refreshPlaintext);
   const { error } = await admin.from('encrypted_credentials').insert({
     user_id:            userId,
     bot_id:             botId,
+    capability_id:      capabilityId,
     key_type:           keyType,
     ciphertext:         bytesToPgHex(enc.ciphertext),
     iv:                 bytesToPgHex(enc.iv),
@@ -71,18 +85,20 @@ export const loadCredential = async (
   kek: CryptoKey,
   params: LoadCredentialParams,
 ): Promise<{ plaintext: string; refreshPlaintext?: string }> => {
-  const { userId, botId, keyType } = params;
-  const query = admin
+  const { userId, botId, keyType, capabilityId = null } = params;
+  let query = admin
     .from('encrypted_credentials')
     .select('ciphertext, iv, wrapped_dek, wrapped_dek_iv, alg, refresh_ciphertext, refresh_iv')
     .eq('user_id', userId)
     .eq('key_type', keyType);
-  const { data, error } = botId
-    ? await query.eq('bot_id', botId).single()
-    : await query.is('bot_id', null).single();
+  // Both scope columns are filtered (eq or is-null) so the three scopes
+  // — account / bot / capability — never alias onto each other's row.
+  query = botId ? query.eq('bot_id', botId) : query.is('bot_id', null);
+  query = capabilityId ? query.eq('capability_id', capabilityId) : query.is('capability_id', null);
+  const { data, error } = await query.single();
   if (error) throw error;
 
-  const aad = buildAad(userId, keyType, botId);
+  const aad = buildAad(userId, keyType, botId, capabilityId);
   const sealed: EncryptedCredential = {
     ciphertext:        pgHexToBytes(data.ciphertext),
     iv:                pgHexToBytes(data.iv),

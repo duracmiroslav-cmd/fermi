@@ -78,3 +78,11 @@ insert into public.capabilities (slug, display_name) values
   ('image-gen',       'Image generation'),
   ('github',          'GitHub'),
   ('twinkle-hub',     'Twinkle Hub');
+
+-- encrypted_credentials.capability_id (column + scope CHECK + indexes
+-- declared in 20260521231808) couldn't carry its FK inline: that table
+-- is created before this one. Wire it now so deleting a BYO capability
+-- cascades to the stored MCP bearer token — no orphaned ciphertext.
+alter table public.encrypted_credentials
+  add constraint encrypted_credentials_capability_id_fkey
+  foreign key (capability_id) references public.capabilities(id) on delete cascade;
