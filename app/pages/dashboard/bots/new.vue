@@ -54,54 +54,54 @@ const onLineSubmit = async (value: { channelSecret: string; channelAccessToken: 
           {{ $t('__titleNewBot') }}
         </h1>
 
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between gap-4">
-              <p class="font-medium">
-                {{ $t('__titleSettings') }}
-              </p>
-              <div class="flex items-center gap-2">
-                <UButton
-                  to="/dashboard/bots"
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                >
-                  {{ $t('__actionCancel') }}
-                </UButton>
-                <UButton
-                  v-if="platform === 'line'"
-                  type="submit"
-                  form="line-bot-connect-form"
-                  :loading="connecting"
-                  size="sm"
-                >
-                  {{ $t('__actionConnect') }}
-                </UButton>
-              </div>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="font-semibold">
+              {{ $t('__titleSettings') }}
+            </h2>
+            <div class="flex items-center gap-2">
+              <UButton
+                to="/dashboard/bots"
+                color="neutral"
+                variant="outline"
+                size="sm"
+              >
+                {{ $t('__actionCancel') }}
+              </UButton>
+              <UButton
+                v-if="platform === 'line'"
+                type="submit"
+                form="line-bot-connect-form"
+                :loading="connecting"
+                size="sm"
+              >
+                {{ $t('__actionConnect') }}
+              </UButton>
             </div>
-          </template>
-
-          <div class="flex flex-col gap-6">
-            <UFormField
-              :label="$t('__labelPlatform')"
-              :help="$t('__hintPlatform')"
-            >
-              <USelect
-                v-model="platform"
-                :items="platformOptions"
-                :icon="selectedPlatformIcon"
-                :placeholder="$t('__placeholderPlatform')"
-              />
-            </UFormField>
-
-            <LineBotConnectForm
-              v-if="platform === 'line'"
-              form-id="line-bot-connect-form"
-              @submit="onLineSubmit"
-            />
           </div>
-        </UCard>
+
+          <UCard>
+            <div class="flex flex-col gap-6">
+              <UFormField
+                :label="$t('__labelPlatform')"
+                :help="$t('__hintPlatform')"
+              >
+                <USelect
+                  v-model="platform"
+                  :items="platformOptions"
+                  :icon="selectedPlatformIcon"
+                  :placeholder="$t('__placeholderPlatform')"
+                />
+              </UFormField>
+
+              <LineBotConnectForm
+                v-if="platform === 'line'"
+                form-id="line-bot-connect-form"
+                @submit="onLineSubmit"
+              />
+            </div>
+          </UCard>
+        </div>
       </DashboardContainer>
     </NuxtLayout>
   </div>

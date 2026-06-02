@@ -57,37 +57,38 @@ const onSubmit = async (value: {
           {{ $t('__titleNewAgent') }}
         </h1>
 
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between gap-4">
-              <p class="font-medium">
-                {{ $t('__titleSettings') }}
-              </p>
-              <div class="flex items-center gap-2">
-                <UButton
-                  to="/dashboard/agents"
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                >
-                  {{ $t('__actionCancel') }}
-                </UButton>
-                <UButton
-                  type="submit"
-                  form="agent-form"
-                  :loading="saving"
-                  size="sm"
-                >
-                  {{ $t('__actionCreate') }}
-                </UButton>
-              </div>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="font-semibold">
+              {{ $t('__titleSettings') }}
+            </h2>
+            <div class="flex items-center gap-2">
+              <UButton
+                to="/dashboard/agents"
+                color="neutral"
+                variant="outline"
+                size="sm"
+              >
+                {{ $t('__actionCancel') }}
+              </UButton>
+              <UButton
+                type="submit"
+                form="agent-form"
+                :loading="saving"
+                size="sm"
+              >
+                {{ $t('__actionCreate') }}
+              </UButton>
             </div>
-          </template>
-          <AgentForm
-            form-id="agent-form"
-            @submit="onSubmit"
-          />
-        </UCard>
+          </div>
+
+          <UCard>
+            <AgentForm
+              form-id="agent-form"
+              @submit="onSubmit"
+            />
+          </UCard>
+        </div>
       </DashboardContainer>
     </NuxtLayout>
   </div>
