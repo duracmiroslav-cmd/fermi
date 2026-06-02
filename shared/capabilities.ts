@@ -88,6 +88,12 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     config:         {},
     credentialType: 'none',
   },
+  'reminders': {
+    displayName:    'Reminders',
+    description:    'Schedule a one-shot reminder the bot pushes to this user at a future time, and list or cancel the user\'s pending reminders. Use when the user asks to be reminded of something later. Resolve relative times ("in 2 hours", "tomorrow 9am") against the current time and timezone given in the system context.',
+    config:         {},
+    credentialType: 'none',
+  },
   'web-search': {
     displayName:    'Web search',
     description:    'Search the web for current information beyond the model\'s training cutoff. Returns ranked titles, snippets, and URLs.',

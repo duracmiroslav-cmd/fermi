@@ -86,13 +86,18 @@ Deno.serve(async (req) => {
       toolset,
       // Stateless: ephemeral ids give media-producing tools a storage
       // path to write under; nothing links back to a real thread/run.
+      // Tools that persist against a real bot/thread/user (e.g.
+      // reminders) hit their not-null FK and fail gracefully here —
+      // correct, since the test chat has no live transport to fire on.
       toolContextBase: {
         admin,
         kek,
-        ownerId:     agent.ownerId,
-        threadId:    crypto.randomUUID(),
-        runId:       crypto.randomUUID(),
-        attachments: [],
+        ownerId:        agent.ownerId,
+        threadId:       crypto.randomUUID(),
+        botId:          crypto.randomUUID(),
+        externalUserId: crypto.randomUUID(),
+        runId:          crypto.randomUUID(),
+        attachments:    [],
       },
       maxSteps: MAX_AGENT_STEPS,
     });

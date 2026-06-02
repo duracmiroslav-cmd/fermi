@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { generateImage } from './image-gen.ts';
 import { getCurrentTime } from './time.ts';
+import { cancelReminder, createReminder, listReminders } from './reminders.ts';
 import { searchWeb } from './web-search.ts';
 import { fetchWeb } from './web-fetch.ts';
 import { loadCredential, type KeyType } from '../../../../shared/credentials.ts';
@@ -29,6 +30,11 @@ export interface ToolContext {
   kek: CryptoKey;
   ownerId: string;
   threadId: string;
+  // The LINE conversation this loop is serving. Reminder tools need both:
+  // bot_id + thread_id locate where a fired reminder pushes back to, and
+  // external_user_id scopes the per-end-user slot cap and cancel ownership.
+  botId: string;
+  externalUserId: string;
   runId: string;
   // Tools producing media use this to name storage objects; the path
   // doubles as an audit trail back to the `agent_run_steps` row.
@@ -48,7 +54,15 @@ export interface Tool {
   execute: (args: Record<string, unknown>, ctx: ToolContext) => unknown | Promise<unknown>;
 }
 
-const tools: Tool[] = [getCurrentTime, searchWeb, fetchWeb, generateImage];
+const tools: Tool[] = [
+  getCurrentTime,
+  createReminder,
+  listReminders,
+  cancelReminder,
+  searchWeb,
+  fetchWeb,
+  generateImage,
+];
 
 export interface ToolSchema {
   type: 'function';
