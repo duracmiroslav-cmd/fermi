@@ -213,7 +213,7 @@ const dismissCelebration = () => {
             icon="i-lucide-x"
             size="sm"
             color="neutral"
-            variant="ghost"
+            variant="link"
             :aria-label="$t('__actionDismiss')"
             @click="dismissCelebration"
           />
