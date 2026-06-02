@@ -144,6 +144,8 @@ const isTextModelStale = computed(() =>
   && !selectedTextModel.value,
 );
 
+const isTextModelFree = computed(() => selectedTextModel.value?.isFree ?? false);
+
 const isVisionModelStale = computed(() =>
   !modelsPending.value
   && !!models.value
@@ -494,6 +496,14 @@ onUnmounted(stopPreviewAudio);
         :title="$t('__descriptionModelUnavailable', { name: state.defaultTextModel })"
         :description="$t('__descriptionModelStaleResetCta', { name: defaultTextModelInfo.name })"
         :actions="[{ label: $t('__actionResetToDefault'), color: 'warning', variant: 'soft', onClick: onTextModelReset }]"
+        class="mt-2"
+      />
+      <UAlert
+        v-else-if="isTextModelFree"
+        color="warning"
+        variant="subtle"
+        icon="i-lucide-triangle-alert"
+        :description="$t('__hintFreeModelRateLimited')"
         class="mt-2"
       />
     </UFormField>

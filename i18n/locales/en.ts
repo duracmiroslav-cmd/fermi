@@ -136,6 +136,7 @@ export default {
   __hintEditedAt:                         'Edited {time}',
   __hintEnabledBot:                       'When off, the bot won\'t reply.',
   __hintFileTooLarge:                     'Max 2MB.',
+  __hintFreeModelRateLimited:             'Free models share a rate-limited pool and can fail or slow down under load. For reliability, pick a paid model or connect your own OpenRouter key.',
   __hintFreeTierLimit:                    'Free tier limit ({used}/{limit}) · upgrade',
   __hintGithubPatHelp:                    'Create a fine-grained PAT at {link}. Pick the repos and grant read access.',
   __hintLoadingModels:                    'Loading models…',

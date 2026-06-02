@@ -138,6 +138,7 @@ export default {
   __hintEditedAt:                         '編輯於 {time}',
   __hintEnabledBot:                       '關閉後，機器人不會回覆。',
   __hintFileTooLarge:                     '上限 2MB。',
+  __hintFreeModelRateLimited:             '免費模型共用限速額度，負載一高就可能失敗或變慢。要穩定可改用付費模型，或連接自己的 OpenRouter key。',
   __hintFreeTierLimit:                    '免費方案上限（{used}/{limit}） · 升級',
   __hintGithubPatHelp:                    '在 {link} 建立細粒度 PAT。挑 repo 後授予讀取權限。',
   __hintLoadingModels:                    '載入模型中…',
