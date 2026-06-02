@@ -19,8 +19,8 @@ export default defineNuxtConfig({
       redirectOn: 'root',
     },
     locales: [
-      { code: 'zh-Hant', name: '繁體中文', file: 'zh-Hant.json' },
-      { code: 'en', name: 'English', file: 'en.json' },
+      { code: 'zh-Hant', name: '繁體中文', file: 'zh-Hant.ts' },
+      { code: 'en', name: 'English', file: 'en.ts' },
     ],
   },
   colorMode: {
