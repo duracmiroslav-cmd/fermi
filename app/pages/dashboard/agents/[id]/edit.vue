@@ -186,7 +186,7 @@ const onDelete = async () => {
                 </p>
                 <p class="text-xs text-toned mt-1">
                   <template v-if="agent.bots.length">
-                    {{ $t('__descriptionAgentBoundToBots', agent.bots.length, { count: agent.bots.length }) }}
+                    {{ $t('__descriptionAgentBoundToBots', { count: agent.bots.length }, agent.bots.length) }}
                   </template>
                   <template v-else>
                     {{ $t('__descriptionDeleteAgent') }}
