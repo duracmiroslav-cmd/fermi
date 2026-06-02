@@ -34,6 +34,10 @@ export interface CapabilityRow {
   displayName:           string;
   description:           string | null;
   credentialType:        CredentialType;
+  // BYO (user-created) capability vs fermi built-in. The connectors page
+  // routes these to the Custom MCP servers manager instead of the built-in
+  // Capabilities list; both still attach to agents the same way.
+  isCustom:              boolean;
   providers?:            CapabilityProviderRow[];
   // When set, the capability config UI renders per-tool checkboxes grouped
   // under each group's label. The agent binding stores its per-tool selection
@@ -91,6 +95,7 @@ export const listCapabilitiesForUser = async (
       displayName: builtIn?.displayName ?? capability.display_name,
       description: builtIn?.description ?? capability.description,
       credentialType,
+      isCustom:    capability.owner_id !== null,
     };
     if (builtIn?.config.toolGroups) {
       row.toolGroups = Object.fromEntries(

@@ -22,7 +22,12 @@ const {
 
 const searchQuery = ref('');
 
-const flatCards = computed(() => flattenCapabilities(capabilities.value ?? []));
+// BYO custom MCP servers are managed on their own page, so the built-in
+// Capabilities list excludes them and a separate section links to the manager.
+const flatCards = computed(() =>
+  flattenCapabilities((capabilities.value ?? []).filter(c => !c.isCustom)));
+const customServerCount = computed(() =>
+  (capabilities.value ?? []).filter(c => c.isCustom).length);
 
 // Only actionable rows (connected/available) get linked to their detail
 // page; coming-soon and no-credential-needed rows render as static
@@ -247,6 +252,36 @@ const filteredCards = computed(() => {
           >
             {{ $t('__descriptionNoCapabilitiesMatchSearch', { query: searchQuery }) }}
           </p>
+        </section>
+
+        <section class="flex flex-col gap-3">
+          <h2 class="font-semibold">
+            {{ $t('__titleCustomMcpServers') }}
+          </h2>
+
+          <div class="rounded-md border border-muted bg-muted/50 divide-y divide-default overflow-hidden">
+            <NuxtLink
+              to="/dashboard/connectors/mcp"
+              class="flex items-center gap-4 p-4 hover:bg-muted transition-colors"
+            >
+              <UIcon
+                name="i-lucide-server"
+                class="size-5 text-toned shrink-0"
+              />
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium truncate">
+                  {{ $t('__descriptionCustomMcpServersListItem') }}
+                </p>
+              </div>
+              <UBadge
+                color="neutral"
+                variant="subtle"
+                size="sm"
+              >
+                {{ customServerCount }}
+              </UBadge>
+            </NuxtLink>
+          </div>
         </section>
       </DashboardContainer>
     </NuxtLayout>
