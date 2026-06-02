@@ -47,6 +47,7 @@ const onConfirmDelete = async () => {
             </p>
           </div>
           <UButton
+            v-if="servers?.length"
             to="/dashboard/connectors/mcp/new"
             icon="i-lucide-plus"
             size="sm"

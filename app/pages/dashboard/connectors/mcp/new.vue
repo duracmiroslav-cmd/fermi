@@ -46,80 +46,80 @@ const onSubmit = async () => {
           {{ $t('__actionAddMcpServer') }}
         </h1>
 
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between gap-4">
-              <p class="font-medium">
-                {{ $t('__titleSettings') }}
-              </p>
-              <div class="flex items-center gap-2">
-                <UButton
-                  to="/dashboard/connectors/mcp"
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                >
-                  {{ $t('__actionCancel') }}
-                </UButton>
-                <UButton
-                  type="submit"
-                  form="mcp-connect-form"
-                  :loading="isSubmitting"
-                  size="sm"
-                >
-                  {{ $t('__actionAddMcpServer') }}
-                </UButton>
-              </div>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="font-semibold">
+              {{ $t('__titleSettings') }}
+            </h2>
+            <div class="flex items-center gap-2">
+              <UButton
+                to="/dashboard/connectors/mcp"
+                color="neutral"
+                variant="outline"
+                size="sm"
+              >
+                {{ $t('__actionCancel') }}
+              </UButton>
+              <UButton
+                type="submit"
+                form="mcp-connect-form"
+                :loading="isSubmitting"
+                size="sm"
+              >
+                {{ $t('__actionConnect') }}
+              </UButton>
             </div>
-          </template>
+          </div>
 
-          <UForm
-            id="mcp-connect-form"
-            :schema="schema"
-            :state="state"
-            class="flex flex-col gap-6"
-            @submit="onSubmit"
-          >
-            <UFormField
-              :label="$t('__labelMcpServerName')"
-              name="displayName"
-              required
-              :help="$t('__hintMcpServerName')"
+          <UCard>
+            <UForm
+              id="mcp-connect-form"
+              :schema="schema"
+              :state="state"
+              class="flex flex-col gap-6"
+              @submit="onSubmit"
             >
-              <UInput
-                v-model.trim="state.displayName"
-                autocomplete="off"
-              />
-            </UFormField>
+              <UFormField
+                :label="$t('__labelMcpServerName')"
+                name="displayName"
+                required
+                :help="$t('__hintMcpServerName')"
+              >
+                <UInput
+                  v-model.trim="state.displayName"
+                  autocomplete="off"
+                />
+              </UFormField>
 
-            <UFormField
-              :label="$t('__labelMcpServerUrl')"
-              name="url"
-              required
-              :help="$t('__hintMcpServerUrl')"
-            >
-              <UInput
-                v-model.trim="state.url"
-                icon="i-lucide-link"
-                placeholder="https://example.com/mcp"
-                autocomplete="off"
-              />
-            </UFormField>
+              <UFormField
+                :label="$t('__labelMcpServerUrl')"
+                name="url"
+                required
+                :help="$t('__hintMcpServerUrl')"
+              >
+                <UInput
+                  v-model.trim="state.url"
+                  icon="i-lucide-link"
+                  placeholder="https://example.com/mcp"
+                  autocomplete="off"
+                />
+              </UFormField>
 
-            <UFormField
-              :label="$t('__labelBearerToken')"
-              name="token"
-              :help="$t('__hintMcpServerToken')"
-            >
-              <UInput
-                v-model.trim="state.token"
-                icon="i-lucide-key-round"
-                type="password"
-                autocomplete="off"
-              />
-            </UFormField>
-          </UForm>
-        </UCard>
+              <UFormField
+                :label="$t('__labelBearerToken')"
+                name="token"
+                :help="$t('__hintMcpServerToken')"
+              >
+                <UInput
+                  v-model.trim="state.token"
+                  icon="i-lucide-key-round"
+                  type="password"
+                  autocomplete="off"
+                />
+              </UFormField>
+            </UForm>
+          </UCard>
+        </div>
       </DashboardContainer>
     </NuxtLayout>
   </div>
