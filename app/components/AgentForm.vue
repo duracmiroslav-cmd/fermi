@@ -23,14 +23,15 @@ import {
 // undefined at the display computeds; API boundary passes null
 // through to the PATCH body, which the DB stores as NULL.
 interface AgentFormValue {
-  name:               string;
-  systemPrompt:       string;
-  defaultTextModel:   string | null;
-  defaultVisionModel: string | null;
-  defaultTtsModel:    TtsModel | null;
-  defaultTtsVoice:    TtsVoice | null;
-  ttsInstructions:    string;
-  voiceReplyMode:     VoiceReplyMode;
+  name:                 string;
+  systemPrompt:         string;
+  defaultTextModel:     string | null;
+  defaultVisionModel:   string | null;
+  defaultTtsModel:      TtsModel | null;
+  defaultTtsVoice:      TtsVoice | null;
+  ttsInstructions:      string;
+  voiceReplyMode:       VoiceReplyMode;
+  normalizeTraditional: boolean;
 }
 
 interface ProviderModel {
@@ -72,10 +73,11 @@ const state = reactive<AgentFormValue>({
     : DEFAULT_VISION_MODEL,
   // TTS fields stay null on new agents so the worker fallback wins;
   // the placeholder copy surfaces what that fallback resolves to.
-  defaultTtsModel: props.initialValue?.defaultTtsModel ?? null,
-  defaultTtsVoice: props.initialValue?.defaultTtsVoice ?? null,
-  ttsInstructions: props.initialValue?.ttsInstructions ?? '',
-  voiceReplyMode:  props.initialValue?.voiceReplyMode ?? 'off',
+  defaultTtsModel:      props.initialValue?.defaultTtsModel ?? null,
+  defaultTtsVoice:      props.initialValue?.defaultTtsVoice ?? null,
+  ttsInstructions:      props.initialValue?.ttsInstructions ?? '',
+  voiceReplyMode:       props.initialValue?.voiceReplyMode ?? 'off',
+  normalizeTraditional: props.initialValue?.normalizeTraditional ?? true,
 });
 
 const isTextModelPickerOpening = ref(false);
@@ -631,6 +633,14 @@ onUnmounted(stopPreviewAudio);
         :description="$t('__hintFreeModelRateLimited')"
       />
     </div>
+
+    <UFormField
+      :label="$t('__labelNormalizeTraditional')"
+      name="normalizeTraditional"
+      :help="$t('__hintNormalizeTraditional')"
+    >
+      <USwitch v-model="state.normalizeTraditional" />
+    </UFormField>
 
     <UFormField
       :label="$t('__labelVoiceReply')"

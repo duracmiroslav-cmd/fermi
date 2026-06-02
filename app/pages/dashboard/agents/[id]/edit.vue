@@ -5,18 +5,19 @@ import type { TtsModel, TtsVoice } from '~~/shared/tts';
 definePageMeta({ layout: false });
 
 interface AgentDetail {
-  id:                 string;
-  name:               string;
-  systemPrompt:       string | null;
-  defaultTextModel:   string | null;
-  defaultVisionModel: string | null;
-  defaultTtsModel:    TtsModel | null;
-  defaultTtsVoice:    TtsVoice | null;
-  ttsInstructions:    string | null;
-  voiceReplyMode:     VoiceReplyMode;
-  avatarUrl:          string | null;
-  isDefault:          boolean;
-  bots:               Array<{ id: string; displayName: string | null; platform: string }>;
+  id:                   string;
+  name:                 string;
+  systemPrompt:         string | null;
+  defaultTextModel:     string | null;
+  defaultVisionModel:   string | null;
+  defaultTtsModel:      TtsModel | null;
+  defaultTtsVoice:      TtsVoice | null;
+  ttsInstructions:      string | null;
+  voiceReplyMode:       VoiceReplyMode;
+  normalizeTraditional: boolean;
+  avatarUrl:            string | null;
+  isDefault:            boolean;
+  bots:                 Array<{ id: string; displayName: string | null; platform: string }>;
 }
 
 const route = useRoute();
@@ -32,28 +33,30 @@ const deleting = ref(false);
 const deleteDialogOpen = ref(false);
 
 const onSubmit = async (value: {
-  name:               string;
-  systemPrompt:       string;
-  defaultTextModel:   string | null;
-  defaultVisionModel: string | null;
-  defaultTtsModel:    TtsModel | null;
-  defaultTtsVoice:    TtsVoice | null;
-  ttsInstructions:    string;
-  voiceReplyMode:     VoiceReplyMode;
+  name:                 string;
+  systemPrompt:         string;
+  defaultTextModel:     string | null;
+  defaultVisionModel:   string | null;
+  defaultTtsModel:      TtsModel | null;
+  defaultTtsVoice:      TtsVoice | null;
+  ttsInstructions:      string;
+  voiceReplyMode:       VoiceReplyMode;
+  normalizeTraditional: boolean;
 }) => {
   saving.value = true;
   try {
     await $fetch(`/api/agents/${route.params.id}`, {
       method: 'PATCH',
       body:   {
-        name:               value.name,
-        systemPrompt:       value.systemPrompt || null,
-        defaultTextModel:   value.defaultTextModel,
-        defaultVisionModel: value.defaultVisionModel,
-        defaultTtsModel:    value.defaultTtsModel,
-        defaultTtsVoice:    value.defaultTtsVoice,
-        ttsInstructions:    value.ttsInstructions || null,
-        voiceReplyMode:     value.voiceReplyMode,
+        name:                 value.name,
+        systemPrompt:         value.systemPrompt || null,
+        defaultTextModel:     value.defaultTextModel,
+        defaultVisionModel:   value.defaultVisionModel,
+        defaultTtsModel:      value.defaultTtsModel,
+        defaultTtsVoice:      value.defaultTtsVoice,
+        ttsInstructions:      value.ttsInstructions || null,
+        voiceReplyMode:       value.voiceReplyMode,
+        normalizeTraditional: value.normalizeTraditional,
       },
     });
     notify.success(t('__toastAgentUpdated'));
@@ -178,6 +181,7 @@ const onDelete = async () => {
                 defaultTtsVoice: agent.defaultTtsVoice,
                 ttsInstructions: agent.ttsInstructions ?? '',
                 voiceReplyMode: agent.voiceReplyMode,
+                normalizeTraditional: agent.normalizeTraditional,
               }"
               @submit="onSubmit"
             />
