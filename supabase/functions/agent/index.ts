@@ -31,6 +31,7 @@ import {
   LineReplyError,
   REPLY_BUDGET_MS,
   safeReply,
+  showLoadingAnimation,
   type LineMessage,
 } from './channels/line.ts';
 import { OpenRouterError, completeChat, type ChatMessage } from './openrouter.ts';
@@ -61,6 +62,11 @@ const HISTORY_WINDOW = 20;
 // headroom without risking the Edge Function's 400s wall clock when
 // tools are slow.
 const MAX_AGENT_STEPS = 8;
+
+// LINE's loading indicator lasts at most 60s per call. Re-fire a little
+// before that so a multi-step run that runs long keeps showing "..." rather
+// than going silent and looking broken.
+const LOADING_REFRESH_MS = 50_000;
 
 interface LineSource {
   type: 'user' | 'group' | 'room';
@@ -273,8 +279,24 @@ const runAgentLoop = async (params: {
     // with a CTA. Already-paid LLM cost up to this point is sunk;
     // the gate prevents further iterations on the same run.
     let extendedRunConsumed = false;
+
+    // The webhook primed LINE's "..." once on receipt; re-fire before each
+    // iteration once that window is about to lapse so a long tool loop keeps
+    // signalling "working" instead of looking dead. Best-effort.
+    let lastLoadingAt = 0;
+    const keepLoadingAlive = async (): Promise<void> => {
+      if (Date.now() - lastLoadingAt < LOADING_REFRESH_MS) return;
+      lastLoadingAt = Date.now();
+      try {
+        await showLoadingAnimation(lineAccessToken, externalUserId);
+      } catch (err) {
+        console.error('loading animation refresh failed', err);
+      }
+    };
+
     while (iteration < MAX_AGENT_STEPS) {
       iteration++;
+      await keepLoadingAlive();
 
       if (!extendedRunConsumed && (Date.now() - eventTimestamp) >= REPLY_BUDGET_MS) {
         const exQuota = await consumeQuota(admin, COUNTER_ENV, {

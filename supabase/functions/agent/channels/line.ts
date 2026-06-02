@@ -117,6 +117,29 @@ const pushMessages = async (
   }
 };
 
+// Re-arms LINE's typing indicator ("..."). Each call lasts at most 60s, so a
+// long multi-step run re-fires before the previous one lapses to avoid looking
+// dead. loadingSeconds must be a multiple of 5 in [5, 60]. Best-effort: the
+// caller swallows failures so a missing indicator never breaks the run.
+export const showLoadingAnimation = async (
+  accessToken: string,
+  chatId: string,
+  loadingSeconds = 60,
+): Promise<void> => {
+  const res = await fetch('https://api.line.me/v2/bot/chat/loading/start', {
+    method: 'POST',
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ chatId, loadingSeconds }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new LinePushError(res.status, `LINE Loading API ${res.status}: ${body}`);
+  }
+};
+
 export type DeliveryMethod = 'reply' | 'push';
 
 // Delivers the bot's response, picking Reply (free) when we're inside the
