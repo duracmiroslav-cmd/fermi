@@ -90,6 +90,12 @@ const previewingVoice = ref<TtsVoice | null>(null);
 const playingVoice = ref<TtsVoice | null>(null);
 const previewAudio = ref<HTMLAudioElement | null>(null);
 
+// Behavioral toggles (voice reply, Traditional conversion) only render
+// when editing. The create form stays light — they fall back to their
+// column defaults (off / on) and get tuned later. initialValue is
+// present only on the edit page.
+const isEditing = computed(() => props.initialValue != null);
+
 // Hide value while loading to avoid a UUID flash before names arrive.
 const displayTextModelId = computed<string | undefined>({
   get: () => (modelsPending.value ? undefined : state.defaultTextModel ?? undefined),
@@ -635,6 +641,7 @@ onUnmounted(stopPreviewAudio);
     </div>
 
     <UFormField
+      v-if="isEditing"
       :label="$t('__labelNormalizeTraditional')"
       name="normalizeTraditional"
       :help="$t('__hintNormalizeTraditional')"
@@ -643,6 +650,7 @@ onUnmounted(stopPreviewAudio);
     </UFormField>
 
     <UFormField
+      v-if="isEditing"
       :label="$t('__labelVoiceReply')"
       name="voiceReplyMode"
       :help="$t('__hintVoiceReply')"

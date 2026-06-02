@@ -8,28 +8,26 @@ const notify = useNotify();
 const saving = ref(false);
 
 const onSubmit = async (value: {
-  name:                 string;
-  systemPrompt:         string;
-  defaultTextModel:     string | null;
-  defaultVisionModel:   string | null;
-  defaultTtsModel:      TtsModel | null;
-  defaultTtsVoice:      TtsVoice | null;
-  ttsInstructions:      string;
-  normalizeTraditional: boolean;
+  name:               string;
+  systemPrompt:       string;
+  defaultTextModel:   string | null;
+  defaultVisionModel: string | null;
+  defaultTtsModel:    TtsModel | null;
+  defaultTtsVoice:    TtsVoice | null;
+  ttsInstructions:    string;
 }) => {
   saving.value = true;
   try {
     const created = await $fetch<{ id: string }>('/api/agents', {
       method: 'POST',
       body:   {
-        name:                 value.name,
-        systemPrompt:         value.systemPrompt || null,
-        defaultTextModel:     value.defaultTextModel,
-        defaultVisionModel:   value.defaultVisionModel,
-        defaultTtsModel:      value.defaultTtsModel,
-        defaultTtsVoice:      value.defaultTtsVoice,
-        ttsInstructions:      value.ttsInstructions || null,
-        normalizeTraditional: value.normalizeTraditional,
+        name:               value.name,
+        systemPrompt:       value.systemPrompt || null,
+        defaultTextModel:   value.defaultTextModel,
+        defaultVisionModel: value.defaultVisionModel,
+        defaultTtsModel:    value.defaultTtsModel,
+        defaultTtsVoice:    value.defaultTtsVoice,
+        ttsInstructions:    value.ttsInstructions || null,
       },
     });
     notify.success(t('__toastAgentCreated'));
