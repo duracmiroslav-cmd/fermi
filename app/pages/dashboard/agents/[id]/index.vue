@@ -54,7 +54,7 @@ interface ProviderModel {
 const route = useRoute();
 const { t } = useI18n();
 
-const { data: agent, error, pending } = useApiFetch<AgentDetail>(
+const { data: agent, error, pending, refresh } = useApiFetch<AgentDetail>(
   () => `/api/agents/${route.params.id}`,
   { key: route.params.id as string },
 );
@@ -172,6 +172,11 @@ const visionModel = computed<ProviderModel>(() => {
             </div>
           </UCard>
         </div>
+
+        <AgentBuilderChat
+          :agent-id="agent.id"
+          @updated="refresh"
+        />
 
         <AgentTestChat :agent-id="agent.id" />
 
