@@ -39,7 +39,6 @@ watch(() => route.path, () => {
           <slot name="title" />
         </div>
         <div class="flex items-center gap-2">
-          <LocaleSwitcher />
           <slot name="actions" />
         </div>
       </header>
