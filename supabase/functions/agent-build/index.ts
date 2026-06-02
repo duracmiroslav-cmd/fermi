@@ -6,6 +6,7 @@
 // but the tools have side effects on the bound agent.
 
 import { createClient } from '@supabase/supabase-js';
+import { loadActiveCapabilities } from '../../../shared/agentCapabilities.ts';
 import { findAgentById } from '../../../shared/agents.ts';
 import { getKek } from '../../../shared/kek.ts';
 import { DEFAULT_TEXT_MODEL } from '../../../shared/constants/models.ts';
@@ -52,8 +53,18 @@ Deno.serve(async (req) => {
   const kek = await getKek(fermiKek);
   const toolset = buildBuilderToolset(admin, agent.ownerId, agent.id);
 
+  // Inject the agent's current config so the builder edits in place
+  // (revise the existing prompt, keep capabilities it isn't changing)
+  // rather than starting blind on every turn.
+  const capabilities = await loadActiveCapabilities(admin, agent.id);
+  const systemPrompt = builderSystemPrompt({
+    name:            agent.name,
+    systemPrompt:    agent.systemPrompt,
+    capabilitySlugs: capabilities.map(c => c.slug),
+  });
+
   const messages: ChatMessage[] = [
-    { role: 'system', content: builderSystemPrompt() },
+    { role: 'system', content: systemPrompt },
     ...payload.messages.map(m => ({ role: m.role, content: m.content })),
   ];
 

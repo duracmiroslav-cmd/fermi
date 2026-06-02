@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it } from 'vitest';
-import { buildBuilderToolset } from '../../supabase/functions/agent-build/builder';
+import { buildBuilderToolset, builderSystemPrompt } from '../../supabase/functions/agent-build/builder';
 
 // In-memory model of the rows + RPCs the builder tools touch, so the
 // set_capabilities diff (attach desired, detach removed, ignore unknown
@@ -42,6 +42,25 @@ const makeAdmin = (builtinCaps: Cap[], currentAttached: Array<{ capability_id: s
 
 const exec = (toolset: ReturnType<typeof buildBuilderToolset>, name: string, args: unknown) =>
   toolset.execute(name, JSON.stringify(args), {} as never);
+
+describe('builderSystemPrompt', () => {
+  it('injects the current config so the builder edits in place', () => {
+    const prompt = builderSystemPrompt({
+      name:            'Cafe Host',
+      systemPrompt:    'You are a warm cafe host.',
+      capabilitySlugs: ['time', 'web-search'],
+    });
+    expect(prompt).toContain('Cafe Host');
+    expect(prompt).toContain('You are a warm cafe host.');
+    expect(prompt).toContain('time, web-search');
+  });
+
+  it('marks an unconfigured agent as starting from scratch', () => {
+    const prompt = builderSystemPrompt({ name: 'My agent', systemPrompt: null, capabilitySlugs: [] });
+    expect(prompt).toContain('(none yet)');
+    expect(prompt).toContain('(none)');
+  });
+});
 
 describe('builder update_agent', () => {
   it('writes name and system_prompt', async () => {
