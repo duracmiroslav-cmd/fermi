@@ -97,6 +97,12 @@ interface RawCompletionResponse {
 // balances even though no real reply ever needs that much).
 const MAX_REPLY_TOKENS = 4096;
 
+// Free-tier models share an upstream rate-limit pool and 429 transiently;
+// OpenRouter's own guidance is to retry shortly. One short retry absorbs most
+// of these before the user ever sees a "busy" notice. A 429 rejects the
+// request outright (no completion, no charge), so the retry never double-bills.
+const RETRY_DELAY_MS = 1_500;
+
 export const completeChat = async (params: {
   apiKey: string;
   model: string;
@@ -112,17 +118,24 @@ export const completeChat = async (params: {
     body.tools = params.tools;
   }
 
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${params.apiKey}`,
-      // Surfaced in OpenRouter Activity so traffic is attributable.
-      'HTTP-Referer': 'https://fermi.tw',
-      'X-Title': 'fermi',
-    },
-    body: JSON.stringify(body),
-  });
+  const request = (): Promise<Response> =>
+    fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${params.apiKey}`,
+        // Surfaced in OpenRouter Activity so traffic is attributable.
+        'HTTP-Referer': 'https://fermi.tw',
+        'X-Title': 'fermi',
+      },
+      body: JSON.stringify(body),
+    });
+
+  let res = await request();
+  if (res.status === 429) {
+    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+    res = await request();
+  }
 
   if (!res.ok) {
     const errBody = await res.text();

@@ -628,7 +628,7 @@ const runAgentLoop = async (params: {
         accessToken: lineAccessToken,
         replyToken,
         userId: externalUserId,
-        messages: [{ type: 'text', text: t('__noticeServiceError', ownerLocale) }],
+        messages: [{ type: 'text', text: t(errStatus === 429 ? '__noticeBusyRetry' : '__noticeServiceError', ownerLocale) }],
         elapsedMs: Date.now() - eventTimestamp,
       });
       userNotified = true;
