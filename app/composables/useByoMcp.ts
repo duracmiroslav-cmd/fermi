@@ -14,6 +14,7 @@ export const useByoMcp = () => {
     isSubmitting.value = true;
     try {
       await $fetch('/api/connectors/mcp', { method: 'POST', body });
+      await refresh();
       notify.success(t('__toastMcpServerAdded', { name: body.displayName }));
       return true;
     } catch (e) {
