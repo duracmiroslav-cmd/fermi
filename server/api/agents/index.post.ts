@@ -1,3 +1,4 @@
+import type { Database } from '~~/app/types/database.types';
 import { getCurrentUser } from '~~/server/utils/auth';
 import { AGENT_LIMIT, type Tier } from '~~/shared/constants/tiers';
 import { createAgentInputSchema } from '~~/shared/schemas/agents';
@@ -34,6 +35,8 @@ export default defineEventHandler(async (event) => {
     modelProviderId = provider.id;
   }
 
+  // The generated Args type marks every text param non-null, but these columns
+  // and their SQL params accept NULL — cast past the generator's blind spot.
   const { data: rows, error: insertErr } = await admin.rpc('insert_agent_if_under_limit', {
     p_owner_id:              user.id,
     p_name:                  input.name,
@@ -48,7 +51,7 @@ export default defineEventHandler(async (event) => {
     p_normalize_traditional: input.normalizeTraditional ?? true,
     p_avatar_url:            input.avatarUrl ?? null,
     p_limit:                 limit,
-  });
+  } as Database['public']['Functions']['insert_agent_if_under_limit']['Args']);
   if (insertErr) {
     if (insertErr.message?.includes('agent_limit_reached')) {
       throw createError({

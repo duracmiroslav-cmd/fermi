@@ -1,3 +1,4 @@
+import type { Database } from '~~/app/types/database.types';
 import { getCurrentUser } from '~~/server/utils/auth';
 import { updateAgentInputSchema } from '~~/shared/schemas/agents';
 
@@ -13,7 +14,7 @@ export default defineEventHandler(async (event) => {
   }
   const input = parsed.data;
 
-  const patch: Record<string, unknown> = {};
+  const patch: Database['public']['Tables']['agents']['Update'] = {};
   if ('name' in input) patch.name = input.name;
   if ('systemPrompt' in input) patch.system_prompt = input.systemPrompt;
   if ('defaultTextModel' in input) patch.default_text_model = input.defaultTextModel;

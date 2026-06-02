@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Json } from '~~/app/types/database.types';
 import { getCurrentUser } from '~~/server/utils/auth';
 
 // Updates the per-agent config override for one capability binding.
@@ -6,7 +7,7 @@ import { getCurrentUser } from '~~/server/utils/auth';
 // runtime; omitted fields continue to inherit the global value.
 
 const bodySchema = z.object({
-  config: z.record(z.unknown()),
+  config: z.record(z.string(), z.unknown()),
 });
 
 export default defineEventHandler(async (event) => {
@@ -26,7 +27,7 @@ export default defineEventHandler(async (event) => {
     p_agent_id:      agentId,
     p_owner_id:      user.id,
     p_capability_id: capabilityId,
-    p_config:        parsed.data.config,
+    p_config:        parsed.data.config as Json,
   });
   if (updateErr) {
     if (updateErr.message?.includes('agent_not_found')) {

@@ -1,8 +1,9 @@
 import { type SupabaseClient, createClient } from '@supabase/supabase-js';
+import type { Database } from '~~/app/types/database.types';
 
-let cached: SupabaseClient | null = null;
+let cached: SupabaseClient<Database> | null = null;
 
-export const useSupabaseAdmin = (): SupabaseClient => {
+export const useSupabaseAdmin = (): SupabaseClient<Database> => {
   if (cached) return cached;
 
   const { supabaseUrl, supabaseServiceRoleKey } = useRuntimeConfig();
