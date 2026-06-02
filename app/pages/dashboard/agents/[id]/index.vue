@@ -173,6 +173,8 @@ const visionModel = computed<ProviderModel>(() => {
           </UCard>
         </div>
 
+        <AgentTestChat :agent-id="agent.id" />
+
         <div class="flex flex-col gap-3">
           <h2 class="font-semibold">
             {{ $t('__titleDetails') }}

@@ -34,7 +34,8 @@ import {
   showLoadingAnimation,
   type LineMessage,
 } from './channels/line.ts';
-import { OpenRouterError, completeChat, type ChatMessage } from './openrouter.ts';
+import { OpenRouterError, type ChatMessage } from './openrouter.ts';
+import { MAX_AGENT_STEPS, runAgentConversation } from './loop.ts';
 import { COUNTER_ENV, consumeQuota } from './quota.ts';
 import { deriveErrorCode, finishRun, logStep, startRun } from './runs.ts';
 import { STTError, transcribeAudio } from './stt.ts';
@@ -58,11 +59,6 @@ const admin = createClient(supabaseUrl, supabaseServiceRoleKey, {
 });
 
 const HISTORY_WINDOW = 20;
-// Hard cap on LLM iterations per run. A typical multi-step query
-// (read calendar → search docs → answer) finishes in 3-5; 8 leaves
-// headroom without risking the Edge Function's 400s wall clock when
-// tools are slow.
-const MAX_AGENT_STEPS = 8;
 
 // LINE's loading indicator lasts at most 60s per call. Re-fire a little
 // before that so a multi-step run that runs long keeps showing "..." rather
@@ -257,7 +253,6 @@ const runAgentLoop = async (params: {
     // an LLM call already in flight believes it has.
     const attachedCapabilities = await loadActiveCapabilities(admin, agent.id);
     const toolset = await buildToolset(attachedCapabilities, { admin, kek, ownerId: bot.ownerId });
-    const tools = toolset.schemas;
 
     const history = await loadRecentMessages(admin, threadId, HISTORY_WINDOW);
     const systemPrompt = wrapSystemPrompt(
@@ -275,7 +270,7 @@ const runAgentLoop = async (params: {
     // below, so subsequent loop iterations don't re-pay the same 4xx.
     // Each branch falls back to its own default with no cross-over:
     // vision → vision default, text → text default.
-    let model = hasImageInHistory
+    const model = hasImageInHistory
       ? (agent.defaultVisionModel ?? DEFAULT_VISION_MODEL)
       : (agent.defaultTextModel ?? DEFAULT_TEXT_MODEL);
     const fallbackModel = hasImageInHistory ? DEFAULT_VISION_MODEL : DEFAULT_TEXT_MODEL;
@@ -285,150 +280,41 @@ const runAgentLoop = async (params: {
       ...history,
     ];
 
-    let finalText: string | null = null;
-    let iteration = 0;
-    // INCR extended_run quota at most once per run, the first time
-    // wall time crosses the reply-token budget. Block → abort loop
-    // with a CTA. Already-paid LLM cost up to this point is sunk;
-    // the gate prevents further iterations on the same run.
     let extendedRunConsumed = false;
-    while (iteration < MAX_AGENT_STEPS) {
-      iteration++;
-
-      if (!extendedRunConsumed && (Date.now() - eventTimestamp) >= REPLY_BUDGET_MS) {
+    const conversation = await runAgentConversation({
+      apiKey: openrouterKey,
+      model,
+      fallbackModel,
+      messages,
+      toolset,
+      toolContextBase: { admin, kek, ownerId: bot.ownerId, threadId, runId, attachments },
+      maxSteps: MAX_AGENT_STEPS,
+      onStep: s => logStep(admin, {
+        runId,
+        step:            step++,
+        type:            s.type,
+        payload:         s.payload,
+        latencyMs:       s.latencyMs,
+        costUsd:         s.costUsd,
+        openrouterGenId: s.openrouterGenId,
+      }),
+      // extended_run quota: INCR at most once per run, the first time
+      // wall time crosses the reply-token budget. Aborting ends the loop
+      // with a CTA; already-paid LLM cost up to that point is sunk.
+      beforeIteration: async () => {
+        if (extendedRunConsumed || (Date.now() - eventTimestamp) < REPLY_BUDGET_MS) return null;
         const exQuota = await consumeQuota(admin, COUNTER_ENV, {
           ownerId: bot.ownerId,
           purpose: 'extended_run',
         });
         extendedRunConsumed = true;
-        if (!exQuota.allowed) {
-          finalText = t('__noticeQuotaExtendedRunExhausted', ownerLocale);
-          break;
-        }
-      }
-
-      await logStep(admin, {
-        runId,
-        step: step++,
-        type: 'llm_requested',
-        payload: { model, message_count: messages.length, iteration },
-      });
-
-      const llmStart = performance.now();
-      let result;
-      try {
-        result = await completeChat({
-          apiKey: openrouterKey,
-          model,
-          messages,
-          tools,
-        });
-      } catch (err) {
-        // OpenRouter 404 on a chat completion almost always means the
-        // model id retired (the endpoint is fixed every call, so
-        // path-not-found is structurally impossible). Retry once with
-        // the fermi default for this branch, then carry the fallback
-        // forward so subsequent iterations don't re-pay the 404 cost.
-        // Same-id guard: if the default itself 404s, let the error up.
-        if (err instanceof OpenRouterError && err.status === 404 && model !== fallbackModel) {
-          console.warn('Model retired, retrying with default', {
-            originalModel: model,
-            fallbackModel,
-            agentId:       agent.id,
-          });
-          model = fallbackModel;
-          result = await completeChat({
-            apiKey: openrouterKey,
-            model,
-            messages,
-            tools,
-          });
-        } else {
-          throw err;
-        }
-      }
-      const llmLatency = Math.round(performance.now() - llmStart);
-      totalCostUsd += result.costUsd;
-
-      await logStep(admin, {
-        runId,
-        step: step++,
-        type: 'llm_responded',
-        payload: {
-          model: result.model,
-          finish_reason: result.finishReason,
-          usage: result.usage,
-          has_tool_calls: result.toolCalls !== null,
-        },
-        latencyMs: llmLatency,
-        costUsd: result.costUsd,
-        openrouterGenId: result.generationId,
-      });
-
-      if (!result.toolCalls) {
-        finalText = result.text ?? '';
-        break;
-      }
-
-      // Re-attach the assistant turn (including tool_calls) so the
-      // next LLM iteration sees the exchange. OpenAI's format requires
-      // each tool message to immediately follow the assistant turn
-      // that requested it.
-      messages.push({
-        role: 'assistant',
-        content: result.text,
-        tool_calls: result.toolCalls.map(tc => ({
-          id: tc.id,
-          type: 'function',
-          function: { name: tc.name, arguments: tc.argumentsJson },
-        })),
-      });
-
-      for (const call of result.toolCalls) {
-        await logStep(admin, {
-          runId,
-          step: step++,
-          type: 'tool_called',
-          payload: {
-            tool_call_id: call.id,
-            name: call.name,
-            arguments: call.argumentsJson,
-          },
-        });
-
-        const toolStart = performance.now();
-        const toolResult = await toolset.execute(call.name, call.argumentsJson, {
-          admin,
-          kek,
-          ownerId: bot.ownerId,
-          threadId,
-          runId,
-          toolCallId: call.id,
-          attachments,
-        });
-        const toolLatency = Math.round(performance.now() - toolStart);
-
-        await logStep(admin, {
-          runId,
-          step: step++,
-          type: 'tool_responded',
-          payload: {
-            tool_call_id: call.id,
-            name: call.name,
-            // Truncated preview keeps payload row size sane; full
-            // result still flows back to the model via the tool turn.
-            result_preview: toolResult.slice(0, 500),
-          },
-          latencyMs: toolLatency,
-        });
-
-        messages.push({
-          role: 'tool',
-          tool_call_id: call.id,
-          content: toolResult,
-        });
-      }
-    }
+        return exQuota.allowed
+          ? null
+          : { abort: true, text: t('__noticeQuotaExtendedRunExhausted', ownerLocale) };
+      },
+    });
+    totalCostUsd += conversation.totalCostUsd;
+    let finalText: string | null = conversation.hitStepCap ? null : conversation.text;
 
     // Hit the step cap without a terminal assistant turn. Send the
     // user a clear "I stopped" notice rather than nothing.
