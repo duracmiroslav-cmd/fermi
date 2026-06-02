@@ -90,10 +90,11 @@ const previewingVoice = ref<TtsVoice | null>(null);
 const playingVoice = ref<TtsVoice | null>(null);
 const previewAudio = ref<HTMLAudioElement | null>(null);
 
-// Behavioral toggles (voice reply, Traditional conversion) only render
-// when editing. The create form stays light — they fall back to their
-// column defaults (off / on) and get tuned later. initialValue is
-// present only on the edit page.
+// The create form is intentionally minimal: name, system prompt, and
+// text model only. Vision model, TTS (model / voice / instructions),
+// voice reply, and Traditional conversion render on edit only and fall
+// back to their column defaults at creation, keeping onboarding light.
+// initialValue is present only on the edit page.
 const isEditing = computed(() => props.initialValue != null);
 
 // Hide value while loading to avoid a UUID flash before names arrive.
@@ -518,7 +519,10 @@ onUnmounted(stopPreviewAudio);
       />
     </div>
 
-    <div class="flex flex-col gap-2">
+    <div
+      v-if="isEditing"
+      class="flex flex-col gap-2"
+    >
       <UFormField
         :label="$t('__labelVisionModel', 1)"
         name="defaultVisionModel"
@@ -662,6 +666,7 @@ onUnmounted(stopPreviewAudio);
     </UFormField>
 
     <UFormField
+      v-if="isEditing"
       :label="$t('__labelVoiceModel', 1)"
       name="defaultTtsModel"
       :help="$t('__hintTtsModel')"
@@ -706,6 +711,7 @@ onUnmounted(stopPreviewAudio);
     </UFormField>
 
     <UFormField
+      v-if="isEditing"
       :label="$t('__labelVoice', 1)"
       name="defaultTtsVoice"
       :help="$t('__hintTtsVoice')"
@@ -776,6 +782,7 @@ onUnmounted(stopPreviewAudio);
     </UFormField>
 
     <UFormField
+      v-if="isEditing"
       :label="$t('__labelVoiceInstructions')"
       name="ttsInstructions"
       :help="$t(isInstructionsSupported ? '__hintTtsVoiceInstructionsSupported' : '__hintTtsVoiceInstructionsUnsupported')"

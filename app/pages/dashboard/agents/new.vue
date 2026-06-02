@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { TtsModel, TtsVoice } from '~~/shared/tts';
-
 definePageMeta({ layout: false });
 
 const { t } = useI18n();
@@ -8,26 +6,18 @@ const notify = useNotify();
 const saving = ref(false);
 
 const onSubmit = async (value: {
-  name:               string;
-  systemPrompt:       string;
-  defaultTextModel:   string | null;
-  defaultVisionModel: string | null;
-  defaultTtsModel:    TtsModel | null;
-  defaultTtsVoice:    TtsVoice | null;
-  ttsInstructions:    string;
+  name:             string;
+  systemPrompt:     string;
+  defaultTextModel: string | null;
 }) => {
   saving.value = true;
   try {
     const created = await $fetch<{ id: string }>('/api/agents', {
       method: 'POST',
       body:   {
-        name:               value.name,
-        systemPrompt:       value.systemPrompt || null,
-        defaultTextModel:   value.defaultTextModel,
-        defaultVisionModel: value.defaultVisionModel,
-        defaultTtsModel:    value.defaultTtsModel,
-        defaultTtsVoice:    value.defaultTtsVoice,
-        ttsInstructions:    value.ttsInstructions || null,
+        name:             value.name,
+        systemPrompt:     value.systemPrompt || null,
+        defaultTextModel: value.defaultTextModel,
       },
     });
     notify.success(t('__toastAgentCreated'));
