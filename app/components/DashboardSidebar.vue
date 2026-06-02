@@ -28,11 +28,6 @@
         icon="i-lucide-gauge"
         :label="$t('__labelUsage')"
       />
-      <DashboardNavItem
-        to="/dashboard/settings"
-        icon="i-lucide-settings"
-        :label="$t('__titleSettings')"
-      />
     </nav>
 
     <div class="p-3">

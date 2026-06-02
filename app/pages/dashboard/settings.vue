@@ -42,29 +42,34 @@ const onSave = async () => {
       </template>
 
       <DashboardContainer>
-        <div class="flex items-center justify-between gap-4">
-          <h1 class="text-2xl font-semibold">
-            {{ $t('__titleSettings') }}
-          </h1>
-          <UButton
-            :loading="saving"
-            size="sm"
-            @click="onSave"
-          >
-            {{ $t('__actionSave') }}
-          </UButton>
-        </div>
+        <h1 class="text-2xl font-semibold">
+          {{ $t('__titleSettings') }}
+        </h1>
 
-        <UCard>
-          <UFormField :label="$t('__labelLanguage')">
-            <USelect
-              v-model="selectedLocale"
-              :items="localeItems"
-              value-key="value"
-              class="w-full"
-            />
-          </UFormField>
-        </UCard>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="font-semibold">
+              {{ $t('__titleGeneral') }}
+            </h2>
+            <UButton
+              :loading="saving"
+              size="sm"
+              @click="onSave"
+            >
+              {{ $t('__actionSave') }}
+            </UButton>
+          </div>
+          <UCard>
+            <UFormField :label="$t('__labelLanguage')">
+              <USelect
+                v-model="selectedLocale"
+                :items="localeItems"
+                value-key="value"
+                class="w-full"
+              />
+            </UFormField>
+          </UCard>
+        </div>
       </DashboardContainer>
     </NuxtLayout>
   </div>
