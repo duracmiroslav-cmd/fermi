@@ -3,6 +3,7 @@ import type { VoiceReplyMode } from '~~/shared/agents';
 import { DEFAULT_VISION_MODEL, resolveTextModel } from '~~/shared/constants/models';
 import {
   DEFAULT_TTS_MODEL_NAME,
+  DEFAULT_TTS_VOICE,
   DEFAULT_TTS_VOICE_NAME,
   type TtsModel,
   type TtsVoice,
@@ -80,11 +81,12 @@ const model = computed<ProviderModel & { isDefault: boolean }>(() => {
 
 // The worker swaps to this whenever a conversation includes an image.
 // Falls back to the hardcoded default when the agent hasn't set one.
-const visionModel = computed<ProviderModel>(() => {
+const visionModel = computed<ProviderModel & { isDefault: boolean }>(() => {
+  const isDefault = !agent.value?.defaultVisionModel;
   const id = agent.value?.defaultVisionModel ?? DEFAULT_VISION_MODEL;
   const found = (models.value ?? []).find(m => m.id === id)
     ?? { id, name: id, avatar: { icon: 'i-lucide-eye' } };
-  return { ...found, name: stripProviderPrefix(found.name) };
+  return { ...found, name: stripProviderPrefix(found.name), isDefault };
 });
 
 // The builder mutates the prompt *and* capabilities. The page-level refresh
@@ -236,7 +238,7 @@ const onBuilderUpdated = () => {
                       rel="noopener"
                       class="flex items-center gap-1.5 min-w-0 text-primary hover:underline"
                     >
-                      <span class="truncate">{{ visionModel.name }}</span>
+                      <span class="truncate">{{ visionModel.isDefault ? `${visionModel.name} ${t('__labelDefaultSuffix')}` : visionModel.name }}</span>
                       <UIcon
                         name="i-lucide-external-link"
                         class="size-3.5 shrink-0 text-toned"
@@ -254,21 +256,39 @@ const onBuilderUpdated = () => {
                   {{ $t('__labelVoiceModel', 1) }}
                 </dt>
                 <dd>
-                  <span v-if="agent.defaultTtsModel">{{ getTtsModelName(agent.defaultTtsModel) }}</span>
-                  <span
-                    v-else
-                    class="text-toned"
-                  >{{ DEFAULT_TTS_MODEL_NAME }} {{ $t('__labelDefaultSuffix') }}</span>
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <UIcon
+                      name="i-simple-icons-openai"
+                      class="size-4 text-toned shrink-0"
+                    />
+                    <span
+                      v-if="agent.defaultTtsModel"
+                      class="truncate"
+                    >{{ getTtsModelName(agent.defaultTtsModel) }}</span>
+                    <span
+                      v-else
+                      class="text-toned truncate"
+                    >{{ DEFAULT_TTS_MODEL_NAME }} {{ $t('__labelDefaultSuffix') }}</span>
+                  </div>
                 </dd>
                 <dt class="text-toned text-right">
                   {{ $t('__labelVoice', 1) }}
                 </dt>
                 <dd>
-                  <span v-if="agent.defaultTtsVoice">{{ getTtsVoiceName(agent.defaultTtsVoice) }}</span>
-                  <span
-                    v-else
-                    class="text-toned"
-                  >{{ DEFAULT_TTS_VOICE_NAME }} {{ $t('__labelDefaultSuffix') }}</span>
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <VoiceAvatar
+                      :seed="agent.defaultTtsVoice || DEFAULT_TTS_VOICE"
+                      size="3xs"
+                    />
+                    <span
+                      v-if="agent.defaultTtsVoice"
+                      class="truncate"
+                    >{{ getTtsVoiceName(agent.defaultTtsVoice) }}</span>
+                    <span
+                      v-else
+                      class="text-toned truncate"
+                    >{{ DEFAULT_TTS_VOICE_NAME }} {{ $t('__labelDefaultSuffix') }}</span>
+                  </div>
                 </dd>
                 <dt class="text-toned text-right">
                   {{ $t('__labelVoiceInstructions') }}
