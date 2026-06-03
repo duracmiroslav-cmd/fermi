@@ -16,16 +16,20 @@ export type MessageContent = TextContent | ImageContent | AudioContent;
 
 export type MessageRole = 'user' | 'assistant' | 'tool';
 
+export type ThreadSubjectType = 'user' | 'group';
+
 export const resolveOrCreateLatestThread = async (
   admin: SupabaseClient,
   botId: string,
-  externalUserId: string,
+  subjectExternalId: string,
+  subjectType: ThreadSubjectType = 'user',
 ): Promise<string> => {
   const { data: latest, error } = await admin
     .from('threads')
     .select('id')
     .eq('bot_id', botId)
-    .eq('external_user_id', externalUserId)
+    .eq('subject_type', subjectType)
+    .eq('subject_external_id', subjectExternalId)
     .is('deleted_at', null)
     .order('last_message_at', { ascending: false })
     .limit(1)
@@ -35,7 +39,7 @@ export const resolveOrCreateLatestThread = async (
 
   const { data: created, error: insertErr } = await admin
     .from('threads')
-    .insert({ bot_id: botId, external_user_id: externalUserId })
+    .insert({ bot_id: botId, subject_type: subjectType, subject_external_id: subjectExternalId })
     .select('id')
     .single();
   if (insertErr) throw insertErr;

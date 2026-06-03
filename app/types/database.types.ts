@@ -587,27 +587,30 @@ export type Database = {
           bot_id: string
           created_at: string
           deleted_at: string | null
-          external_user_id: string
           id: string
           last_message_at: string
+          subject_external_id: string
+          subject_type: string
           updated_at: string
         }
         Insert: {
           bot_id: string
           created_at?: string
           deleted_at?: string | null
-          external_user_id: string
           id?: string
           last_message_at?: string
+          subject_external_id: string
+          subject_type?: string
           updated_at?: string
         }
         Update: {
           bot_id?: string
           created_at?: string
           deleted_at?: string | null
-          external_user_id?: string
           id?: string
           last_message_at?: string
+          subject_external_id?: string
+          subject_type?: string
           updated_at?: string
         }
         Relationships: [

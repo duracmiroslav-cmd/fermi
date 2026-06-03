@@ -1,25 +1,27 @@
 -- Creates the `threads` table, the persistent chat between a bot and
--- one external end-user (e.g., a LINE userId). Mirrors OpenAI's
--- Assistants API "thread" concept: a single user can have multiple
--- threads on the same bot (each `/new` opens a fresh one), and the
--- worker routes incoming messages to the latest by `last_message_at`.
+-- one conversation subject — a `user` (1:1, a LINE userId) or a
+-- `group` (a LINE groupId). Mirrors OpenAI's Assistants API "thread"
+-- concept: a subject can have multiple threads on the same bot (each
+-- `/new` opens a fresh one), and the worker routes incoming messages
+-- to the latest by `last_message_at`.
 
 create table public.threads (
-  id                uuid primary key default gen_random_uuid(),
-  bot_id            uuid not null references public.bots(id) on delete cascade,
-  external_user_id  text not null,
-  last_message_at   timestamptz not null default now(),
-  created_at        timestamptz not null default now(),
-  updated_at        timestamptz not null default now(),
-  deleted_at        timestamptz
+  id                  uuid primary key default gen_random_uuid(),
+  bot_id              uuid not null references public.bots(id) on delete cascade,
+  subject_type        text not null default 'user' check (subject_type in ('user', 'group')),
+  subject_external_id text not null,
+  last_message_at     timestamptz not null default now(),
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+  deleted_at          timestamptz
 );
 
--- Latest-thread routing: `(bot, external_user_id)` filter walks this
--- index in descending `last_message_at` order to find the active
--- session in one read. Partial on `deleted_at is null` so trashed
--- threads don't shadow active ones.
-create index threads_bot_user_recent_idx
-  on public.threads(bot_id, external_user_id, last_message_at desc)
+-- Latest-thread routing: `(bot, subject_type, subject_external_id)`
+-- filter walks this index in descending `last_message_at` order to
+-- find the active session in one read. Partial on `deleted_at is null`
+-- so trashed threads don't shadow active ones.
+create index threads_bot_subject_recent_idx
+  on public.threads(bot_id, subject_type, subject_external_id, last_message_at desc)
   where deleted_at is null;
 
 create trigger threads_set_updated_at
