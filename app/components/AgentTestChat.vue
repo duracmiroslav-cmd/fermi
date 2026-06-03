@@ -148,7 +148,7 @@ const onReset = () => {
               <UBadge
                 v-for="(tool, ti) in message.tools"
                 :key="ti"
-                color="neutral"
+                color="primary"
                 variant="subtle"
                 size="sm"
                 icon="i-lucide-wrench"

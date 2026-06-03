@@ -221,7 +221,7 @@ export default {
   __labelThisAgent:                       'this agent',
   __labelTierFree:                        'Free',
   __labelTierPro:                         'Pro',
-  __labelToolUsed:                        'used {tool}',
+  __labelToolUsed:                        'used the {tool} tool',
   __labelUnnamed:                         '(unnamed)',
   __labelUpdated:                         'Updated',
   __labelUsage:                           'Usage',
