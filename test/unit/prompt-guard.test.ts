@@ -18,6 +18,7 @@ describe('wrapSystemPrompt', () => {
     const result = wrapSystemPrompt(prompt);
     expect(result.startsWith(CHANNEL_CONTEXT_PREFIX)).toBe(true);
     expect(result.endsWith(ANTI_INJECTION_SUFFIX)).toBe(true);
+    expect(result).toContain(`<persona>\n${prompt}\n</persona>`);
     expect(result.indexOf(CHANNEL_CONTEXT_PREFIX)).toBeLessThan(result.indexOf(prompt));
     expect(result.indexOf(prompt)).toBeLessThan(result.indexOf(HONESTY_GUARD));
     expect(result.indexOf(HONESTY_GUARD)).toBeLessThan(result.indexOf(ANTI_INJECTION_SUFFIX));
