@@ -22,19 +22,36 @@ const {
   remove,
 } = useKnowledge(() => route.params.id as string);
 
-const addOpen = ref(false);
-const form = reactive({ title: '', text: '' });
-
 const DOC_WIDTHS = ['w-40', 'w-32', 'w-48'];
 
-const onAdd = async () => {
-  if (!form.title || !form.text) return;
-  const ok = await add({ title: form.title, text: form.text });
-  if (ok) {
-    form.title = '';
-    form.text = '';
-    addOpen.value = false;
-  }
+// Text-file upload: read the file in the browser, use the filename (minus
+// extension) as the title, and send the text through the same ingestion
+// endpoint — no title to type, no content to paste. Plain text only for now;
+// PDF / Word need server-side extraction. The byte cap mirrors the endpoint's
+// text-length limit.
+const { t } = useI18n();
+const notify = useNotify();
+const ACCEPT = '.txt,.md,.markdown,.text';
+const MAX_FILE_BYTES = 100 * 1024;
+const fileInput = ref<HTMLInputElement | null>(null);
+
+const onPickFile = () => fileInput.value?.click();
+
+const onFileChange = async (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = ''; // reset so re-picking the same file fires change again
+  if (!file) return;
+
+  const isText = /\.(txt|md|markdown|text)$/i.test(file.name) || file.type.startsWith('text/');
+  if (!isText) return notify.error(t('__toastKnowledgeUnsupportedFile'), null);
+  if (file.size > MAX_FILE_BYTES) return notify.error(t('__toastKnowledgeFileTooLarge'), null);
+
+  const text = (await file.text()).trim();
+  if (!text) return notify.error(t('__toastKnowledgeUnsupportedFile'), null);
+
+  const title = file.name.replace(/\.[^.]+$/, '').trim() || file.name;
+  await add({ title, text });
 };
 </script>
 
@@ -94,12 +111,23 @@ const onAdd = async () => {
               {{ $t('__titleKnowledgeDocuments') }}
             </h2>
             <UButton
-              icon="i-lucide-plus"
+              icon="i-lucide-upload"
               size="sm"
-              :label="$t('__actionAddDocument')"
-              @click="addOpen = true"
+              :label="$t('__actionUploadDocument')"
+              :loading="isAdding"
+              @click="onPickFile"
             />
           </div>
+          <input
+            ref="fileInput"
+            type="file"
+            :accept="ACCEPT"
+            class="hidden"
+            @change="onFileChange"
+          >
+          <p class="text-xs text-toned">
+            {{ $t('__hintKnowledgeUpload') }}
+          </p>
 
           <div
             v-if="pendingDocs && !documents"
@@ -182,59 +210,5 @@ const onAdd = async () => {
         />
       </DashboardContainer>
     </NuxtLayout>
-
-    <UModal v-model:open="addOpen">
-      <template #content>
-        <UCard>
-          <template #header>
-            <h2 class="text-base font-semibold">
-              {{ $t('__titleAddKnowledgeDocument') }}
-            </h2>
-          </template>
-
-          <div class="flex flex-col gap-4">
-            <UFormField
-              :label="$t('__labelKnowledgeTitle')"
-              required
-            >
-              <UInput
-                v-model.trim="form.title"
-                :placeholder="$t('__placeholderKnowledgeTitle')"
-              />
-            </UFormField>
-            <UFormField
-              :label="$t('__labelKnowledgeText')"
-              :help="$t('__hintKnowledgeText')"
-              required
-            >
-              <UTextarea
-                v-model="form.text"
-                :rows="12"
-                :placeholder="$t('__placeholderKnowledgeText')"
-              />
-            </UFormField>
-          </div>
-
-          <template #footer>
-            <div class="flex justify-end gap-2">
-              <UButton
-                color="neutral"
-                variant="ghost"
-                @click="addOpen = false"
-              >
-                {{ $t('__actionCancel') }}
-              </UButton>
-              <UButton
-                :loading="isAdding"
-                :disabled="!form.title || !form.text"
-                @click="onAdd"
-              >
-                {{ $t('__actionAddDocument') }}
-              </UButton>
-            </div>
-          </template>
-        </UCard>
-      </template>
-    </UModal>
   </div>
 </template>

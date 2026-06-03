@@ -4,7 +4,8 @@ import { ingestTextDocument } from '~~/server/utils/knowledge';
 
 const bodySchema = z.object({
   title: z.string().min(1).max(200),
-  text:  z.string().min(1).max(50000),
+  // ~100KB of text; the dashboard upload caps the file at the same size.
+  text:  z.string().min(1).max(100000),
 }).strict();
 
 export default defineEventHandler(async (event) => {
