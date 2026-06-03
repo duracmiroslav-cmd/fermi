@@ -30,16 +30,21 @@ export const extractDocumentText = async (filename: string, data: Buffer): Promi
 
     case '.pdf': {
       // mergePages joins every page into one string; the chunker re-splits on
-      // structure afterward.
+      // structure afterward. NFKC folds compatibility codepoints to canonical
+      // forms — some PDF text layers encode CJK glyphs as Kangxi-radical
+      // codepoints (e.g. "子" U+5B50 → "⼦" U+2F26): visually identical but a
+      // different character, so a normally-typed query would never match.
       const pdf = await getDocumentProxy(new Uint8Array(data));
       const { text } = await extractText(pdf, { mergePages: true });
-      return text;
+      return text.normalize('NFKC');
     }
 
     case '.doc':
     case '.docx': {
+      // NFKC for the same reason as the PDF branch (canonicalize CJK / width
+      // variants the extractor may emit).
       const doc = await wordExtractor.extract(data);
-      return doc.getBody();
+      return doc.getBody().normalize('NFKC');
     }
 
     default:
