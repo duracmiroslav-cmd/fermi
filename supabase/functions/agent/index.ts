@@ -46,6 +46,7 @@ import {
   appendMessage,
   loadRecentMessages,
   resolveOrCreateLatestThread,
+  type ThreadSubjectType,
 } from './threads.ts';
 import { type ToolAttachment, buildToolset } from './tools/index.ts';
 import { checkInjection, defaultSystemPrompt, wrapSystemPrompt } from './prompt-guard.ts';
@@ -67,6 +68,11 @@ const HISTORY_WINDOW = 20;
 // than going silent and looking broken.
 const LOADING_REFRESH_MS = 50_000;
 
+// Appended to the agent's system prompt when replying in a group. The
+// history feeds `[name] ...`-prefixed turns; this tells the model how to
+// read them and to answer only the mention that summoned it.
+const GROUP_CONTEXT_PROMPT = '\n\nYou are in a LINE group chat with multiple people. Each user message is prefixed with the speaker\'s name in brackets, e.g. "[Alice] ...". You are only brought in when someone @-mentions you, so answer the message that mentioned you, stay brief, and don\'t address people who didn\'t ask you anything. Never prefix your own reply with a name.';
+
 interface LineSource {
   type: 'user' | 'group' | 'room';
   userId?: string;
@@ -79,7 +85,7 @@ interface LineEvent {
   timestamp?: number;
   replyToken?: string;
   source?: LineSource;
-  message?: { type: string; id?: string; text?: string };
+  message?: { type: string; id?: string; text?: string; mention?: { mentionees?: { isSelf?: boolean }[] } };
   webhookEventId?: string;
 }
 
@@ -162,7 +168,7 @@ const isReplyableUserMessage = (event: LineEvent): event is LineEvent & {
 const isGroupTextMessage = (event: LineEvent): event is LineEvent & {
   replyToken: string;
   source: LineSource & { type: 'group'; groupId: string };
-  message: { type: 'text'; text: string };
+  message: { type: 'text'; text: string; mention?: { mentionees?: { isSelf?: boolean }[] } };
 } => (
   event.type === 'message'
   && event.message?.type === 'text'
@@ -203,6 +209,27 @@ const isGroupAudioMessage = (event: LineEvent): event is LineEvent & {
   && typeof event.source.groupId === 'string'
   && typeof event.source.userId === 'string'
 );
+
+interface GroupMention {
+  groupId:        string;
+  senderId:       string;
+  text:           string;
+  replyToken:     string;
+  eventTimestamp: number;
+}
+
+// Persists a group message into the group's thread for @mention context,
+// attributed to its sender. Plain chatter is stored but not replied to; a
+// later @mention reads it back as history.
+const storeGroupContext = async (
+  botId: string,
+  groupId: string,
+  senderId: string,
+  text: string,
+): Promise<void> => {
+  const threadId = await resolveOrCreateLatestThread(admin, botId, groupId, 'group');
+  await appendMessage(admin, threadId, 'user', { type: 'text', text }, senderId);
+};
 
 // Transcribes one voice message in an activated group and relays it as
 // `🎤 name：text`. Pure relay — no LLM, no agent loop. Best-effort and
@@ -262,6 +289,9 @@ const transcribeGroupAudio = async (params: {
 
   const name = await resolveDisplayName(admin, lineAccessToken, bot.id, groupId, userId);
   await safeReply(lineAccessToken, replyToken, `🎤 ${name}：${transcript}`);
+  // The transcript also joins the group's thread so a later @mention has
+  // the spoken context, per the "voice transcripts enter context" rule.
+  await storeGroupContext(bot.id, groupId, userId, transcript);
 };
 
 // Group lifecycle + the activation-code gate, independent of the agent
@@ -274,8 +304,9 @@ const handleGroupEvents = async (
   kek: CryptoKey,
   lineAccessToken: string,
   ownerLocale: Locale,
-): Promise<LineEvent[]> => {
+): Promise<{ directEvents: LineEvent[]; groupMentions: GroupMention[] }> => {
   const direct: LineEvent[] = [];
+  const groupMentions: GroupMention[] = [];
   for (const event of incoming) {
     if (event.source?.type !== 'group' || typeof event.source.groupId !== 'string') {
       direct.push(event);
@@ -313,8 +344,8 @@ const handleGroupEvents = async (
         }
         continue;
       }
-      // Activated: transcribe voice (the relay feature). Activated text is
-      // Phase 4 (mention chat); audio with transcription off drops.
+      // Activated. Voice → transcription relay. Text → stored for context;
+      // an @mention also queues an agent reply, run after key resolution.
       if (isGroupAudioMessage(event) && bot.groupTranscribeEnabled) {
         await transcribeGroupAudio({
           bot,
@@ -325,13 +356,27 @@ const handleGroupEvents = async (
           messageId:  event.message.id,
           replyToken: event.replyToken,
         });
+      } else if (isGroupTextMessage(event) && typeof event.source.userId === 'string') {
+        const senderId = event.source.userId;
+        const mentioned = event.message.mention?.mentionees?.some(m => m.isSelf) ?? false;
+        if (mentioned) {
+          groupMentions.push({
+            groupId,
+            senderId,
+            text:           event.message.text,
+            replyToken:     event.replyToken,
+            eventTimestamp: typeof event.timestamp === 'number' ? event.timestamp : Date.now(),
+          });
+        } else {
+          await storeGroupContext(bot.id, groupId, senderId, event.message.text);
+        }
       }
       continue;
     }
 
     // Other group events (memberJoined / memberLeft / ...) drop silently.
   }
-  return direct;
+  return { directEvents: direct, groupMentions };
 };
 
 const runAgentLoop = async (params: {
@@ -358,12 +403,21 @@ const runAgentLoop = async (params: {
   // Webhook timestamp from LINE (ms since epoch). Anchors the
   // reply-token budget on LINE's delivery time, not worker dequeue.
   eventTimestamp: number;
+  // Set when this turn is a group @mention: switches the thread to the
+  // group, attributes the sender, appends group rules, and delivers back
+  // to the group. `externalUserId` is then the mentioner.
+  group?: { groupId: string };
 }): Promise<void> => {
-  const { bot, agent, ownerLocale, openrouterKey, lineAccessToken, kek, externalUserId, replyToken, userInput, eventTimestamp } = params;
+  const { bot, agent, ownerLocale, openrouterKey, lineAccessToken, kek, externalUserId, replyToken, userInput, eventTimestamp, group } = params;
 
-  const threadId = await resolveOrCreateLatestThread(admin, bot.id, externalUserId);
+  const subjectExternalId = group ? group.groupId : externalUserId;
+  const subjectType: ThreadSubjectType = group ? 'group' : 'user';
+  // 1:1 delivers / shows loading to the user; group delivers to the group.
+  const deliverTo = group ? group.groupId : externalUserId;
+
+  const threadId = await resolveOrCreateLatestThread(admin, bot.id, subjectExternalId, subjectType);
   if (userInput.type === 'text') {
-    await appendMessage(admin, threadId, 'user', { type: 'text', text: userInput.text });
+    await appendMessage(admin, threadId, 'user', { type: 'text', text: userInput.text }, externalUserId);
   } else if (userInput.type === 'audio') {
     // Upload the raw bytes alongside the transcript: LLM history
     // rebuild reads the transcript (so re-loads never re-pay
@@ -383,7 +437,7 @@ const runAgentLoop = async (params: {
       sizeBytes: userInput.bytes.byteLength,
       storagePath,
       transcript: userInput.transcript,
-    });
+    }, externalUserId);
   } else {
     const { storagePath } = await uploadUserImage(admin, {
       ownerId: bot.ownerId,
@@ -397,7 +451,7 @@ const runAgentLoop = async (params: {
       mime: userInput.mime,
       sizeBytes: userInput.bytes.byteLength,
       storagePath,
-    });
+    }, externalUserId);
   }
 
   const runId = await startRun(admin, {
@@ -417,12 +471,16 @@ const runAgentLoop = async (params: {
   // LLM call is in flight — by re-firing on a timer, not at loop boundaries.
   // Prime now (the webhook's prime may have lapsed during cron-drain delay),
   // then refresh under LINE's 60s cap. Cleared in `finally` so it never leaks.
-  void showLoadingAnimation(lineAccessToken, externalUserId)
-    .catch(err => console.error('loading animation prime failed', err));
-  const loadingTimer = setInterval(() => {
+  // LINE's loading indicator only works in 1:1 chats, not groups.
+  let loadingTimer: ReturnType<typeof setInterval> | null = null;
+  if (!group) {
     void showLoadingAnimation(lineAccessToken, externalUserId)
-      .catch(err => console.error('loading animation refresh failed', err));
-  }, LOADING_REFRESH_MS);
+      .catch(err => console.error('loading animation prime failed', err));
+    loadingTimer = setInterval(() => {
+      void showLoadingAnimation(lineAccessToken, externalUserId)
+        .catch(err => console.error('loading animation refresh failed', err));
+    }, LOADING_REFRESH_MS);
+  }
 
   try {
     // Resolved once per run: capability attachment changes mid-loop
@@ -431,9 +489,14 @@ const runAgentLoop = async (params: {
     const attachedCapabilities = await loadActiveCapabilities(admin, agent.id);
     const toolset = await buildToolset(attachedCapabilities, { admin, kek, ownerId: bot.ownerId });
 
-    const history = await loadRecentMessages(admin, threadId, HISTORY_WINDOW);
+    const history = await loadRecentMessages(
+      admin,
+      threadId,
+      HISTORY_WINDOW,
+      group ? { accessToken: lineAccessToken, botId: bot.id, groupId: group.groupId } : undefined,
+    );
     const systemPrompt = wrapSystemPrompt(
-      agent.systemPrompt ?? defaultSystemPrompt(agent.name),
+      (agent.systemPrompt ?? defaultSystemPrompt(agent.name)) + (group ? GROUP_CONTEXT_PROMPT : ''),
     );
     // Any image in the history window forces a vision-capable model.
     // Without this, an agent configured with a text-only model would
@@ -631,7 +694,7 @@ const runAgentLoop = async (params: {
       const method = await deliverMessages({
         accessToken: lineAccessToken,
         replyToken,
-        userId: externalUserId,
+        userId: deliverTo,
         messages: outbound,
         elapsedMs,
       });
@@ -698,7 +761,7 @@ const runAgentLoop = async (params: {
       await deliverMessages({
         accessToken: lineAccessToken,
         replyToken,
-        userId: externalUserId,
+        userId: deliverTo,
         messages: [{ type: 'text', text: t('__noticeServiceError', ownerLocale) }],
         elapsedMs: Date.now() - eventTimestamp,
       });
@@ -715,7 +778,7 @@ const runAgentLoop = async (params: {
     if (userNotified) return;
     throw err;
   } finally {
-    clearInterval(loadingTimer);
+    if (loadingTimer) clearInterval(loadingTimer);
   }
 };
 
@@ -758,10 +821,11 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     keyType: 'line_channel_access_token',
   });
 
-  // Group lifecycle + activation run independently of the agent loop;
-  // they consume group events and return the rest for 1:1 processing.
-  const events = await handleGroupEvents(allEvents, bot, kek, lineAccessToken, ownerLocale);
-  if (events.length === 0) return;
+  // Group lifecycle / activation / transcription run independently of the
+  // agent loop. Returns 1:1 events for the loop below, plus the group
+  // @mentions that do need the loop (handled after agent + key resolve).
+  const { directEvents: events, groupMentions } = await handleGroupEvents(allEvents, bot, kek, lineAccessToken, ownerLocale);
+  if (events.length === 0 && groupMentions.length === 0) return;
 
   // Bot has no agent bound, or the binding was cleared (agent soft-
   // deleted). Reply with an actionable message instead of silence.
@@ -987,6 +1051,24 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         t('__noticeUnsupportedMessageType', ownerLocale),
       );
     }
+  }
+
+  // Group @mentions need the agent + OpenRouter key, so they run after the
+  // 1:1 resolution above (and are silently skipped if it early-returned).
+  for (const gm of groupMentions) {
+    await runAgentLoop({
+      bot,
+      agent,
+      ownerLocale,
+      openrouterKey,
+      lineAccessToken,
+      kek,
+      externalUserId: gm.senderId,
+      replyToken:     gm.replyToken,
+      userInput:      { type: 'text', text: gm.text },
+      eventTimestamp: gm.eventTimestamp,
+      group:          { groupId: gm.groupId },
+    });
   }
 };
 

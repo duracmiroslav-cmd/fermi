@@ -7,6 +7,10 @@ create table public.messages (
   thread_id       uuid not null references public.threads(id) on delete cascade,
   role            text not null check (role in ('user', 'assistant', 'tool')),
   content         jsonb not null,
+  -- LINE userId of the sender, set on group `user` messages so group
+  -- history can attribute "who said it". Null for 1:1 and for
+  -- assistant / tool rows.
+  sender_external_user_id text,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );

@@ -578,6 +578,7 @@ export type Database = {
           created_at: string
           id: string
           role: string
+          sender_external_user_id: string | null
           thread_id: string
           updated_at: string
         }
@@ -586,6 +587,7 @@ export type Database = {
           created_at?: string
           id?: string
           role: string
+          sender_external_user_id?: string | null
           thread_id: string
           updated_at?: string
         }
@@ -594,6 +596,7 @@ export type Database = {
           created_at?: string
           id?: string
           role?: string
+          sender_external_user_id?: string | null
           thread_id?: string
           updated_at?: string
         }

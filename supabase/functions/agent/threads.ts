@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { signMessageImageUrl } from '../../../shared/messageImages.ts';
+import { resolveDisplayName } from './groupMembers.ts';
 import type { ChatMessage } from './openrouter.ts';
 
 // Message content shapes we persist. Media attachments store only a
@@ -51,10 +52,11 @@ export const appendMessage = async (
   threadId: string,
   role: MessageRole,
   content: MessageContent,
+  senderExternalUserId?: string,
 ): Promise<string> => {
   const { data, error } = await admin
     .from('messages')
-    .insert({ thread_id: threadId, role, content })
+    .insert({ thread_id: threadId, role, content, sender_external_user_id: senderExternalUserId ?? null })
     .select('id')
     .single();
   if (error) throw error;
@@ -77,10 +79,11 @@ export const loadRecentMessages = async (
   admin: SupabaseClient,
   threadId: string,
   limit = 20,
+  groupNaming?: { accessToken: string; botId: string; groupId: string },
 ): Promise<ChatMessage[]> => {
   const { data, error } = await admin
     .from('messages')
-    .select('role, content')
+    .select('role, content, sender_external_user_id')
     .eq('thread_id', threadId)
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -92,6 +95,12 @@ export const loadRecentMessages = async (
     if (!c) return null;
     const role = row.role as ChatMessage['role'];
     if (c.type === 'text') {
+      // In a group, prefix the speaker so the model can tell apart
+      // multiple participants across the history window.
+      if (groupNaming && role === 'user' && typeof row.sender_external_user_id === 'string') {
+        const name = await resolveDisplayName(admin, groupNaming.accessToken, groupNaming.botId, groupNaming.groupId, row.sender_external_user_id);
+        return { role, content: `[${name}] ${c.text}` };
+      }
       return { role, content: c.text };
     }
     if (c.type === 'image') {
