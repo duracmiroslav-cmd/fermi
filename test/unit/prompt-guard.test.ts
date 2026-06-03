@@ -3,6 +3,7 @@ import {
   ANTI_INJECTION_SUFFIX,
   CHANNEL_CONTEXT_PREFIX,
   HONESTY_GUARD,
+  KNOWLEDGE_BASE_DIRECTIVE,
   checkInjection,
   wrapSystemPrompt,
   wrapToolOutput,
@@ -27,6 +28,19 @@ describe('wrapSystemPrompt', () => {
   it('preserves prompt content exactly', () => {
     const prompt = 'Custom: be concise and friendly.';
     expect(wrapSystemPrompt(prompt)).toContain(prompt);
+  });
+
+  it('omits the knowledge-base directive by default', () => {
+    expect(wrapSystemPrompt('You are Aria.')).not.toContain(KNOWLEDGE_BASE_DIRECTIVE);
+  });
+
+  it('inserts the knowledge-base directive after the persona and before the guards', () => {
+    const prompt = 'You are Aria.';
+    const result = wrapSystemPrompt(prompt, { knowledgeBase: true });
+    expect(result).toContain(KNOWLEDGE_BASE_DIRECTIVE);
+    expect(result.indexOf(prompt)).toBeLessThan(result.indexOf(KNOWLEDGE_BASE_DIRECTIVE));
+    expect(result.indexOf(KNOWLEDGE_BASE_DIRECTIVE)).toBeLessThan(result.indexOf(HONESTY_GUARD));
+    expect(result.endsWith(ANTI_INJECTION_SUFFIX)).toBe(true);
   });
 });
 

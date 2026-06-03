@@ -44,13 +44,27 @@ State only facts and sources you actually obtained this turn; if you did not ver
 export const defaultSystemPrompt = (name: string): string =>
   `You are ${name}, a helpful assistant. Reply in the user's language.`;
 
+// Inserted only when the agent has the knowledge-base capability attached.
+// Tool availability alone under-triggers retrieval: a colloquial or
+// insider-phrased question (e.g. "the usual", a regular's order, an off-menu
+// item) reads to the model like a memory/history question, so it improvises
+// "I have no record" instead of searching. This directive makes consulting
+// the knowledge base the default for anything the operator's material might
+// cover, and explicitly forbids the "can't remember" dodge.
+export const KNOWLEDGE_BASE_DIRECTIVE = `
+
+<knowledge_base>
+This assistant has a knowledge base of the operator's own documents. For any question the operator's material might cover — products, menu (including off-menu items, secret menu, or "the usual"), prices, hours, location, policies, FAQs, or background — call the search_knowledge tool BEFORE answering. Do not reply that you have no record or cannot remember; search the knowledge base first, then answer from what it returns. If it returns nothing relevant, say you don't have that information.
+</knowledge_base>`;
+
 // The full system prompt, each part in its own XML tag (Claude is tuned for
 // tagged structure, and it matches the <tool_output> convention): channel
 // context, then the owner's persona (or the default above) wrapped so fermi's
-// framing is visibly distinct from it, then the integrity and security guards.
-// Security stays last so nothing follows and overrides it.
-export const wrapSystemPrompt = (prompt: string): string =>
-  `${CHANNEL_CONTEXT_PREFIX}<persona>\n${prompt}\n</persona>${HONESTY_GUARD}${ANTI_INJECTION_SUFFIX}`;
+// framing is visibly distinct from it, then the (optional) knowledge-base
+// directive, then the integrity and security guards. Security stays last so
+// nothing follows and overrides it.
+export const wrapSystemPrompt = (prompt: string, opts?: { knowledgeBase?: boolean }): string =>
+  `${CHANNEL_CONTEXT_PREFIX}<persona>\n${prompt}\n</persona>${opts?.knowledgeBase ? KNOWLEDGE_BASE_DIRECTIVE : ''}${HONESTY_GUARD}${ANTI_INJECTION_SUFFIX}`;
 
 // Wraps externally-sourced tool result JSON so the LLM can distinguish
 // its own structured response from content that may contain adversarial

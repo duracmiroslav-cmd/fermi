@@ -257,6 +257,7 @@ const runAgentLoop = async (params: {
     const history = await loadRecentMessages(admin, threadId, HISTORY_WINDOW);
     const systemPrompt = wrapSystemPrompt(
       agent.systemPrompt ?? defaultSystemPrompt(agent.name),
+      { knowledgeBase: attachedCapabilities.some(c => c.slug === 'knowledge-base') },
     );
     // Any image in the history window forces a vision-capable model.
     // Without this, an agent configured with a text-only model would

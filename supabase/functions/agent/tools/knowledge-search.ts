@@ -21,7 +21,7 @@ export const searchKnowledge: Tool = {
   name: 'search_knowledge',
   capabilitySlug: 'knowledge-base',
   description:
-    'Search the operator-provided knowledge base for this assistant. Use this BEFORE answering any question that might be covered by the operator\'s own material (products, prices, hours, policies, FAQs, background). Returns the most relevant passages. If nothing relevant comes back, tell the user you don\'t have that information rather than guessing.',
+    'Search this assistant\'s knowledge base — the operator\'s own documents about their business: products, menu (including off-menu / secret items / "the usual"), prices, hours, location, policies, FAQs, and background. ALWAYS call this first for any question the operator\'s material might cover, including vague, slang, or insider phrasings and questions that sound like they refer to the user\'s history. Do NOT reply that you have no record or cannot remember — search here first, then answer from what comes back. Returns the most relevant passages; if none are relevant, say you don\'t have that information.',
   parameters: {
     type: 'object',
     properties: {
