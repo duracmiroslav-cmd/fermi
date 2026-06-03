@@ -9,12 +9,14 @@ const props = defineProps<{
 const { t } = useI18n();
 
 const fullItems = computed<BreadcrumbItem[]>(() => {
-  const lastIdx = props.items.length - 1;
   return [
     { label: t('__labelHome'), to: '/dashboard' },
-    ...props.items.map((item, i) => ({
+    // Skeleton any crumb whose label hasn't resolved yet, not just the leaf:
+    // intermediate async labels (e.g. the agent name above a static "Edit"
+    // crumb) would otherwise render as an empty gap between chevrons.
+    ...props.items.map(item => ({
       ...item,
-      slot: props.loading && i === lastIdx ? 'loading' : undefined,
+      slot: props.loading && !item.label ? 'loading' : undefined,
     })),
   ];
 });
