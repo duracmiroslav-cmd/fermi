@@ -1,5 +1,5 @@
 import { getCurrentUser } from '~~/server/utils/auth';
-import { PURPOSES, type Purpose } from '~~/shared/constants/limits';
+import { PURPOSES, type Purpose } from '~~/shared/constants/tiers';
 import { peekQuota } from '~~/shared/quota';
 
 export default defineEventHandler(async (event) => {

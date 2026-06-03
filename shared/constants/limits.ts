@@ -1,45 +1,11 @@
-import type { Tier } from './tiers.ts';
+// Per-tier plan values (bot/agent caps, monthly quotas, the Purpose
+// model) live in ./tiers.ts — change "what each plan gets" there. This
+// file is the rate-limit/quota counter mechanics: windows + key shapes.
+import type { Purpose } from './tiers.ts';
 
-// Purpose: a monthly-quota-gated fermi resource. Strings are stored in
-// `usage_counters.purpose` (Postgres impl) and Upstash keys; keep them
-// short + stable. `extended_run` echoes the `agent_runs` vocabulary —
-// one extended_run = one run that exceeded the LINE 25s reply budget
-// and had to fall back to Push API. `line_push` is LINE-coupled by
-// design; future Telegram etc. get their own `<platform>_push`.
-export type Purpose
-  = | 'image_gen'
-    | 'tts'
-    | 'stt'
-    | 'extended_run'
-    | 'line_push';
-
-export const PURPOSES: readonly Purpose[]
-  = ['image_gen', 'tts', 'stt', 'extended_run', 'line_push'] as const;
-
-// Maps purpose to an i18n key. Call sites resolve via $t() so the
-// rendered string stays locale-aware.
-export const PURPOSE_LABEL_KEY: Record<Purpose, string> = {
-  image_gen:    '__labelImageGeneration',
-  tts:          '__labelVoiceReplies',
-  stt:          '__labelVoiceMessages',
-  extended_run: '__labelLongConversations',
-  line_push:    '__labelPushMessages',
-};
-
-// Monthly quota caps by tier × purpose. Numbers derived in
-// .claude/docs/roadmap.md (Defense layer section). Pro caps are soft
-// limits — Pro user hitting an image_gen / tts / stt cap can BYO key
-// for true unlimited (CTA copy reflects this).
-export const MONTHLY_QUOTA: Record<Purpose, Record<Tier, number>> = {
-  image_gen:    { free: 10, pro: 200 },
-  tts:          { free: 30, pro: 500 },
-  stt:          { free: 30, pro: 500 },
-  extended_run: { free: 10, pro: 100 },
-  line_push:    { free: 200, pro: 2000 },
-};
-
-// Rate-limit windows: 3 concentric fixed windows per (bot, external
-// user). 1min catches bursts, 1day catches absolute volume, 1hour is
+// Baseline rate-limit windows — the default caps (TEST_CHAT_RATE_WINDOWS
+// below overrides them for the costlier test chat). 3 concentric fixed
+// windows: 1min catches bursts, 1day catches absolute volume, 1hour is
 // the redundant-middle layer kept for industry symmetry (Cloudflare /
 // Vercel / GitHub pattern); drop later if 1hour never independently
 // blocks. Numbers are baseline heuristics — re-tune from observed

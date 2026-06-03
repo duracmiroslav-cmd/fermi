@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { MONTHLY_QUOTA, type Purpose, buildUsageQuotaKey } from './constants/limits.ts';
-import type { Tier } from './constants/tiers.ts';
+import { buildUsageQuotaKey } from './constants/limits.ts';
+import { MONTHLY_QUOTA, type Purpose, type Tier } from './constants/tiers.ts';
 import { type CounterEnv, createUsageCounter } from './counters/factory.ts';
 
 // 35 days covers any timezone slippage at the monthly boundary while

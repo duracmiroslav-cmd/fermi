@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PURPOSE_LABEL_KEY, type Purpose } from '~~/shared/constants/limits';
+import { PURPOSE_LABEL_KEY, type Purpose } from '~~/shared/constants/tiers';
 
 definePageMeta({ layout: false });
 
