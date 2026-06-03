@@ -73,6 +73,7 @@ revoke insert, update, delete on public.capabilities from authenticated;
 -- backed by Tavily / Brave / Bing without changing the surface).
 insert into public.capabilities (slug, display_name) values
   ('time',            'Time'),
+  ('reminders',       'Reminders'),
   ('web-search',      'Web search'),
   ('web-fetch',       'Web fetch'),
   ('image-gen',       'Image generation'),

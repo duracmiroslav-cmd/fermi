@@ -16,6 +16,7 @@ export interface FlatCard {
 
 const iconBySlug: Record<string, string> = {
   'time':           'i-lucide-clock',
+  'reminders':      'i-lucide-bell',
   'web-search':     'i-lucide-search',
   'web-fetch':      'i-lucide-globe',
   'github':         'i-simple-icons-github',
