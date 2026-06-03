@@ -50,7 +50,7 @@ defineExpose({ refresh });
         </template>
         <div
           v-else
-          class="w-full flex flex-col items-start gap-3"
+          class="flex flex-col items-start gap-3 min-h-32 w-full"
         >
           <p class="text-sm text-toned">
             {{ $t('__titleNoCapabilitiesEnabled') }}

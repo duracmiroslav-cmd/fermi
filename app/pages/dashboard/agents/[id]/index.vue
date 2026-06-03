@@ -183,7 +183,7 @@ const onBuilderUpdated = () => {
               </p>
               <div
                 v-else
-                class="flex flex-col items-start gap-3 p-4 sm:p-6"
+                class="flex flex-col items-start gap-3 min-h-32 p-4 sm:p-6"
               >
                 <p class="text-sm text-toned">
                   {{ $t('__descriptionNoSystemPrompt') }}
