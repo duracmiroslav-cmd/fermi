@@ -47,7 +47,7 @@ import {
 } from './threads.ts';
 import { type ToolAttachment, buildToolset } from './tools/index.ts';
 import { checkInjection, wrapSystemPrompt } from './prompt-guard.ts';
-import { normalizeTraditional } from './opencc.ts';
+import { normalizeReplyText } from './reply-text.ts';
 import { captureException } from './sentry.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -334,10 +334,9 @@ const runAgentLoop = async (params: {
     // Single conversion point: TTS, the persisted transcript, history,
     // and the outbound LINE text all derive from finalText, so converting
     // here keeps every channel consistent — and before the fermi-authored
-    // suffix (already Traditional) is appended below.
-    if (agent.normalizeTraditional) {
-      finalText = normalizeTraditional(finalText);
-    }
+    // suffix (already plain Traditional) is appended below. The same pass
+    // runs in agent-invoke so the dashboard test chat previews this text.
+    finalText = normalizeReplyText(finalText, { traditional: agent.normalizeTraditional });
 
     // Voice-reply mode resolves to a yes/no per-turn:
     //   always → every turn

@@ -18,6 +18,7 @@ import { getKek } from '../../../shared/kek.ts';
 import { DEFAULT_TEXT_MODEL } from '../../../shared/constants/models.ts';
 import type { ChatMessage } from '../agent/openrouter.ts';
 import { MAX_AGENT_STEPS, runAgentConversation } from '../agent/loop.ts';
+import { normalizeReplyText } from '../agent/reply-text.ts';
 import { buildToolset } from '../agent/tools/index.ts';
 import { wrapSystemPrompt } from '../agent/prompt-guard.ts';
 import { inspectInternalAuth } from '../agent/internal-auth.ts';
@@ -96,7 +97,10 @@ Deno.serve(async (req) => {
       },
       maxSteps: MAX_AGENT_STEPS,
     });
-    return json({ text: result.text, hitStepCap: result.hitStepCap, steps: result.steps });
+    // Run the reply through the same pass the LINE worker uses so the
+    // test chat previews exactly what an end user would receive.
+    const text = normalizeReplyText(result.text, { traditional: agent.normalizeTraditional });
+    return json({ text, hitStepCap: result.hitStepCap, steps: result.steps });
   } catch (err) {
     console.error('agent-invoke failed', err);
     // detail rides back to the Nitro server log (not the browser) so the
