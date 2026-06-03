@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: parsed.error.message });
   }
 
-  const { upstashUrl, upstashToken, supabaseUrl, supabaseServiceRoleKey, fermiInternalSecret } = useRuntimeConfig(event);
+  const { upstashUrl, upstashToken, supabaseUrl, fermiInternalSecret } = useRuntimeConfig(event);
 
   const outcome = await checkOwnerPreviewRateLimit(
     admin,
@@ -67,10 +67,9 @@ export default defineEventHandler(async (event) => {
     method:  'POST',
     headers: {
       'Content-Type':            'application/json',
-      // Authorization carries a Supabase key so the gateway routes the
-      // call; the function authenticates us by the internal secret below
-      // (must match INTERNAL_SECRET_HEADER in internal-auth.ts).
-      'Authorization':           `Bearer ${supabaseServiceRoleKey}`,
+      // The function (deployed verify_jwt=false) authenticates us solely
+      // by this secret (must match INTERNAL_SECRET_HEADER in
+      // internal-auth.ts). No Supabase key in this call path.
       'x-fermi-internal-secret': fermiInternalSecret,
     },
     body: JSON.stringify({ agentId: id, messages: parsed.data.messages }),

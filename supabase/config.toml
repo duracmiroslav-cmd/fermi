@@ -361,6 +361,19 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+# Internal synchronous endpoints. The platform gateway's verify_jwt
+# accepts the public anon/publishable key, so it can't distinguish
+# fermi's backend from any caller — these functions are gated instead by
+# FERMI_INTERNAL_SECRET (see supabase/functions/agent/internal-auth.ts),
+# checked as the first thing they do. Disabling verify_jwt removes a gate
+# that wasn't protecting them and keeps the real one. (The `agent` worker
+# keeps verify_jwt — it has no internal-secret gate.)
+[functions.agent-invoke]
+verify_jwt = false
+
+[functions.agent-build]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
