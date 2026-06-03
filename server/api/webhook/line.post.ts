@@ -71,7 +71,7 @@ export default defineEventHandler(async (event) => {
     return { ok: true };
   }
 
-  const { fermiKek, supabaseUrl, supabaseServiceRoleKey, upstashUrl, upstashToken } = useRuntimeConfig(event);
+  const { fermiKek, supabaseUrl, supabaseSecretKey, upstashUrl, upstashToken } = useRuntimeConfig(event);
   const kek = await getKek(fermiKek);
   const { plaintext: channelSecret } = await loadCredential(admin, kek, {
     userId:  bot.ownerId,
@@ -165,7 +165,7 @@ export default defineEventHandler(async (event) => {
       method:  'POST',
       headers: {
         'Content-Type':  'application/json',
-        'Authorization': `Bearer ${supabaseServiceRoleKey}`,
+        'Authorization': `Bearer ${supabaseSecretKey}`,
       },
     }).catch(console.error);
   } else {

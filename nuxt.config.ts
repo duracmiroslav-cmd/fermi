@@ -34,27 +34,27 @@ export default defineNuxtConfig({
     ],
   },
   runtimeConfig: {
-    fermiKek:               process.env.FERMI_KEK ?? '',
-    supabaseUrl:            process.env.SUPABASE_URL ?? '',
-    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
+    fermiKek:            process.env.FERMI_KEK ?? '',
+    supabaseUrl:         process.env.SUPABASE_URL ?? '',
+    supabaseSecretKey:   process.env.SUPABASE_SECRET_KEY ?? '',
     // Shared secret authenticating the server → agent-invoke / agent-build
     // Edge calls. Must match FERMI_INTERNAL_SECRET in the functions' env.
-    fermiInternalSecret:    process.env.FERMI_INTERNAL_SECRET ?? '',
+    fermiInternalSecret: process.env.FERMI_INTERNAL_SECRET ?? '',
     // Counter backend. Both blank → Postgres fallback; both set →
     // Upstash REST. Read in webhook handler / quota call sites and
     // forwarded into the counter factory.
-    upstashUrl:             process.env.UPSTASH_REDIS_REST_URL ?? '',
-    upstashToken:           process.env.UPSTASH_REDIS_REST_TOKEN ?? '',
+    upstashUrl:          process.env.UPSTASH_REDIS_REST_URL ?? '',
+    upstashToken:        process.env.UPSTASH_REDIS_REST_TOKEN ?? '',
     // Platform OpenAI key for dashboard TTS preview when the owner
     // hasn't connected their own OpenAI BYOK yet. Worker (Edge Fn)
     // reads its own copy via Deno.env; this entry is server-only.
-    openaiApiKey:           process.env.OPENAI_API_KEY ?? '',
+    openaiApiKey:        process.env.OPENAI_API_KEY ?? '',
     // Public-facing origin fermi serves under. Used to build webhook
     // URLs we expose to LINE. Falls back to the request origin when
     // unset (fine for prod via real domain; required when dev'ing
     // through ngrok and accessing fermi from localhost).
-    appUrl:                 process.env.NUXT_APP_URL ?? '',
-    public:                 {
+    appUrl:              process.env.NUXT_APP_URL ?? '',
+    public:              {
       googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
       sentry:         {
         // DSN flows through runtimeConfig so Sentry's init files can read

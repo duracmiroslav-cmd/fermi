@@ -6,12 +6,12 @@ let cached: SupabaseClient<Database> | null = null;
 export const useSupabaseAdmin = (): SupabaseClient<Database> => {
   if (cached) return cached;
 
-  const { supabaseUrl, supabaseServiceRoleKey } = useRuntimeConfig();
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
-    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
+  const { supabaseUrl, supabaseSecretKey } = useRuntimeConfig();
+  if (!supabaseUrl || !supabaseSecretKey) {
+    throw new Error('SUPABASE_URL and SUPABASE_SECRET_KEY must be set');
   }
 
-  cached = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  cached = createClient(supabaseUrl, supabaseSecretKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   return cached;

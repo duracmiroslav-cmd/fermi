@@ -51,10 +51,10 @@ import { normalizeTraditional } from './opencc.ts';
 import { captureException } from './sentry.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabaseSecretKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const fermiKek = Deno.env.get('FERMI_KEK')!;
 
-const admin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+const admin = createClient(supabaseUrl, supabaseSecretKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 

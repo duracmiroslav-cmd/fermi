@@ -16,11 +16,11 @@ import { buildBuilderToolset, builderSystemPrompt } from './builder.ts';
 import { inspectInternalAuth } from '../agent/internal-auth.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabaseSecretKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const fermiKek = Deno.env.get('FERMI_KEK')!;
 const PLATFORM_OPENROUTER_KEY = Deno.env.get('OPENROUTER_API_KEY') ?? null;
 
-const admin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+const admin = createClient(supabaseUrl, supabaseSecretKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
