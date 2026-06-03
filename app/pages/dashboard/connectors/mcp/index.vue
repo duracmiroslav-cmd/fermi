@@ -37,12 +37,18 @@ const onConfirmDelete = async () => {
       </template>
 
       <DashboardContainer>
-        <header class="flex items-start justify-between gap-4">
-          <div class="flex flex-col gap-2 min-w-0">
-            <h1 class="text-2xl font-semibold">
+        <header class="flex items-center gap-4">
+          <div class="size-12 rounded-full bg-muted flex items-center justify-center shrink-0">
+            <UIcon
+              name="i-lucide-server"
+              class="size-6 text-default"
+            />
+          </div>
+          <div class="flex-1 min-w-0">
+            <h1 class="text-2xl font-semibold truncate">
               {{ $t('__titleCustomMcpServers') }}
             </h1>
-            <p class="text-sm text-toned">
+            <p class="text-sm text-toned mt-1">
               {{ $t('__descriptionCustomMcpServers') }}
             </p>
           </div>

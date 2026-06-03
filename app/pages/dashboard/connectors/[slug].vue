@@ -101,10 +101,10 @@ const twinkleHub = makeAction('/api/connectors/twinkle-hub', 'Twinkle Hub', 'tok
 
       <DashboardContainer v-else-if="capability">
         <header class="flex items-center gap-4">
-          <div class="size-12 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+          <div class="size-12 rounded-full bg-muted flex items-center justify-center shrink-0">
             <UIcon
               :name="getCapabilityIcon(capability.slug)"
-              class="size-6 text-primary"
+              class="size-6 text-default"
             />
           </div>
           <div class="flex-1 min-w-0">
