@@ -1,21 +1,17 @@
-import { z } from 'zod';
 import { getCurrentUser } from '~~/server/utils/auth';
 import { ingestTextDocument } from '~~/server/utils/knowledge';
+import { UnsupportedFileError, extractDocumentText } from '~~/server/utils/knowledge-extract';
 
-const bodySchema = z.object({
-  title: z.string().min(1).max(200),
-  // ~100KB of text; the dashboard upload caps the file at the same size.
-  text:  z.string().min(1).max(100000),
-}).strict();
+// Raw upload cap (binary files run larger than their text). The extracted
+// text has its own, smaller cap below — that's what actually bounds embedding
+// work.
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+// ~200k chars ≈ a few hundred chunks; keeps synchronous ingestion bounded.
+const MAX_TEXT_CHARS = 200_000;
 
 export default defineEventHandler(async (event) => {
   const user = await getCurrentUser(event);
   const agentId = getUuidParam(event, 'id');
-
-  const parsed = bodySchema.safeParse(await readBody(event));
-  if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: parsed.error.message });
-  }
 
   const admin = useSupabaseAdmin();
 
@@ -42,17 +38,45 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Knowledge base is a Pro feature', data: { code: '__errorKnowledgeRequiresPro' } });
   }
 
+  const parts = await readMultipartFormData(event);
+  const filePart = parts?.find(p => p.name === 'file' && p.filename);
+  if (!filePart?.filename || !filePart.data?.length) {
+    throw createError({ statusCode: 400, statusMessage: 'No file uploaded' });
+  }
+  if (filePart.data.length > MAX_FILE_BYTES) {
+    throw createError({ statusCode: 413, statusMessage: 'File too large' });
+  }
+
+  let text: string;
+  try {
+    text = (await extractDocumentText(filePart.filename, filePart.data)).trim();
+  } catch (err) {
+    if (err instanceof UnsupportedFileError) {
+      throw createError({ statusCode: 415, statusMessage: 'Unsupported file type' });
+    }
+    // A corrupt / unreadable PDF or Word file lands here.
+    throw createError({ statusCode: 422, statusMessage: 'Could not read text from the file' });
+  }
+  if (!text) {
+    throw createError({ statusCode: 422, statusMessage: 'No text found in the file' });
+  }
+  if (text.length > MAX_TEXT_CHARS) {
+    throw createError({ statusCode: 413, statusMessage: 'Document text is too long' });
+  }
+
   const { openaiApiKey } = useRuntimeConfig(event);
   if (!openaiApiKey) {
     throw createError({ statusCode: 503, statusMessage: 'Knowledge base unavailable: platform OpenAI key not configured' });
   }
 
+  const title = filePart.filename.replace(/\.[^.]+$/, '').trim() || filePart.filename;
+
   return await ingestTextDocument({
     admin,
     ownerId: user.id,
     agentId,
-    title:   parsed.data.title,
-    text:    parsed.data.text,
+    title,
+    text,
     openaiApiKey,
   });
 });

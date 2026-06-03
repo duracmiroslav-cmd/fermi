@@ -24,10 +24,15 @@ export const useKnowledge = (agentId: MaybeRefOrGetter<string>) => {
   const isAdding = ref(false);
   const deletingId = ref<string | null>(null);
 
-  const add = async (body: { title: string; text: string }): Promise<boolean> => {
+  // Uploads a file as multipart/form-data; the server extracts the text
+  // (PDF / Word / plain text), derives the title from the filename, then
+  // chunks + embeds it.
+  const upload = async (file: File): Promise<boolean> => {
     isAdding.value = true;
     try {
-      await $fetch(`/api/agents/${id.value}/knowledge`, { method: 'POST', body });
+      const form = new FormData();
+      form.append('file', file);
+      await $fetch(`/api/agents/${id.value}/knowledge`, { method: 'POST', body: form });
       await refresh();
       notify.success(t('__toastKnowledgeAdded'));
       return true;
@@ -54,5 +59,5 @@ export const useKnowledge = (agentId: MaybeRefOrGetter<string>) => {
     }
   };
 
-  return { documents, pending, refresh, isAdding, deletingId, add, remove };
+  return { documents, pending, refresh, isAdding, deletingId, upload, remove };
 };

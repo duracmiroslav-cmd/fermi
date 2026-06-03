@@ -333,7 +333,7 @@ export default {
   __errorKnowledgeDocNotFound:            '找不到文件',
   __errorKnowledgeRequiresPro:            '知識庫是 Pro 功能，升級即可新增文件。',
   __hintKnowledgeNotAttached:             '開啟上方開關，這個 Agent 才會使用這些文件。',
-  __hintKnowledgeUpload:                  '純文字檔（.txt、.md）。fermi 會切段並建立索引供檢索。PDF / Word 即將支援。',
+  __hintKnowledgeUpload:                  'PDF、Word（.doc／.docx）、純文字（.txt、.md、.json）。fermi 會抽取文字、切段並建立索引供檢索。',
   __labelKnowledgeCharCount:              '{count} 字',
   __statusFailed:                         '失敗',
   __titleKnowledgeDocuments:              '文件',
@@ -342,6 +342,6 @@ export default {
   __toastKnowledgeAddFailed:              '新增文件失敗',
   __toastKnowledgeDeleted:                '已刪除文件',
   __toastKnowledgeDeleteFailed:           '刪除文件失敗',
-  __toastKnowledgeFileTooLarge:           '檔案太大，上限 100KB。',
-  __toastKnowledgeUnsupportedFile:        '不支援的檔案格式，請上傳純文字檔（.txt、.md）。',
+  __toastKnowledgeFileTooLarge:           '檔案太大，上限 10MB。',
+  __toastKnowledgeUnsupportedFile:        '不支援的格式，請上傳 PDF、Word 或純文字檔。',
 } satisfies Record<keyof typeof en, string>;

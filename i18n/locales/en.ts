@@ -331,7 +331,7 @@ export default {
   __errorKnowledgeDocNotFound:            'Document not found',
   __errorKnowledgeRequiresPro:            'The knowledge base is a Pro feature. Upgrade to add documents.',
   __hintKnowledgeNotAttached:             'Turn on the switch above so this agent uses these documents.',
-  __hintKnowledgeUpload:                  'Plain-text files (.txt, .md). fermi splits and indexes them for retrieval. PDF / Word coming soon.',
+  __hintKnowledgeUpload:                  'PDF, Word (.doc / .docx), and plain text (.txt, .md, .json). fermi extracts the text, splits it, and indexes it for retrieval.',
   __labelKnowledgeCharCount:              '{count} characters',
   __statusFailed:                         'Failed',
   __titleKnowledgeDocuments:              'Documents',
@@ -340,6 +340,6 @@ export default {
   __toastKnowledgeAddFailed:              'Couldn\'t add the document',
   __toastKnowledgeDeleted:                'Document deleted',
   __toastKnowledgeDeleteFailed:           'Couldn\'t delete the document',
-  __toastKnowledgeFileTooLarge:           'File too large. Max 100KB.',
-  __toastKnowledgeUnsupportedFile:        'Unsupported file. Upload a plain-text file (.txt, .md).',
+  __toastKnowledgeFileTooLarge:           'File too large. Max 10MB.',
+  __toastKnowledgeUnsupportedFile:        'Unsupported file. Upload a PDF, Word, or plain-text file.',
 };

@@ -18,21 +18,21 @@ const {
   pending: pendingDocs,
   isAdding,
   deletingId,
-  add,
+  upload,
   remove,
 } = useKnowledge(() => route.params.id as string);
 
 const DOC_WIDTHS = ['w-40', 'w-32', 'w-48'];
 
-// Text-file upload: read the file in the browser, use the filename (minus
-// extension) as the title, and send the text through the same ingestion
-// endpoint — no title to type, no content to paste. Plain text only for now;
-// PDF / Word need server-side extraction. The byte cap mirrors the endpoint's
-// text-length limit.
+// File upload: send the raw file; the server extracts the text (PDF / Word /
+// plain text), uses the filename as the title, then chunks + embeds it — no
+// title to type, no content to paste. Client-side checks (extension + size)
+// are fast feedback; the server validates again.
 const { t } = useI18n();
 const notify = useNotify();
-const ACCEPT = '.txt,.md,.markdown,.text';
-const MAX_FILE_BYTES = 100 * 1024;
+const ACCEPT = '.txt,.md,.markdown,.text,.json,.pdf,.doc,.docx';
+const ALLOWED_EXT = /\.(txt|md|markdown|text|json|pdf|doc|docx)$/i;
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const fileInput = ref<HTMLInputElement | null>(null);
 
 const onPickFile = () => fileInput.value?.click();
@@ -42,16 +42,9 @@ const onFileChange = async (e: Event) => {
   const file = input.files?.[0];
   input.value = ''; // reset so re-picking the same file fires change again
   if (!file) return;
-
-  const isText = /\.(txt|md|markdown|text)$/i.test(file.name) || file.type.startsWith('text/');
-  if (!isText) return notify.error(t('__toastKnowledgeUnsupportedFile'), null);
+  if (!ALLOWED_EXT.test(file.name)) return notify.error(t('__toastKnowledgeUnsupportedFile'), null);
   if (file.size > MAX_FILE_BYTES) return notify.error(t('__toastKnowledgeFileTooLarge'), null);
-
-  const text = (await file.text()).trim();
-  if (!text) return notify.error(t('__toastKnowledgeUnsupportedFile'), null);
-
-  const title = file.name.replace(/\.[^.]+$/, '').trim() || file.name;
-  await add({ title, text });
+  await upload(file);
 };
 </script>
 
