@@ -5,13 +5,15 @@ interface Args {
   query?: unknown;
 }
 
-// Top-k chunks to return, and the cosine-similarity floor below which a hit
-// is treated as noise. text-embedding-3-small puts related passages around
-// 0.3+ and unrelated ones near 0, so ~0.25 separates "nothing relevant" (let
-// the model say it doesn't know) from a real match. Tunable once we see real
-// query distributions.
+// Top-k chunks to return, and a low cosine floor that only drops near-zero
+// noise. text-embedding-3-small's cosine scale is compressed for zh-Hant —
+// measured ~0.26 for a relevant chunk vs ~0.23 for an irrelevant one, a gap
+// too small for a threshold to separate. So we lean on top-k ranking + the
+// tool's "say you don't know if it's not covered" instruction (the model
+// reads the actual passages and judges), and keep the floor only to discard
+// genuinely unrelated chunks (near 0).
 const MATCH_COUNT = 6;
-const MIN_SIMILARITY = 0.25;
+const MIN_SIMILARITY = 0.1;
 // Cap each returned passage so a few long chunks can't dominate the context.
 const PASSAGE_MAX_CHARS = 800;
 
