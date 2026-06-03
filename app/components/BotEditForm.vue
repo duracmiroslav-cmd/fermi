@@ -3,8 +3,9 @@ import { resolveTextModel } from '~~/shared/constants/models';
 import { updateBotInputSchema } from '~~/shared/schemas/bots';
 
 interface BotEditFormValue {
-  agentId:    string;
-  disabledAt: string | null;
+  agentId:             string;
+  disabledAt:          string | null;
+  groupActivationCode: string | null;
 }
 
 interface AgentOption {
@@ -28,8 +29,9 @@ const emit = defineEmits<{
 const { data: agents, pending: agentsPending, refresh: refreshAgents } = useApiFetch<AgentOption[]>('/api/agents');
 
 const state = reactive<BotEditFormValue>({
-  agentId:    props.initialValue.agentId,
-  disabledAt: props.initialValue.disabledAt,
+  agentId:             props.initialValue.agentId,
+  disabledAt:          props.initialValue.disabledAt,
+  groupActivationCode: props.initialValue.groupActivationCode ?? '',
 });
 
 const isAgentPickerOpening = ref(false);
@@ -78,7 +80,11 @@ const onRefresh = async () => {
 };
 
 const onSubmit = () => {
-  emit('submit', { agentId: state.agentId, disabledAt: state.disabledAt });
+  emit('submit', {
+    agentId:             state.agentId,
+    disabledAt:          state.disabledAt,
+    groupActivationCode: state.groupActivationCode?.trim() || null,
+  });
 };
 </script>
 
@@ -201,6 +207,20 @@ const onSubmit = () => {
 
       <template #help>
         {{ $t('__hintAgentField') }}
+      </template>
+    </UFormField>
+
+    <UFormField
+      :label="$t('__labelGroupActivationCode')"
+      name="groupActivationCode"
+    >
+      <UInput
+        v-model="state.groupActivationCode"
+        :placeholder="$t('__placeholderGroupActivationCode')"
+        autocomplete="off"
+      />
+      <template #help>
+        {{ $t('__hintGroupActivationCode') }}
       </template>
     </UFormField>
 

@@ -7,9 +7,11 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // replying," not "drop the connection."
 
 export interface BotRef {
-  id:      string;
-  ownerId: string;
-  agentId: string | null;
+  id:                  string;
+  ownerId:             string;
+  agentId:             string | null;
+  // null = owner hasn't opted this bot into group chats.
+  groupActivationCode: string | null;
 }
 
 export const findBotByExternalId = async (
@@ -19,14 +21,16 @@ export const findBotByExternalId = async (
 ): Promise<BotRef | null> => {
   const { data, error } = await admin
     .from('bots')
-    .select('id, owner_id, agent_id')
+    .select('id, owner_id, agent_id, group_activation_code')
     .eq('platform', platform)
     .eq('external_id', externalId)
     .is('deleted_at', null)
     .is('disabled_at', null)
     .maybeSingle();
   if (error) throw error;
-  return data ? { id: data.id, ownerId: data.owner_id, agentId: data.agent_id } : null;
+  return data
+    ? { id: data.id, ownerId: data.owner_id, agentId: data.agent_id, groupActivationCode: data.group_activation_code }
+    : null;
 };
 
 export const findBotById = async (
@@ -35,11 +39,13 @@ export const findBotById = async (
 ): Promise<BotRef | null> => {
   const { data, error } = await admin
     .from('bots')
-    .select('id, owner_id, agent_id')
+    .select('id, owner_id, agent_id, group_activation_code')
     .eq('id', botId)
     .is('deleted_at', null)
     .is('disabled_at', null)
     .maybeSingle();
   if (error) throw error;
-  return data ? { id: data.id, ownerId: data.owner_id, agentId: data.agent_id } : null;
+  return data
+    ? { id: data.id, ownerId: data.owner_id, agentId: data.agent_id, groupActivationCode: data.group_activation_code }
+    : null;
 };

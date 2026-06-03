@@ -4,7 +4,8 @@ import { type AudioMime, detectAudioMime } from '../../../shared/audio.ts';
 import { detectImageMime, type ImageMime } from '../../../shared/image.ts';
 import { type VoiceReplyMode, findAgentById } from '../../../shared/agents.ts';
 import { type TtsModel, type TtsVoice } from '../../../shared/tts.ts';
-import { findBotById } from '../../../shared/bots.ts';
+import { type BotRef, findBotById } from '../../../shared/bots.ts';
+import { activateGroup, ensureGroup, markGroupLeft } from './groups.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
 import { t } from '../../../shared/i18n.ts';
 import { getKek } from '../../../shared/kek.ts';
@@ -156,6 +157,96 @@ const isReplyableUserMessage = (event: LineEvent): event is LineEvent & {
   || isImageMessageFromUser(event)
   || isAudioMessageFromUser(event)
 );
+
+const isGroupTextMessage = (event: LineEvent): event is LineEvent & {
+  replyToken: string;
+  source: LineSource & { type: 'group'; groupId: string };
+  message: { type: 'text'; text: string };
+} => (
+  event.type === 'message'
+  && event.message?.type === 'text'
+  && typeof event.message.text === 'string'
+  && typeof event.replyToken === 'string'
+  && event.source?.type === 'group'
+  && typeof event.source.groupId === 'string'
+);
+
+const isGroupJoin = (event: LineEvent): event is LineEvent & {
+  replyToken: string;
+  source: LineSource & { type: 'group'; groupId: string };
+} => (
+  event.type === 'join'
+  && typeof event.replyToken === 'string'
+  && event.source?.type === 'group'
+  && typeof event.source.groupId === 'string'
+);
+
+const isGroupLeave = (event: LineEvent): event is LineEvent & {
+  source: LineSource & { type: 'group'; groupId: string };
+} => (
+  event.type === 'leave'
+  && event.source?.type === 'group'
+  && typeof event.source.groupId === 'string'
+);
+
+// Group lifecycle + the activation-code gate, independent of the agent
+// loop (no LLM / key needed). Consumes group-source events and returns
+// the rest for 1:1 processing. In Phase 2 an *activated* group's content
+// is dropped — transcription (Phase 3) and mention chat (Phase 4) hook
+// in at the marked branch.
+const handleGroupEvents = async (
+  incoming: LineEvent[],
+  bot: BotRef,
+  lineAccessToken: string,
+  ownerLocale: Locale,
+): Promise<LineEvent[]> => {
+  const direct: LineEvent[] = [];
+  for (const event of incoming) {
+    if (event.source?.type !== 'group' || typeof event.source.groupId !== 'string') {
+      direct.push(event);
+      continue;
+    }
+    const groupId = event.source.groupId;
+
+    // Leave is processed regardless of code — it's state cleanup, and a
+    // no-op when no row exists.
+    if (isGroupLeave(event)) {
+      await markGroupLeft(admin, bot.id, groupId);
+      continue;
+    }
+
+    // No activation code set → bot isn't opted into group chats. Silent:
+    // no row created, nothing to activate.
+    if (!bot.groupActivationCode) continue;
+
+    if (isGroupJoin(event)) {
+      await ensureGroup(admin, bot.id, groupId);
+      await safeReply(lineAccessToken, event.replyToken, t('__noticeGroupJoinPrompt', ownerLocale));
+      continue;
+    }
+
+    if (isGroupTextMessage(event)) {
+      const group = await ensureGroup(admin, bot.id, groupId);
+      if (group.status === 'activated') {
+        // Phase 3 (transcription) / Phase 4 (mention chat) dispatch here.
+        continue;
+      }
+      // Pending: only the correct code does anything; everything else is
+      // silent so the group isn't spammed with re-prompts.
+      if (event.message.text.trim() === bot.groupActivationCode) {
+        const activated = await activateGroup(admin, bot.id, groupId);
+        if (activated) {
+          await safeReply(lineAccessToken, event.replyToken, t('__noticeGroupActivated', ownerLocale));
+        }
+      }
+      continue;
+    }
+
+    // Other group events (non-text messages, memberJoined/Left, ...) drop
+    // silently in Phase 2.
+  }
+  return direct;
+};
 
 const runAgentLoop = async (params: {
   bot: { id: string; ownerId: string };
@@ -561,8 +652,8 @@ const claimFreshEvents = async (events: LineEvent[]): Promise<LineEvent[]> => {
 };
 
 const processLineMessage = async (payload: LinePayload): Promise<void> => {
-  const events = await claimFreshEvents(payload.events ?? []);
-  if (events.length === 0) return;
+  const allEvents = await claimFreshEvents(payload.events ?? []);
+  if (allEvents.length === 0) return;
 
   const bot = await findBotById(admin, payload.botId);
   if (!bot) {
@@ -580,6 +671,11 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     botId: bot.id,
     keyType: 'line_channel_access_token',
   });
+
+  // Group lifecycle + activation run independently of the agent loop;
+  // they consume group events and return the rest for 1:1 processing.
+  const events = await handleGroupEvents(allEvents, bot, lineAccessToken, ownerLocale);
+  if (events.length === 0) return;
 
   // Bot has no agent bound, or the binding was cleared (agent soft-
   // deleted). Reply with an actionable message instead of silence.

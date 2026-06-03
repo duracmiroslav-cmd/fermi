@@ -17,10 +17,18 @@ export const updateBotInputSchema = z.object({
   // Required: every bot must point at an agent. Default agents (seeded
   // by the signup trigger, undeletable) guarantee there's always at
   // least one valid choice. Pause is handled solely by `disabledAt`.
-  agentId:    z.string().uuid().optional(),
+  agentId:             z.string().uuid().optional(),
   // `null` re-enables the bot; an ISO-8601 timestamp marks it disabled.
   // The form sends `new Date().toISOString()` on disable.
-  disabledAt: z.string().datetime().nullable().optional(),
+  disabledAt:          z.string().datetime().nullable().optional(),
+  // Group-chat activation gate (owner-set; an end-user types it in a
+  // group to enable the bot there). 4–32 chars, or empty / null to clear
+  // it and turn group chats off.
+  groupActivationCode: z.union([
+    z.string().trim().min(4).max(32),
+    z.literal('').transform(() => null),
+    z.null(),
+  ]).optional(),
 }).strict();
 // `displayName` is intentionally not editable here, fermi mirrors
 // LINE's OA name through the connect / refresh flows so the two

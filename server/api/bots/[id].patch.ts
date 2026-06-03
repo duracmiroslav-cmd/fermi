@@ -17,6 +17,7 @@ export default defineEventHandler(async (event) => {
   const patch: Database['public']['Tables']['bots']['Update'] = {};
   if ('agentId' in input) patch.agent_id = input.agentId;
   if ('disabledAt' in input) patch.disabled_at = input.disabledAt;
+  if ('groupActivationCode' in input) patch.group_activation_code = input.groupActivationCode;
 
   if (Object.keys(patch).length === 0) {
     throw createError({

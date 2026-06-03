@@ -292,6 +292,7 @@ export type Database = {
           disabled_at: string | null
           display_name: string | null
           external_id: string
+          group_activation_code: string | null
           handle: string | null
           id: string
           owner_id: string
@@ -307,6 +308,7 @@ export type Database = {
           disabled_at?: string | null
           display_name?: string | null
           external_id: string
+          group_activation_code?: string | null
           handle?: string | null
           id?: string
           owner_id: string
@@ -322,6 +324,7 @@ export type Database = {
           disabled_at?: string | null
           display_name?: string | null
           external_id?: string
+          group_activation_code?: string | null
           handle?: string | null
           id?: string
           owner_id?: string
@@ -471,6 +474,44 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          activated_at: string | null
+          bot_id: string
+          created_at: string
+          external_group_id: string
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          bot_id: string
+          created_at?: string
+          external_group_id: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          bot_id?: string
+          created_at?: string
+          external_group_id?: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groups_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
             referencedColumns: ["id"]
           },
         ]

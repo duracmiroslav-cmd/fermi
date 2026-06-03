@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const admin = useSupabaseAdmin();
   const { data, error } = await admin
     .from('bots')
-    .select('id, platform, external_id, handle, display_name, avatar_url, agent_id, disabled_at, webhook_verified_at, created_at, updated_at')
+    .select('id, platform, external_id, handle, display_name, avatar_url, agent_id, group_activation_code, disabled_at, webhook_verified_at, created_at, updated_at')
     .eq('id', id)
     .eq('owner_id', user.id)
     .is('deleted_at', null)
@@ -63,19 +63,20 @@ export default defineEventHandler(async (event) => {
   const origin = appUrl || getRequestURL(event).origin;
 
   return {
-    id:                data.id,
-    platform:          data.platform,
-    externalId:        data.external_id,
-    handle:            data.handle,
-    displayName:       data.display_name,
-    avatarUrl:         data.avatar_url,
-    agentId:           data.agent_id,
-    disabledAt:        data.disabled_at,
-    webhookVerifiedAt: data.webhook_verified_at,
+    id:                  data.id,
+    platform:            data.platform,
+    externalId:          data.external_id,
+    handle:              data.handle,
+    displayName:         data.display_name,
+    avatarUrl:           data.avatar_url,
+    agentId:             data.agent_id,
+    groupActivationCode: data.group_activation_code,
+    disabledAt:          data.disabled_at,
+    webhookVerifiedAt:   data.webhook_verified_at,
     firstRepliedAt,
-    createdAt:         data.created_at,
-    updatedAt:         data.updated_at,
-    webhookUrl:        `${origin}/api/webhook/${data.platform}`,
+    createdAt:           data.created_at,
+    updatedAt:           data.updated_at,
+    webhookUrl:          `${origin}/api/webhook/${data.platform}`,
     agent,
   };
 });
