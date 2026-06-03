@@ -56,6 +56,18 @@ export const RATE_WINDOWS: readonly RateWindow[] = [
   { scope: 'day', ttlSec: 86400, cap: 1000 },
 ] as const;
 
+// Tighter owner caps for the dashboard test chat. Unlike a TTS preview
+// (~$0.000025/call), each test turn is a full LLM loop on the platform key
+// and can run on whatever model the owner picked (possibly an expensive
+// one), so the generic RATE_WINDOWS day cap of 1000 would expose real
+// platform spend to abuse. ~200/day still covers heavy legitimate tuning;
+// minute is a burst guard (each turn waits for a reply, so 15 is plenty).
+export const TEST_CHAT_RATE_WINDOWS: readonly RateWindow[] = [
+  { scope: 'minute', ttlSec: 60, cap: 15 },
+  { scope: 'hour', ttlSec: 3600, cap: 60 },
+  { scope: 'day', ttlSec: 86400, cap: 200 },
+] as const;
+
 // Builds the Upstash / Postgres key for a (bot, external user, window)
 // combo. Time bucket suffix lets fixed-window counters auto-roll: when
 // the wall clock crosses a window boundary, the next request lands on
@@ -79,9 +91,11 @@ export const buildRateLimitKey = (input: {
 // shape from buildRateLimitKey (which is per bot+user) because
 // previews fire from logged-in dashboard sessions where there's no
 // bot / external-user pair — the natural blast-radius unit is the
-// owner. Reuses RATE_WINDOWS unchanged (30/min, 200/hr, 1000/day)
-// because preview cost is similar order of magnitude to a normal
-// reply call.
+// owner. Reuses RATE_WINDOWS unchanged (30/min, 200/hr, 1000/day): a
+// preview is TTS-only (no LLM) at ~$0.000025/call, so even the loose
+// generic cap is a harmless ceiling. Don't copy this onto a pricier
+// op — the test chat runs a full LLM loop and gets its own tighter
+// TEST_CHAT_RATE_WINDOWS.
 export const buildPreviewRateLimitKey = (input: {
   ownerId: string;
   window:  RateWindow;
@@ -90,6 +104,19 @@ export const buildPreviewRateLimitKey = (input: {
   const now = input.now ?? new Date();
   const bucket = formatBucket(input.window.scope, now);
   return `rl:owner:${input.ownerId}:tts_preview:${input.window.scope}:${bucket}`;
+};
+
+// Owner-scoped key for the dashboard test chat. Distinct namespace from
+// tts_preview so the two try-outs don't share one budget and the chat's
+// tighter caps (TEST_CHAT_RATE_WINDOWS) tune independently.
+export const buildTestChatRateLimitKey = (input: {
+  ownerId: string;
+  window:  RateWindow;
+  now?:    Date;
+}): string => {
+  const now = input.now ?? new Date();
+  const bucket = formatBucket(input.window.scope, now);
+  return `rl:owner:${input.ownerId}:test_chat:${input.window.scope}:${bucket}`;
 };
 
 // Monthly bucket suffix for quota keys; UTC month is fine because

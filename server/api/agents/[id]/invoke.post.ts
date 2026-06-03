@@ -10,7 +10,7 @@
 
 import { z } from 'zod';
 import { getCurrentUser } from '~~/server/utils/auth';
-import { checkOwnerPreviewRateLimit } from '~~/server/utils/rate-limit';
+import { checkTestChatRateLimit } from '~~/server/utils/rate-limit';
 import { isTrustedTriggerHost } from '~~/server/utils/trigger';
 
 // Caps keep a single test turn bounded: LINE tops out at 5000 chars per
@@ -54,7 +54,7 @@ export default defineEventHandler(async (event) => {
 
   const { upstashUrl, upstashToken, supabaseUrl, fermiInternalSecret } = useRuntimeConfig(event);
 
-  const outcome = await checkOwnerPreviewRateLimit(
+  const outcome = await checkTestChatRateLimit(
     admin,
     { upstashUrl: upstashUrl || null, upstashToken: upstashToken || null },
     { ownerId: user.id },

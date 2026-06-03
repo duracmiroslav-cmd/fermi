@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   RATE_WINDOWS,
   type RateWindow,
+  TEST_CHAT_RATE_WINDOWS,
+  buildPreviewRateLimitKey,
   buildRateLimitKey,
+  buildTestChatRateLimitKey,
   buildUsageQuotaKey,
   getMonthlyPeriod,
 } from '../../shared/constants/limits';
@@ -98,5 +101,28 @@ describe('buildRateLimitKey', () => {
       expect(rlKey('day', utc(2026, 4, 28, 23, 59, 59)))
         .not.toBe(rlKey('day', utc(2026, 4, 29, 0, 0, 0)));
     });
+  });
+});
+
+// The test chat runs a full LLM loop on the platform key, so it must stay a
+// separate, tighter budget than the cheap TTS preview — otherwise a user can
+// point the test at an expensive model and burn platform spend up to the
+// generic 1000/day cap. These lock the split in against a future re-merge.
+describe('test chat rate limit', () => {
+  const capOf = (windows: readonly RateWindow[], scope: RateWindow['scope']): number =>
+    windows.find(w => w.scope === scope)!.cap;
+
+  it.each(['minute', 'hour', 'day'] as const)(
+    'caps the %s window below the generic preview budget',
+    (scope) => {
+      expect(capOf(TEST_CHAT_RATE_WINDOWS, scope)).toBeLessThan(capOf(RATE_WINDOWS, scope));
+    },
+  );
+
+  it('counts under a separate key namespace from the tts preview', () => {
+    const window = TEST_CHAT_RATE_WINDOWS.find(w => w.scope === 'day')!;
+    const now = utc(2026, 4, 28);
+    expect(buildTestChatRateLimitKey({ ownerId: owner, window, now }))
+      .not.toBe(buildPreviewRateLimitKey({ ownerId: owner, window, now }));
   });
 });
