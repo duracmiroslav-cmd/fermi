@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
 
   const systemPrompt = wrapSystemPrompt(
     agent.systemPrompt ?? defaultSystemPrompt(agent.name),
-    { knowledgeBase: capabilities.some(c => c.slug === 'knowledge-base') },
+    { hasTools: capabilities.length > 0 },
   );
   const messages: ChatMessage[] = [
     { role: 'system', content: systemPrompt },
