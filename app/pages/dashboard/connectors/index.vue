@@ -68,7 +68,11 @@ const filteredCards = computed(() => {
 
         <section class="flex flex-col gap-3">
           <div class="flex flex-col gap-0.5">
-            <h2 class="font-semibold">
+            <h2 class="font-semibold flex items-center gap-2">
+              <UIcon
+                name="i-lucide-cpu"
+                class="size-4 text-toned"
+              />
               {{ $t('__titleModelProviders') }}
             </h2>
             <p class="text-sm text-toned">
@@ -128,7 +132,11 @@ const filteredCards = computed(() => {
 
         <section class="flex flex-col gap-3">
           <div class="flex flex-col gap-0.5">
-            <h2 class="font-semibold">
+            <h2 class="font-semibold flex items-center gap-2">
+              <UIcon
+                name="i-lucide-blocks"
+                class="size-4 text-toned"
+              />
               {{ $t('__titleCapabilities') }}
             </h2>
             <p class="text-sm text-toned">
@@ -255,7 +263,11 @@ const filteredCards = computed(() => {
         </section>
 
         <section class="flex flex-col gap-3">
-          <h2 class="font-semibold">
+          <h2 class="font-semibold flex items-center gap-2">
+            <UIcon
+              name="i-lucide-server"
+              class="size-4 text-toned"
+            />
             {{ $t('__titleCustomMcpServers') }}
           </h2>
 

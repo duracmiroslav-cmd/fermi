@@ -158,7 +158,7 @@ const copyWebhook = async () => {
           </div>
           <UButton
             :to="`/dashboard/bots/${bot.id}/edit`"
-            icon="i-lucide-sliders-horizontal"
+            icon="i-lucide-square-pen"
             color="neutral"
             variant="soft"
             size="sm"

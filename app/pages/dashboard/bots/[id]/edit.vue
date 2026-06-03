@@ -96,7 +96,11 @@ const onDelete = async () => {
 
         <div class="flex flex-col gap-3">
           <div class="flex items-center justify-between gap-4">
-            <h2 class="font-semibold">
+            <h2 class="font-semibold flex items-center gap-2">
+              <UIcon
+                name="i-lucide-settings"
+                class="size-4 text-toned"
+              />
               {{ $t('__titleSettings') }}
             </h2>
             <div class="flex items-center gap-2">
@@ -132,7 +136,11 @@ const onDelete = async () => {
         </div>
 
         <div class="flex flex-col gap-3">
-          <h2 class="font-semibold text-error">
+          <h2 class="font-semibold text-error flex items-center gap-2">
+            <UIcon
+              name="i-lucide-triangle-alert"
+              class="size-4"
+            />
             {{ $t('__titleDangerZone') }}
           </h2>
           <UCard>

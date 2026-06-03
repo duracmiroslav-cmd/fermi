@@ -135,7 +135,7 @@ const visionModel = computed<ProviderModel>(() => {
           </div>
           <UButton
             :to="`/dashboard/agents/${agent.id}/edit`"
-            icon="i-lucide-sliders-horizontal"
+            icon="i-lucide-square-pen"
             color="neutral"
             variant="soft"
             size="sm"
