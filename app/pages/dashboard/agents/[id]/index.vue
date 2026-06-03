@@ -60,6 +60,10 @@ const { data: agent, error, pending, refresh } = useApiFetch<AgentDetail>(
 );
 const { data: models } = useApiFetch<ProviderModel[]>('/api/providers/openrouter/models');
 
+// AgentCapabilitiesReadonly fetches its own capabilities; hold a ref so the
+// panel can be refetched when the builder changes the agent's capabilities.
+const capabilitiesPanel = ref<{ refresh: () => Promise<void> } | null>(null);
+
 // OpenRouter names come as "Provider: Model"; the provider logo already
 // carries the provider, so the prefix is stripped to avoid duplicating it.
 const stripProviderPrefix = (name: string) => name.replace(/^[^:]+:\s*/, '');
@@ -82,6 +86,13 @@ const visionModel = computed<ProviderModel>(() => {
     ?? { id, name: id, avatar: { icon: 'i-lucide-eye' } };
   return { ...found, name: stripProviderPrefix(found.name) };
 });
+
+// The builder mutates the prompt *and* capabilities. The page-level refresh
+// covers the agent (prompt + details); also refetch the capabilities panel.
+const onBuilderUpdated = () => {
+  refresh();
+  capabilitiesPanel.value?.refresh();
+};
 </script>
 
 <template>
@@ -148,7 +159,7 @@ const visionModel = computed<ProviderModel>(() => {
         <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
           <AgentBuilderChat
             :agent-id="agent.id"
-            @updated="refresh"
+            @updated="onBuilderUpdated"
           />
 
           <AgentTestChat :agent-id="agent.id" />
@@ -164,7 +175,7 @@ const visionModel = computed<ProviderModel>(() => {
             <UCard :ui="{ body: 'p-0 sm:p-0' }">
               <p
                 v-if="agent.systemPrompt"
-                class="text-sm whitespace-pre-wrap break-words leading-relaxed max-h-96 overflow-y-auto p-4 sm:p-6"
+                class="text-sm whitespace-pre-wrap break-words leading-relaxed max-h-80 overflow-y-auto p-4 sm:p-6"
               >
                 {{ agent.systemPrompt }}
               </p>
@@ -288,7 +299,10 @@ const visionModel = computed<ProviderModel>(() => {
             </UCard>
           </div>
 
-          <AgentCapabilitiesReadonly :agent-id="agent.id" />
+          <AgentCapabilitiesReadonly
+            ref="capabilitiesPanel"
+            :agent-id="agent.id"
+          />
 
           <div
             v-if="agent.bots.length"

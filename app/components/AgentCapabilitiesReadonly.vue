@@ -5,11 +5,15 @@ const props = defineProps<{
   agentId: string;
 }>();
 
-const { data: rows, pending } = useApiFetch<AgentCapabilityRow[]>(
+const { data: rows, pending, refresh } = useApiFetch<AgentCapabilityRow[]>(
   () => `/api/agents/${props.agentId}/capabilities`,
 );
 
 const attached = computed(() => (rows.value ?? []).filter(c => c.attached));
+
+// The agent detail page refetches this after the builder changes
+// capabilities; its page-level refresh only covers the agent, not this fetch.
+defineExpose({ refresh });
 </script>
 
 <template>
