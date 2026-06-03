@@ -1,6 +1,7 @@
 import en from './en';
 
 export default {
+  __actionAddCapability:                  '新增能力',
   __actionAddSystemPrompt:                '新增人物設定',
   __actionBackToAgentSettings:            '返回 Agent 設定',
   __actionBackToAgents:                   '返回 Agent 列表',

@@ -1,4 +1,5 @@
 export default {
+  __actionAddCapability:                  'Add capabilities',
   __actionAddSystemPrompt:                'Add persona',
   __actionBackToAgentSettings:            'Back to agent settings',
   __actionBackToAgents:                   'Back to agents',
