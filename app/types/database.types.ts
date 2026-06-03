@@ -293,6 +293,7 @@ export type Database = {
           display_name: string | null
           external_id: string
           group_activation_code: string | null
+          group_transcribe_enabled: boolean
           handle: string | null
           id: string
           owner_id: string
@@ -309,6 +310,7 @@ export type Database = {
           display_name?: string | null
           external_id: string
           group_activation_code?: string | null
+          group_transcribe_enabled?: boolean
           handle?: string | null
           id?: string
           owner_id: string
@@ -325,6 +327,7 @@ export type Database = {
           display_name?: string | null
           external_id?: string
           group_activation_code?: string | null
+          group_transcribe_enabled?: boolean
           handle?: string | null
           id?: string
           owner_id?: string
@@ -474,6 +477,41 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_members: {
+        Row: {
+          bot_id: string
+          cached_at: string
+          display_name: string | null
+          external_group_id: string
+          external_user_id: string
+          picture_url: string | null
+        }
+        Insert: {
+          bot_id: string
+          cached_at?: string
+          display_name?: string | null
+          external_group_id: string
+          external_user_id: string
+          picture_url?: string | null
+        }
+        Update: {
+          bot_id?: string
+          cached_at?: string
+          display_name?: string | null
+          external_group_id?: string
+          external_user_id?: string
+          picture_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
             referencedColumns: ["id"]
           },
         ]

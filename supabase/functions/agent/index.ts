@@ -6,6 +6,7 @@ import { type VoiceReplyMode, findAgentById } from '../../../shared/agents.ts';
 import { type TtsModel, type TtsVoice } from '../../../shared/tts.ts';
 import { type BotRef, findBotById } from '../../../shared/bots.ts';
 import { activateGroup, ensureGroup, markGroupLeft } from './groups.ts';
+import { resolveDisplayName } from './groupMembers.ts';
 import { loadCredential } from '../../../shared/credentials.ts';
 import { t } from '../../../shared/i18n.ts';
 import { getKek } from '../../../shared/kek.ts';
@@ -189,14 +190,88 @@ const isGroupLeave = (event: LineEvent): event is LineEvent & {
   && typeof event.source.groupId === 'string'
 );
 
+const isGroupAudioMessage = (event: LineEvent): event is LineEvent & {
+  replyToken: string;
+  source: LineSource & { type: 'group'; groupId: string; userId: string };
+  message: { type: 'audio'; id: string };
+} => (
+  event.type === 'message'
+  && event.message?.type === 'audio'
+  && typeof event.message.id === 'string'
+  && typeof event.replyToken === 'string'
+  && event.source?.type === 'group'
+  && typeof event.source.groupId === 'string'
+  && typeof event.source.userId === 'string'
+);
+
+// Transcribes one voice message in an activated group and relays it as
+// `🎤 name：text`. Pure relay — no LLM, no agent loop. Best-effort and
+// silent on every failure (bad format, oversize, quota, missing key,
+// Whisper error): a group must not be spammed with error notices for one
+// member's clip, so failures only log.
+const transcribeGroupAudio = async (params: {
+  bot: BotRef;
+  kek: CryptoKey;
+  lineAccessToken: string;
+  groupId: string;
+  userId: string;
+  messageId: string;
+  replyToken: string;
+}): Promise<void> => {
+  const { bot, kek, lineAccessToken, groupId, userId, messageId, replyToken } = params;
+
+  let bytes: Uint8Array;
+  let mime: AudioMime;
+  try {
+    const content = await fetchMessageContent(lineAccessToken, messageId);
+    const detected = detectAudioMime(content.bytes);
+    if (!detected) return;
+    mime = detected;
+    bytes = content.bytes;
+  } catch (err) {
+    console.warn('group audio fetch failed', { botId: bot.id, err });
+    return;
+  }
+
+  let openaiKey: string;
+  try {
+    const resolved = await resolveKey(admin, kek, {
+      ownerId:     bot.ownerId,
+      purpose:     'openai',
+      platformKey: PLATFORM_OPENAI_KEY,
+    });
+    openaiKey = resolved.key;
+  } catch (err) {
+    // Free owner without an OpenAI key, or platform key missing. Group
+    // transcription stays quiet; the owner connects a key in the dashboard.
+    console.warn('group transcription key unavailable', { botId: bot.id, err: err instanceof Error ? err.message : err });
+    return;
+  }
+
+  const quota = await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' });
+  if (!quota.allowed) return;
+
+  let transcript: string;
+  try {
+    transcript = await transcribeAudio({ apiKey: openaiKey, bytes, mime });
+  } catch (err) {
+    console.warn('group transcription failed', { botId: bot.id, status: err instanceof STTError ? err.status : undefined });
+    return;
+  }
+  if (transcript.length === 0) return;
+
+  const name = await resolveDisplayName(admin, lineAccessToken, bot.id, groupId, userId);
+  await safeReply(lineAccessToken, replyToken, `🎤 ${name}：${transcript}`);
+};
+
 // Group lifecycle + the activation-code gate, independent of the agent
-// loop (no LLM / key needed). Consumes group-source events and returns
-// the rest for 1:1 processing. In Phase 2 an *activated* group's content
-// is dropped — transcription (Phase 3) and mention chat (Phase 4) hook
-// in at the marked branch.
+// loop. Consumes group-source events and returns the rest for 1:1
+// processing. Activated groups transcribe voice (the relay feature);
+// activated text is Phase 4 (mention chat).
 const handleGroupEvents = async (
   incoming: LineEvent[],
   bot: BotRef,
+  kek: CryptoKey,
   lineAccessToken: string,
   ownerLocale: Locale,
 ): Promise<LineEvent[]> => {
@@ -225,25 +300,36 @@ const handleGroupEvents = async (
       continue;
     }
 
-    if (isGroupTextMessage(event)) {
+    // Group messages: ensure the row exists, then branch on status.
+    if (event.type === 'message' && typeof event.replyToken === 'string') {
       const group = await ensureGroup(admin, bot.id, groupId);
-      if (group.status === 'activated') {
-        // Phase 3 (transcription) / Phase 4 (mention chat) dispatch here.
+      if (group.status !== 'activated') {
+        // Pending: only the correct activation code (a text message) does
+        // anything; everything else is silent so the group isn't spammed.
+        if (isGroupTextMessage(event) && event.message.text.trim() === bot.groupActivationCode) {
+          if (await activateGroup(admin, bot.id, groupId)) {
+            await safeReply(lineAccessToken, event.replyToken, t('__noticeGroupActivated', ownerLocale));
+          }
+        }
         continue;
       }
-      // Pending: only the correct code does anything; everything else is
-      // silent so the group isn't spammed with re-prompts.
-      if (event.message.text.trim() === bot.groupActivationCode) {
-        const activated = await activateGroup(admin, bot.id, groupId);
-        if (activated) {
-          await safeReply(lineAccessToken, event.replyToken, t('__noticeGroupActivated', ownerLocale));
-        }
+      // Activated: transcribe voice (the relay feature). Activated text is
+      // Phase 4 (mention chat); audio with transcription off drops.
+      if (isGroupAudioMessage(event) && bot.groupTranscribeEnabled) {
+        await transcribeGroupAudio({
+          bot,
+          kek,
+          lineAccessToken,
+          groupId,
+          userId:     event.source.userId,
+          messageId:  event.message.id,
+          replyToken: event.replyToken,
+        });
       }
       continue;
     }
 
-    // Other group events (non-text messages, memberJoined/Left, ...) drop
-    // silently in Phase 2.
+    // Other group events (memberJoined / memberLeft / ...) drop silently.
   }
   return direct;
 };
@@ -674,7 +760,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
 
   // Group lifecycle + activation run independently of the agent loop;
   // they consume group events and return the rest for 1:1 processing.
-  const events = await handleGroupEvents(allEvents, bot, lineAccessToken, ownerLocale);
+  const events = await handleGroupEvents(allEvents, bot, kek, lineAccessToken, ownerLocale);
   if (events.length === 0) return;
 
   // Bot has no agent bound, or the binding was cleared (agent soft-

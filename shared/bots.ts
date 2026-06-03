@@ -7,12 +7,30 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // replying," not "drop the connection."
 
 export interface BotRef {
-  id:                  string;
-  ownerId:             string;
-  agentId:             string | null;
+  id:                     string;
+  ownerId:                string;
+  agentId:                string | null;
   // null = owner hasn't opted this bot into group chats.
-  groupActivationCode: string | null;
+  groupActivationCode:    string | null;
+  // Whether voice in activated groups is transcribed (relay feature).
+  groupTranscribeEnabled: boolean;
 }
+
+const BOT_SELECT = 'id, owner_id, agent_id, group_activation_code, group_transcribe_enabled';
+
+const toBotRef = (data: {
+  id:                       string;
+  owner_id:                 string;
+  agent_id:                 string | null;
+  group_activation_code:    string | null;
+  group_transcribe_enabled: boolean;
+}): BotRef => ({
+  id:                     data.id,
+  ownerId:                data.owner_id,
+  agentId:                data.agent_id,
+  groupActivationCode:    data.group_activation_code,
+  groupTranscribeEnabled: data.group_transcribe_enabled,
+});
 
 export const findBotByExternalId = async (
   admin: SupabaseClient,
@@ -21,16 +39,14 @@ export const findBotByExternalId = async (
 ): Promise<BotRef | null> => {
   const { data, error } = await admin
     .from('bots')
-    .select('id, owner_id, agent_id, group_activation_code')
+    .select(BOT_SELECT)
     .eq('platform', platform)
     .eq('external_id', externalId)
     .is('deleted_at', null)
     .is('disabled_at', null)
     .maybeSingle();
   if (error) throw error;
-  return data
-    ? { id: data.id, ownerId: data.owner_id, agentId: data.agent_id, groupActivationCode: data.group_activation_code }
-    : null;
+  return data ? toBotRef(data) : null;
 };
 
 export const findBotById = async (
@@ -39,13 +55,11 @@ export const findBotById = async (
 ): Promise<BotRef | null> => {
   const { data, error } = await admin
     .from('bots')
-    .select('id, owner_id, agent_id, group_activation_code')
+    .select(BOT_SELECT)
     .eq('id', botId)
     .is('deleted_at', null)
     .is('disabled_at', null)
     .maybeSingle();
   if (error) throw error;
-  return data
-    ? { id: data.id, ownerId: data.owner_id, agentId: data.agent_id, groupActivationCode: data.group_activation_code }
-    : null;
+  return data ? toBotRef(data) : null;
 };

@@ -63,6 +63,31 @@ export const fetchMessageContent = async (
   };
 };
 
+export interface LineMemberProfile {
+  displayName: string;
+  pictureUrl:  string | null;
+}
+
+// Group member profile. Returns null when LINE can't resolve the member
+// (404 — the user hasn't consented to share their profile in this group),
+// so callers fall back to an opaque label instead of failing.
+export const fetchGroupMemberProfile = async (
+  accessToken: string,
+  groupId: string,
+  userId: string,
+): Promise<LineMemberProfile | null> => {
+  const url = `https://api.line.me/v2/bot/group/${encodeURIComponent(groupId)}/member/${encodeURIComponent(userId)}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new LineContentError(res.status, `LINE Member Profile API ${res.status}`);
+  }
+  const body = await res.json() as { displayName?: string; pictureUrl?: string };
+  return body.displayName ? { displayName: body.displayName, pictureUrl: body.pictureUrl ?? null } : null;
+};
+
 // ---- Outbound: Messaging API (api.line.me) ---------------------------------
 
 export type LineMessage

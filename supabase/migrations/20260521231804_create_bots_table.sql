@@ -17,6 +17,9 @@ create table public.bots (
   -- group to enable the bot there. Not a secret (it's broadcast in
   -- chat) so deliberately not enveloped. null = group chats off.
   group_activation_code text,
+  -- Whether the bot transcribes voice messages in activated groups (the
+  -- relay feature). Independent of group mention chat.
+  group_transcribe_enabled boolean not null default true,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
   disabled_at         timestamptz,
