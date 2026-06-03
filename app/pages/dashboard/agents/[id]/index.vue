@@ -97,7 +97,7 @@ const visionModel = computed<ProviderModel>(() => {
         />
       </template>
 
-      <DashboardDetailSkeleton v-if="pending && !agent" />
+      <DashboardGridSkeleton v-if="pending && !agent" />
 
       <DashboardContainer v-else-if="error">
         <UEmpty

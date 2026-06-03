@@ -93,7 +93,7 @@ const copyWebhook = async () => {
         />
       </template>
 
-      <DashboardDetailSkeleton v-if="pending && !bot" />
+      <DashboardGridSkeleton v-if="pending && !bot" />
 
       <DashboardContainer v-else-if="error">
         <UEmpty
