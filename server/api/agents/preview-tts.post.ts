@@ -19,6 +19,7 @@ import {
   TTS_MODEL_IDS,
   TTS_PREVIEW_SAMPLE_TEXT,
   TTS_VOICE_IDS,
+  resolveTtsInstructions,
   supportsTtsInstructions,
   supportsTtsVoice,
 } from '~~/shared/tts';
@@ -81,8 +82,10 @@ export default defineEventHandler(async (event) => {
     voice,
     response_format: 'aac',
   };
-  if (instructions && supportsTtsInstructions(model)) {
-    openaiBody.instructions = instructions;
+  // Same fallback as the worker: a blank box previews the default
+  // accent policy, so the owner hears exactly what production sends.
+  if (supportsTtsInstructions(model)) {
+    openaiBody.instructions = resolveTtsInstructions(instructions);
   }
 
   const upstream = await fetch(TTS_ENDPOINT, {

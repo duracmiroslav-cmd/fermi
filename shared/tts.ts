@@ -56,6 +56,18 @@ export const TTS_VOICES: readonly { name: string; value: TtsVoice }[] = [
 export const DEFAULT_TTS_MODEL: TtsModel = 'gpt-4o-mini-tts-2025-03-20';
 export const DEFAULT_TTS_VOICE: TtsVoice = 'cedar';
 
+// Baseline accent policy that always prefixes the instruction string
+// (see resolveTtsInstructions). Without any instruction, gpt-4o-mini-tts
+// reads Traditional Chinese with a Cantonese accent (it associates 繁體
+// with Hong Kong), so a TW-first reply gets voiced in 粵語. The policy is
+// language-conditional, not a hard "always Mandarin": it pins Chinese
+// to Taiwan Mandarin and leaves English / Japanese / etc. to be read
+// natively, so a mixed-language reply still code-switches correctly.
+// Written in English: OpenAI's `instructions` param is tuned and
+// documented in English, and the variety names stay unambiguous.
+export const DEFAULT_TTS_INSTRUCTIONS
+  = 'Read the text in whatever language it is written. For Chinese, always use natural Taiwanese Mandarin (Guoyu) pronunciation and intonation — never Cantonese. For English, Japanese, or any other language, read it like a native speaker.';
+
 // Display-name helpers + their default counterparts. Catalog values
 // like `gpt-4o-mini-tts-2025-03-20` or `cedar` are wire-level IDs;
 // UI surfaces (placeholders, "(default)" hints, read-only views)
@@ -101,6 +113,18 @@ export const supportsTtsVoice = (model: TtsModel, voice: TtsVoice): boolean =>
 export const resolveTtsVoice = (model: TtsModel, voice: TtsVoice | null): TtsVoice => {
   if (voice && supportsTtsVoice(model, voice)) return voice;
   return VOICES_BY_MODEL[model][0]!;
+};
+
+// Builds the instruction string to send OpenAI from an agent's stored
+// `tts_instructions`. DEFAULT_TTS_INSTRUCTIONS is always the baseline so
+// the accent policy can't be lost; a custom value (tone, pace, persona)
+// is appended on top rather than replacing it — otherwise the moment an
+// owner sets any instruction, the Cantonese guard silently disappears.
+// Callers still gate on `supportsTtsInstructions(model)`, since tts-1
+// ignores the param regardless.
+export const resolveTtsInstructions = (instructions: string | null | undefined): string => {
+  const custom = instructions?.trim();
+  return custom ? `${DEFAULT_TTS_INSTRUCTIONS}\n\n${custom}` : DEFAULT_TTS_INSTRUCTIONS;
 };
 
 // Defensive parser: stale DB rows or hand-edited values fall back

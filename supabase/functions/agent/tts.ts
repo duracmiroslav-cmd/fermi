@@ -6,6 +6,7 @@ import {
   DEFAULT_TTS_MODEL,
   type TtsModel,
   type TtsVoice,
+  resolveTtsInstructions,
   resolveTtsVoice,
   supportsTtsInstructions,
 } from '../../../shared/tts.ts';
@@ -51,6 +52,9 @@ export const synthesizeSpeech = async (params: {
   // own default. Without this an agent edit could permanently 4xx
   // TTS for that user until they reopen the form and re-pick.
   const voice = resolveTtsVoice(model, params.voice ?? null);
+  // Falls back to the default accent policy when the agent set no
+  // custom instructions; without it, 繁中 replies get voiced in 粵語.
+  const instructions = resolveTtsInstructions(params.instructions);
 
   const body: Record<string, unknown> = {
     model,
@@ -61,8 +65,8 @@ export const synthesizeSpeech = async (params: {
   // Older models (tts-1 / tts-1-hd) silently ignore `instructions`,
   // but a few accounts have surfaced 400s when the param is present.
   // Drop it unless the model supports it.
-  if (params.instructions && supportsTtsInstructions(model)) {
-    body.instructions = params.instructions;
+  if (supportsTtsInstructions(model)) {
+    body.instructions = instructions;
   }
 
   const res = await fetch(TTS_ENDPOINT, {
