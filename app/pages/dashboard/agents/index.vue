@@ -32,7 +32,7 @@ const filteredAgents = computed(() => {
       <DashboardContainer>
         <div class="flex items-center justify-between gap-4">
           <h1 class="text-2xl font-semibold">
-            {{ $t('__labelAgent', 2) }} <span class="text-toned font-normal">({{ used }})</span>
+            {{ $t('__labelAgent', 2) }} <span class="text-toned font-normal font-mono">({{ used }})</span>
           </h1>
           <template v-if="agents?.length">
             <UTooltip
