@@ -146,174 +146,168 @@ const visionModel = computed<ProviderModel>(() => {
         </div>
 
         <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
-          <!-- Configure: build with AI, then read back the prompt it wrote -->
-          <div class="flex flex-col gap-6">
-            <AgentBuilderChat
-              :agent-id="agent.id"
-              @updated="refresh"
-            />
+          <AgentBuilderChat
+            :agent-id="agent.id"
+            @updated="refresh"
+          />
 
-            <div class="flex flex-col gap-3">
-              <h2 class="font-semibold flex items-center gap-2">
-                <UIcon
-                  name="i-lucide-scroll-text"
-                  class="size-4 text-toned"
-                />
-                {{ $t('__labelSystemPrompt') }}
-              </h2>
-              <UCard>
-                <p
-                  v-if="agent.systemPrompt"
-                  class="text-sm whitespace-pre-wrap break-words leading-relaxed"
-                >
-                  {{ agent.systemPrompt }}
-                </p>
-                <p
-                  v-else
-                  class="text-sm text-toned"
-                >
-                  {{ $t('__descriptionNoSystemPrompt') }}
-                </p>
-              </UCard>
-            </div>
+          <AgentTestChat :agent-id="agent.id" />
+
+          <div class="flex flex-col gap-3">
+            <h2 class="font-semibold flex items-center gap-2">
+              <UIcon
+                name="i-lucide-scroll-text"
+                class="size-4 text-toned"
+              />
+              {{ $t('__labelSystemPrompt') }}
+            </h2>
+            <UCard :ui="{ body: 'p-0 sm:p-0' }">
+              <p
+                v-if="agent.systemPrompt"
+                class="text-sm whitespace-pre-wrap break-words leading-relaxed max-h-96 overflow-y-auto p-4 sm:p-6"
+              >
+                {{ agent.systemPrompt }}
+              </p>
+              <p
+                v-else
+                class="text-sm text-toned p-4 sm:p-6"
+              >
+                {{ $t('__descriptionNoSystemPrompt') }}
+              </p>
+            </UCard>
           </div>
 
-          <!-- Test: the live playground + what it runs on -->
-          <div class="flex flex-col gap-6">
-            <AgentTestChat :agent-id="agent.id" />
-
-            <div class="flex flex-col gap-3">
-              <h2 class="font-semibold flex items-center gap-2">
-                <UIcon
-                  name="i-lucide-info"
-                  class="size-4 text-toned"
-                />
-                {{ $t('__titleDetails') }}
-              </h2>
-              <UCard>
-                <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-7">
-                  <dt class="text-toned text-right">
-                    {{ $t('__labelTextModel', 1) }}
-                  </dt>
-                  <dd class="min-w-0">
-                    <div class="flex items-center gap-1.5 min-w-0">
+          <div class="flex flex-col gap-3">
+            <h2 class="font-semibold flex items-center gap-2">
+              <UIcon
+                name="i-lucide-info"
+                class="size-4 text-toned"
+              />
+              {{ $t('__titleDetails') }}
+            </h2>
+            <UCard>
+              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-7">
+                <dt class="text-toned text-right">
+                  {{ $t('__labelTextModel', 1) }}
+                </dt>
+                <dd class="min-w-0">
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <UIcon
+                      :name="model.avatar.icon"
+                      class="size-5 text-toned shrink-0"
+                    />
+                    <NuxtLink
+                      :to="`https://openrouter.ai/${model.id}`"
+                      target="_blank"
+                      rel="noopener"
+                      class="flex items-center gap-1.5 min-w-0 text-primary hover:underline"
+                    >
+                      <span class="truncate">{{ model.isDefault ? `${model.name} ${t('__labelDefaultSuffix')}` : model.name }}</span>
                       <UIcon
-                        :name="model.avatar.icon"
-                        class="size-5 text-toned shrink-0"
+                        name="i-lucide-external-link"
+                        class="size-3.5 shrink-0 text-toned"
                       />
-                      <NuxtLink
-                        :to="`https://openrouter.ai/${model.id}`"
-                        target="_blank"
-                        rel="noopener"
-                        class="flex items-center gap-1.5 min-w-0 text-primary hover:underline"
-                      >
-                        <span class="truncate">{{ model.isDefault ? `${model.name} ${t('__labelDefaultSuffix')}` : model.name }}</span>
-                        <UIcon
-                          name="i-lucide-external-link"
-                          class="size-3.5 shrink-0 text-toned"
-                        />
-                      </NuxtLink>
-                    </div>
-                  </dd>
-                  <dt class="text-toned text-right">
-                    {{ $t('__labelVisionModel', 1) }}
-                  </dt>
-                  <dd class="min-w-0">
-                    <div class="flex items-center gap-1.5 min-w-0">
+                    </NuxtLink>
+                  </div>
+                </dd>
+                <dt class="text-toned text-right">
+                  {{ $t('__labelVisionModel', 1) }}
+                </dt>
+                <dd class="min-w-0">
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <UIcon
+                      :name="visionModel.avatar.icon"
+                      class="size-5 text-toned shrink-0"
+                    />
+                    <NuxtLink
+                      :to="`https://openrouter.ai/${visionModel.id}`"
+                      target="_blank"
+                      rel="noopener"
+                      class="flex items-center gap-1.5 min-w-0 text-primary hover:underline"
+                    >
+                      <span class="truncate">{{ visionModel.name }}</span>
                       <UIcon
-                        :name="visionModel.avatar.icon"
-                        class="size-5 text-toned shrink-0"
+                        name="i-lucide-external-link"
+                        class="size-3.5 shrink-0 text-toned"
                       />
-                      <NuxtLink
-                        :to="`https://openrouter.ai/${visionModel.id}`"
-                        target="_blank"
-                        rel="noopener"
-                        class="flex items-center gap-1.5 min-w-0 text-primary hover:underline"
-                      >
-                        <span class="truncate">{{ visionModel.name }}</span>
-                        <UIcon
-                          name="i-lucide-external-link"
-                          class="size-3.5 shrink-0 text-toned"
-                        />
-                      </NuxtLink>
-                    </div>
-                  </dd>
-                  <dt class="text-toned text-right">
-                    {{ $t('__labelVoiceReply') }}
-                  </dt>
-                  <dd>
-                    {{ $t(VOICE_REPLY_LABEL_KEY[agent.voiceReplyMode]) }}
-                  </dd>
-                  <dt class="text-toned text-right">
-                    {{ $t('__labelVoiceModel', 1) }}
-                  </dt>
-                  <dd>
-                    <span v-if="agent.defaultTtsModel">{{ getTtsModelName(agent.defaultTtsModel) }}</span>
-                    <span
-                      v-else
-                      class="text-toned"
-                    >{{ DEFAULT_TTS_MODEL_NAME }} {{ $t('__labelDefaultSuffix') }}</span>
-                  </dd>
-                  <dt class="text-toned text-right">
-                    {{ $t('__labelVoice', 1) }}
-                  </dt>
-                  <dd>
-                    <span v-if="agent.defaultTtsVoice">{{ getTtsVoiceName(agent.defaultTtsVoice) }}</span>
-                    <span
-                      v-else
-                      class="text-toned"
-                    >{{ DEFAULT_TTS_VOICE_NAME }} {{ $t('__labelDefaultSuffix') }}</span>
-                  </dd>
-                  <dt class="text-toned text-right">
-                    {{ $t('__labelVoiceInstructions') }}
-                  </dt>
-                  <dd class="min-w-0">
-                    <span
-                      v-if="agent.ttsInstructions"
-                      class="whitespace-pre-wrap"
-                    >{{ agent.ttsInstructions }}</span>
-                    <span
-                      v-else
-                      class="text-muted"
-                    >—</span>
-                  </dd>
-                  <dt class="text-toned text-right">
-                    {{ $t('__labelCreated') }}
-                  </dt>
-                  <dd>
-                    <TimeAgo :date="agent.createdAt" />
-                  </dd>
-                  <dt class="text-toned text-right">
-                    {{ $t('__labelUpdated') }}
-                  </dt>
-                  <dd>
-                    <TimeAgo :date="agent.updatedAt" />
-                  </dd>
-                </dl>
-              </UCard>
-            </div>
-
-            <AgentCapabilitiesReadonly :agent-id="agent.id" />
+                    </NuxtLink>
+                  </div>
+                </dd>
+                <dt class="text-toned text-right">
+                  {{ $t('__labelVoiceReply') }}
+                </dt>
+                <dd>
+                  {{ $t(VOICE_REPLY_LABEL_KEY[agent.voiceReplyMode]) }}
+                </dd>
+                <dt class="text-toned text-right">
+                  {{ $t('__labelVoiceModel', 1) }}
+                </dt>
+                <dd>
+                  <span v-if="agent.defaultTtsModel">{{ getTtsModelName(agent.defaultTtsModel) }}</span>
+                  <span
+                    v-else
+                    class="text-toned"
+                  >{{ DEFAULT_TTS_MODEL_NAME }} {{ $t('__labelDefaultSuffix') }}</span>
+                </dd>
+                <dt class="text-toned text-right">
+                  {{ $t('__labelVoice', 1) }}
+                </dt>
+                <dd>
+                  <span v-if="agent.defaultTtsVoice">{{ getTtsVoiceName(agent.defaultTtsVoice) }}</span>
+                  <span
+                    v-else
+                    class="text-toned"
+                  >{{ DEFAULT_TTS_VOICE_NAME }} {{ $t('__labelDefaultSuffix') }}</span>
+                </dd>
+                <dt class="text-toned text-right">
+                  {{ $t('__labelVoiceInstructions') }}
+                </dt>
+                <dd class="min-w-0">
+                  <span
+                    v-if="agent.ttsInstructions"
+                    class="whitespace-pre-wrap"
+                  >{{ agent.ttsInstructions }}</span>
+                  <span
+                    v-else
+                    class="text-muted"
+                  >—</span>
+                </dd>
+                <dt class="text-toned text-right">
+                  {{ $t('__labelCreated') }}
+                </dt>
+                <dd>
+                  <TimeAgo :date="agent.createdAt" />
+                </dd>
+                <dt class="text-toned text-right">
+                  {{ $t('__labelUpdated') }}
+                </dt>
+                <dd>
+                  <TimeAgo :date="agent.updatedAt" />
+                </dd>
+              </dl>
+            </UCard>
           </div>
-        </div>
 
-        <div
-          v-if="agent.bots.length"
-          class="flex flex-col gap-3"
-        >
-          <h2 class="font-semibold flex items-center gap-2">
-            <UIcon
-              name="i-lucide-bot"
-              class="size-4 text-toned"
-            />
-            {{ $t('__labelBot', 2) }}
-          </h2>
-          <div class="space-y-2">
-            <BotListCard
-              v-for="bot in agent.bots"
-              :key="bot.id"
-              :bot="bot"
-            />
+          <AgentCapabilitiesReadonly :agent-id="agent.id" />
+
+          <div
+            v-if="agent.bots.length"
+            class="flex flex-col gap-3"
+          >
+            <h2 class="font-semibold flex items-center gap-2">
+              <UIcon
+                name="i-lucide-bot"
+                class="size-4 text-toned"
+              />
+              {{ $t('__labelBot', 2) }}
+            </h2>
+            <div class="space-y-2">
+              <BotListCard
+                v-for="bot in agent.bots"
+                :key="bot.id"
+                :bot="bot"
+              />
+            </div>
           </div>
         </div>
       </DashboardContainer>

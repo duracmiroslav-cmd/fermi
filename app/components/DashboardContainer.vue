@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// `wide` opts a page into the studio width (two-column workspaces like the
-// agent detail page); every other page stays at the default reading width.
+// `wide` opts a page into the half-width-card grid (detail workspaces);
+// every other page stays at the default reading width.
 const props = defineProps<{ wide?: boolean }>();
 </script>
 

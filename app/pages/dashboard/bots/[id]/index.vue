@@ -105,7 +105,10 @@ const copyWebhook = async () => {
         />
       </DashboardContainer>
 
-      <DashboardContainer v-if="bot">
+      <DashboardContainer
+        v-if="bot"
+        wide
+      >
         <div class="flex items-center gap-4">
           <div class="relative shrink-0">
             <UAvatar
@@ -145,7 +148,7 @@ const copyWebhook = async () => {
               :aria-label="status ? $t(BOT_STATUS_LABEL_KEY[status]) : $t('__hintLoadingStatus')"
             />
           </div>
-          <div class="min-w-0">
+          <div class="min-w-0 flex-1">
             <h1 class="text-2xl font-semibold truncate">
               {{ bot.displayName || $t('__labelUnnamed') }}
             </h1>
@@ -153,6 +156,16 @@ const copyWebhook = async () => {
               {{ status ? $t(BOT_STATUS_LABEL_KEY[status]) : '' }}
             </p>
           </div>
+          <UButton
+            :to="`/dashboard/bots/${bot.id}/edit`"
+            icon="i-lucide-sliders-horizontal"
+            color="neutral"
+            variant="soft"
+            size="sm"
+            class="shrink-0"
+          >
+            {{ $t('__actionEdit') }}
+          </UButton>
         </div>
 
         <LineBotSetupBanner
@@ -164,82 +177,63 @@ const copyWebhook = async () => {
           @refresh="refresh"
         />
 
-        <div class="flex flex-col gap-3">
-          <div class="flex items-center justify-between gap-4">
-            <h2 class="font-semibold">
+        <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
+          <div class="flex flex-col gap-3">
+            <h2 class="font-semibold flex items-center gap-2">
+              <UIcon
+                name="i-lucide-info"
+                class="size-4 text-toned"
+              />
               {{ $t('__titleDetails') }}
             </h2>
-            <UButton
-              :to="`/dashboard/bots/${bot.id}/edit`"
-              icon="i-lucide-square-pen"
-              color="neutral"
-              variant="soft"
-              size="sm"
-            >
-              {{ $t('__actionEdit') }}
-            </UButton>
-          </div>
-          <UCard>
-            <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-7">
-              <dt class="text-toned text-right">
-                {{ $t('__labelExternalId') }}
-              </dt>
-              <dd class="break-all">
-                {{ bot.externalId }}
-              </dd>
-              <dt class="text-toned text-right">
-                {{ $t('__labelAgent', 1) }}
-              </dt>
-              <dd class="min-w-0">
-                <div class="flex items-center gap-1.5 min-w-0">
-                  <AgentAvatar
-                    :src="bot.agent.avatarUrl"
-                    :name="bot.agent.name"
-                    :seed="bot.agent.id"
-                    size="2xs"
+            <UCard>
+              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-7">
+                <dt class="text-toned text-right">
+                  {{ $t('__labelExternalId') }}
+                </dt>
+                <dd class="break-all">
+                  {{ bot.externalId }}
+                </dd>
+                <dt class="text-toned text-right">
+                  {{ $t('__labelWebhookUrl') }}
+                </dt>
+                <dd class="flex items-center gap-1.5 min-w-0">
+                  <code class="font-mono truncate select-all">{{ bot.webhookUrl }}</code>
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    :icon="webhookCopied ? 'i-lucide-check' : 'i-lucide-copy'"
+                    :aria-label="webhookCopied ? $t('__hintCopied') : $t('__actionCopyWebhookUrl')"
+                    @click="copyWebhook"
                   />
-                  <NuxtLink
-                    :to="`/dashboard/agents/${bot.agent.id}`"
-                    target="_blank"
-                    rel="noopener"
-                    class="flex items-center gap-1.5 min-w-0 text-primary hover:underline"
-                  >
-                    <span class="truncate">{{ bot.agent.name }}</span>
-                    <UIcon
-                      name="i-lucide-external-link"
-                      class="size-3.5 shrink-0 text-toned"
-                    />
-                  </NuxtLink>
-                </div>
-              </dd>
-              <dt class="text-toned text-right">
-                {{ $t('__labelWebhookUrl') }}
-              </dt>
-              <dd class="flex items-center gap-1.5 min-w-0">
-                <code class="font-mono truncate select-all">{{ bot.webhookUrl }}</code>
-                <UButton
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                  :icon="webhookCopied ? 'i-lucide-check' : 'i-lucide-copy'"
-                  :aria-label="webhookCopied ? $t('__hintCopied') : $t('__actionCopyWebhookUrl')"
-                  @click="copyWebhook"
-                />
-              </dd>
-              <dt class="text-toned text-right">
-                {{ $t('__labelCreated') }}
-              </dt>
-              <dd>
-                <TimeAgo :date="bot.createdAt" />
-              </dd>
-              <dt class="text-toned text-right">
-                {{ $t('__labelUpdated') }}
-              </dt>
-              <dd>
-                <TimeAgo :date="bot.updatedAt" />
-              </dd>
-            </dl>
-          </UCard>
+                </dd>
+                <dt class="text-toned text-right">
+                  {{ $t('__labelCreated') }}
+                </dt>
+                <dd>
+                  <TimeAgo :date="bot.createdAt" />
+                </dd>
+                <dt class="text-toned text-right">
+                  {{ $t('__labelUpdated') }}
+                </dt>
+                <dd>
+                  <TimeAgo :date="bot.updatedAt" />
+                </dd>
+              </dl>
+            </UCard>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <h2 class="font-semibold flex items-center gap-2">
+              <UIcon
+                name="i-lucide-cpu"
+                class="size-4 text-toned"
+              />
+              {{ $t('__labelAgent', 1) }}
+            </h2>
+            <AgentListCard :agent="bot.agent" />
+          </div>
         </div>
       </DashboardContainer>
     </NuxtLayout>
