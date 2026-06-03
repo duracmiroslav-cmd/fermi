@@ -71,17 +71,25 @@ const textModel = computed(() => {
             </UBadge>
           </div>
           <div class="flex items-center gap-1.5 text-sm text-toned min-w-0">
-            <UIcon
-              :name="textModel.avatar.icon"
-              class="size-4 shrink-0"
-            />
-            <span class="truncate">
-              {{ textModel.name }}
-              <span
-                v-if="textModel.isDefault"
-                class="text-toned"
-              >{{ $t('__labelDefaultSuffix') }}</span>
-            </span>
+            <template v-if="models">
+              <UIcon
+                :name="textModel.avatar.icon"
+                class="size-4 shrink-0"
+              />
+              <span class="truncate">
+                {{ textModel.name }}
+                <span
+                  v-if="textModel.isDefault"
+                  class="text-toned"
+                >{{ $t('__labelDefaultSuffix') }}</span>
+              </span>
+            </template>
+            <template v-else>
+              <USkeleton class="size-4 rounded shrink-0" />
+              <div class="h-5 flex items-center">
+                <USkeleton class="h-3 w-24" />
+              </div>
+            </template>
           </div>
         </div>
         <I18nT
