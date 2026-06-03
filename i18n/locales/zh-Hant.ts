@@ -189,7 +189,7 @@ export default {
   __labelBearerToken:                     'Bearer Token',
   __labelBot:                             '機器人|機器人',
   __labelBuilderSetCapabilities:          '設定了工具',
-  __labelBuilderUpdatedAgent:             '更新了人設',
+  __labelBuilderUpdatedAgent:             '更新了人物設定',
   __labelChannelAccessToken:              'Channel Access Token',
   __labelChannelSecret:                   'Channel Secret',
   __labelConnector:                       '連接器|連接器',
