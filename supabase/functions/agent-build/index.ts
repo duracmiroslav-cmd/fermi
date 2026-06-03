@@ -13,6 +13,7 @@ import { DEFAULT_TEXT_MODEL } from '../../../shared/constants/models.ts';
 import type { ChatMessage } from '../agent/openrouter.ts';
 import { MAX_AGENT_STEPS, runAgentConversation } from '../agent/loop.ts';
 import { buildBuilderToolset, builderSystemPrompt } from './builder.ts';
+import { inspectInternalAuth } from '../agent/internal-auth.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -32,8 +33,9 @@ const json = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 Deno.serve(async (req) => {
-  if (req.headers.get('Authorization') !== `Bearer ${supabaseServiceRoleKey}`) {
-    return json({ error: 'unauthorized' }, 401);
+  const auth = inspectInternalAuth(req);
+  if (!auth.ok) {
+    return json({ error: 'unauthorized', diag: { hasHeader: auth.hasHeader, hasSecret: auth.hasSecret } }, 401);
   }
   if (!PLATFORM_OPENROUTER_KEY) {
     console.error('agent-build: OPENROUTER_API_KEY not configured');
@@ -99,6 +101,8 @@ Deno.serve(async (req) => {
     return json({ text: result.text, hitStepCap: result.hitStepCap, steps: result.steps, changed });
   } catch (err) {
     console.error('agent-build failed', err);
-    return json({ error: 'build_failed' }, 502);
+    // detail rides back to the Nitro server log (not the browser) so the
+    // real upstream error (e.g. an OpenRouter status) is debuggable.
+    return json({ error: 'build_failed', detail: String(err) }, 502);
   }
 });
