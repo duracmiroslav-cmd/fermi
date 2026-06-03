@@ -189,7 +189,10 @@ The UI ships zh-Hant + en only. Translating is not the default — the test is
 **whether a clean, unambiguous, Taiwan-native term exists.**
 
 - **Translate** when it does: Bot → 機器人, Capability → 能力, Connector →
-  連接器, provider → 提供者, System Prompt → 系統提示詞.
+  連接器, provider → 提供者. The user-facing persona field is **Persona →
+  人物設定** — not "system prompt / 系統提示詞". That jargon stays in
+  technical / LLM-facing contexts (the DB column, fermion's tools) only;
+  fermion exists so a user never has to meet the term "system prompt".
 - **Keep English** in two cases:
   - *Protocol / copy-paste identifiers* — `token`, `webhook`, `API key`. A
     translation won't match what the user sees in an external console.
@@ -204,7 +207,7 @@ product noun — Bot is just as core and *is* translated. Don't reach for the
 TW-native usage:
 
 - 用戶 → **使用者** (用戶 reads Mainland).
-- Written noun lists take **與**, not the spoken 跟: `名稱、系統提示詞與預設模型`.
+- Written noun lists take **與**, not the spoken 跟: `名稱、人物設定與預設模型`.
 - Latin acronyms inside CJK take **full-width parens**: （PAT）（UTC）, matching
   （預設） — not half-width `(PAT)`.
 
