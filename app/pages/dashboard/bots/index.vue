@@ -60,6 +60,10 @@ const filteredBots = computed(() => {
               {{ $t('__actionConnectBot') }}
             </UButton>
           </template>
+          <USkeleton
+            v-else-if="pending"
+            class="h-8 w-32 rounded-md bg-muted/60 shrink-0"
+          />
         </div>
 
         <div class="flex flex-col gap-4">
@@ -81,6 +85,10 @@ const filteredBots = computed(() => {
               />
             </template>
           </UInput>
+          <USkeleton
+            v-else-if="pending"
+            class="h-8 w-full rounded-md bg-muted/40"
+          />
 
           <DashboardListSkeleton v-if="pending && !bots?.length" />
 
