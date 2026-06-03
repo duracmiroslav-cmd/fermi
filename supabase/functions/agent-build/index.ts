@@ -63,6 +63,8 @@ Deno.serve(async (req) => {
     name:            agent.name,
     systemPrompt:    agent.systemPrompt,
     capabilitySlugs: capabilities.map(c => c.slug),
+    ttsInstructions: agent.ttsInstructions,
+    voiceReplyMode:  agent.voiceReplyMode,
   });
 
   const messages: ChatMessage[] = [
