@@ -154,7 +154,11 @@ const visionModel = computed<ProviderModel>(() => {
             />
 
             <div class="flex flex-col gap-3">
-              <h2 class="font-semibold">
+              <h2 class="font-semibold flex items-center gap-2">
+                <UIcon
+                  name="i-lucide-scroll-text"
+                  class="size-4 text-toned"
+                />
                 {{ $t('__labelSystemPrompt') }}
               </h2>
               <UCard>
@@ -179,7 +183,11 @@ const visionModel = computed<ProviderModel>(() => {
             <AgentTestChat :agent-id="agent.id" />
 
             <div class="flex flex-col gap-3">
-              <h2 class="font-semibold">
+              <h2 class="font-semibold flex items-center gap-2">
+                <UIcon
+                  name="i-lucide-info"
+                  class="size-4 text-toned"
+                />
                 {{ $t('__titleDetails') }}
               </h2>
               <UCard>
@@ -293,7 +301,11 @@ const visionModel = computed<ProviderModel>(() => {
           v-if="agent.bots.length"
           class="flex flex-col gap-3"
         >
-          <h2 class="font-semibold">
+          <h2 class="font-semibold flex items-center gap-2">
+            <UIcon
+              name="i-lucide-bot"
+              class="size-4 text-toned"
+            />
             {{ $t('__labelBot', 2) }}
           </h2>
           <div class="space-y-2">

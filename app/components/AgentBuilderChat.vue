@@ -92,8 +92,8 @@ const onReset = () => {
     <div class="flex items-center justify-between gap-4">
       <h2 class="font-semibold flex items-center gap-2">
         <UIcon
-          name="i-lucide-sparkles"
-          class="size-4 text-primary"
+          name="i-lucide-wand-sparkles"
+          class="size-4 text-toned"
         />
         {{ $t('__titleBuilderChat') }}
       </h2>

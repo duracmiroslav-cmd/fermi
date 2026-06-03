@@ -14,7 +14,11 @@ const attached = computed(() => (rows.value ?? []).filter(c => c.attached));
 
 <template>
   <div class="flex flex-col gap-3">
-    <h2 class="font-semibold">
+    <h2 class="font-semibold flex items-center gap-2">
+      <UIcon
+        name="i-lucide-blocks"
+        class="size-4 text-toned"
+      />
       {{ $t('__titleCapabilities') }}
     </h2>
     <UCard>

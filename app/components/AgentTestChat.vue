@@ -84,7 +84,11 @@ const onReset = () => {
 <template>
   <div class="flex flex-col gap-3">
     <div class="flex items-center justify-between gap-4">
-      <h2 class="font-semibold">
+      <h2 class="font-semibold flex items-center gap-2">
+        <UIcon
+          name="i-lucide-flask-conical"
+          class="size-4 text-toned"
+        />
         {{ $t('__titleTestChat') }}
       </h2>
       <UButton
