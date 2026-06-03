@@ -46,7 +46,7 @@ import {
   resolveOrCreateLatestThread,
 } from './threads.ts';
 import { type ToolAttachment, buildToolset } from './tools/index.ts';
-import { checkInjection, wrapSystemPrompt } from './prompt-guard.ts';
+import { checkInjection, defaultSystemPrompt, wrapSystemPrompt } from './prompt-guard.ts';
 import { normalizeReplyText } from './reply-text.ts';
 import { captureException } from './sentry.ts';
 
@@ -256,8 +256,7 @@ const runAgentLoop = async (params: {
 
     const history = await loadRecentMessages(admin, threadId, HISTORY_WINDOW);
     const systemPrompt = wrapSystemPrompt(
-      agent.systemPrompt
-      ?? `You are ${agent.name}, a helpful assistant on LINE. Reply in the user's language.`,
+      agent.systemPrompt ?? defaultSystemPrompt(agent.name),
     );
     // Any image in the history window forces a vision-capable model.
     // Without this, an agent configured with a text-only model would

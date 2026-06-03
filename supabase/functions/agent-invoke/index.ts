@@ -20,7 +20,7 @@ import type { ChatMessage } from '../agent/openrouter.ts';
 import { MAX_AGENT_STEPS, runAgentConversation } from '../agent/loop.ts';
 import { normalizeReplyText } from '../agent/reply-text.ts';
 import { buildToolset } from '../agent/tools/index.ts';
-import { wrapSystemPrompt } from '../agent/prompt-guard.ts';
+import { defaultSystemPrompt, wrapSystemPrompt } from '../agent/prompt-guard.ts';
 import { inspectInternalAuth } from '../agent/internal-auth.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -70,8 +70,7 @@ Deno.serve(async (req) => {
   const toolset = await buildToolset(capabilities, { admin, kek, ownerId: agent.ownerId });
 
   const systemPrompt = wrapSystemPrompt(
-    agent.systemPrompt
-    ?? `You are ${agent.name}, a helpful assistant on LINE. Reply in the user's language.`,
+    agent.systemPrompt ?? defaultSystemPrompt(agent.name),
   );
   const messages: ChatMessage[] = [
     { role: 'system', content: systemPrompt },

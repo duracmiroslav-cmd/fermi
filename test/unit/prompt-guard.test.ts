@@ -1,17 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import {
   ANTI_INJECTION_SUFFIX,
+  CHANNEL_CONTEXT_PREFIX,
   checkInjection,
   wrapSystemPrompt,
   wrapToolOutput,
 } from '../../supabase/functions/agent/prompt-guard';
 
 describe('wrapSystemPrompt', () => {
-  it('prepends original prompt then appends suffix', () => {
+  // The neutral channel context leads (the model reads the medium first),
+  // the owner's prompt sits in the middle, and the security guard trails so
+  // nothing in the owner's prompt can come after and override it.
+  it('frames the prompt: channel context, then prompt, then security guard', () => {
     const prompt = 'You are Aria. Be concise.';
     const result = wrapSystemPrompt(prompt);
-    expect(result.startsWith(prompt)).toBe(true);
-    expect(result).toContain(ANTI_INJECTION_SUFFIX);
+    expect(result.startsWith(CHANNEL_CONTEXT_PREFIX)).toBe(true);
+    expect(result.endsWith(ANTI_INJECTION_SUFFIX)).toBe(true);
+    expect(result.indexOf(CHANNEL_CONTEXT_PREFIX)).toBeLessThan(result.indexOf(prompt));
+    expect(result.indexOf(prompt)).toBeLessThan(result.indexOf(ANTI_INJECTION_SUFFIX));
   });
 
   it('preserves prompt content exactly', () => {
