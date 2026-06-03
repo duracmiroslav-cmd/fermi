@@ -72,6 +72,14 @@ const onSend = async () => {
   }
 };
 
+// Send on Enter, but let the IME keep it: while composing (e.g. picking a
+// Chinese candidate) Enter confirms the candidate and must not submit.
+const onEnter = (e: KeyboardEvent) => {
+  if (e.isComposing || e.keyCode === 229) return;
+  e.preventDefault();
+  onSend();
+};
+
 const onReset = () => {
   messages.value = [];
   errorKey.value = null;
@@ -182,23 +190,30 @@ const onReset = () => {
         class="mx-4 mb-4 sm:mx-6"
       />
 
-      <div class="flex items-end gap-2 border-t border-default p-4 sm:px-6">
-        <UTextarea
-          v-model="draft"
-          :rows="1"
-          autoresize
-          :maxrows="5"
-          :placeholder="$t('__placeholderBuilderMessage')"
-          :disabled="isSending"
-          class="flex-1"
-          @keydown.enter.exact.prevent="onSend"
-        />
-        <UButton
-          icon="i-lucide-arrow-up"
-          :disabled="!canSend"
-          :loading="isSending"
-          @click="onSend"
-        />
+      <div class="border-t border-default p-4 sm:px-6">
+        <div class="relative">
+          <UTextarea
+            v-model="draft"
+            :rows="1"
+            autoresize
+            :maxrows="5"
+            :placeholder="$t('__placeholderBuilderMessage')"
+            :disabled="isSending"
+            class="w-full"
+            :ui="{ base: 'pe-10' }"
+            @keydown.enter.exact="onEnter"
+          />
+          <UButton
+            icon="i-lucide-send-horizontal"
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            :disabled="!canSend"
+            :loading="isSending"
+            class="absolute end-2 top-1"
+            @click="onSend"
+          />
+        </div>
       </div>
     </UCard>
   </div>
