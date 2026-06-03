@@ -434,24 +434,24 @@ onUnmounted(stopPreviewAudio);
           <template #item-leading="{ item }">
             <UIcon
               :name="item.avatar.icon"
-              class="size-5 text-toned"
+              class="size-6 text-toned"
             />
           </template>
           <template #leading>
             <UIcon
               v-if="isTextModelPickerOpening"
               name="i-lucide-loader-circle"
-              class="size-5 animate-spin text-toned"
+              class="size-4 animate-spin text-toned"
             />
             <UIcon
               v-else-if="selectedTextModel"
               :name="selectedTextModel.avatar.icon"
-              class="size-5 text-toned"
+              class="size-4 text-toned"
             />
             <UIcon
               v-else
               :name="defaultTextModelInfo.avatar.icon"
-              class="size-5 text-toned"
+              class="size-4 text-toned"
             />
           </template>
           <template #empty="{ searchTerm }">
@@ -559,24 +559,24 @@ onUnmounted(stopPreviewAudio);
           <template #item-leading="{ item }">
             <UIcon
               :name="item.avatar.icon"
-              class="size-5 text-toned"
+              class="size-6 text-toned"
             />
           </template>
           <template #leading>
             <UIcon
               v-if="isVisionModelPickerOpening"
               name="i-lucide-loader-circle"
-              class="size-5 animate-spin text-toned"
+              class="size-4 animate-spin text-toned"
             />
             <UIcon
               v-else-if="selectedVisionModel"
               :name="selectedVisionModel.avatar.icon"
-              class="size-5 text-toned"
+              class="size-4 text-toned"
             />
             <UIcon
               v-else
               :name="defaultVisionModelInfo.avatar.icon"
-              class="size-5 text-toned"
+              class="size-4 text-toned"
             />
           </template>
           <template #empty="{ searchTerm }">
@@ -684,13 +684,13 @@ onUnmounted(stopPreviewAudio);
         <template #leading>
           <UIcon
             name="i-simple-icons-openai"
-            class="size-5 text-toned"
+            class="size-4 text-toned"
           />
         </template>
         <template #item-leading>
           <UIcon
             name="i-simple-icons-openai"
-            class="size-5 text-toned"
+            class="size-6 text-toned"
           />
         </template>
       </USelectMenu>
@@ -730,13 +730,13 @@ onUnmounted(stopPreviewAudio);
         <template #leading>
           <VoiceAvatar
             :seed="state.defaultTtsVoice || DEFAULT_TTS_VOICE"
-            size="2xs"
+            size="3xs"
           />
         </template>
         <template #item-leading="{ item }">
           <VoiceAvatar
             :seed="item.value"
-            size="2xs"
+            size="xs"
           />
         </template>
         <template #item-trailing="{ item }">

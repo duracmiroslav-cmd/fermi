@@ -86,7 +86,7 @@ const filteredCards = computed(() => {
             aria-busy="true"
           >
             <div class="flex items-center gap-4 p-4">
-              <USkeleton class="size-5 rounded shrink-0" />
+              <USkeleton class="size-6 rounded shrink-0" />
               <div class="flex-1 min-w-0">
                 <div class="h-5 flex items-center">
                   <USkeleton class="h-3 w-40" />
@@ -109,7 +109,7 @@ const filteredCards = computed(() => {
             >
               <UIcon
                 name="i-simple-icons-openrouter"
-                class="size-5 text-toned shrink-0"
+                class="size-6 text-toned shrink-0"
               />
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium truncate">
@@ -173,7 +173,7 @@ const filteredCards = computed(() => {
               :key="i"
               class="flex items-center gap-4 p-4"
             >
-              <USkeleton class="size-5 rounded shrink-0" />
+              <USkeleton class="size-6 rounded shrink-0" />
               <div class="flex-1 min-w-0">
                 <div class="h-5 flex items-center">
                   <USkeleton
@@ -206,7 +206,7 @@ const filteredCards = computed(() => {
             >
               <UIcon
                 :name="card.icon"
-                class="size-5 text-toned shrink-0"
+                class="size-6 text-toned shrink-0"
               />
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium truncate">
@@ -278,7 +278,7 @@ const filteredCards = computed(() => {
             >
               <UIcon
                 name="i-lucide-server"
-                class="size-5 text-toned shrink-0"
+                class="size-6 text-toned shrink-0"
               />
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium truncate">

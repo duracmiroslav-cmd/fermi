@@ -194,7 +194,7 @@ const visionModel = computed<ProviderModel>(() => {
                   <div class="flex items-center gap-1.5 min-w-0">
                     <UIcon
                       :name="model.avatar.icon"
-                      class="size-5 text-toned shrink-0"
+                      class="size-4 text-toned shrink-0"
                     />
                     <NuxtLink
                       :to="`https://openrouter.ai/${model.id}`"
@@ -217,7 +217,7 @@ const visionModel = computed<ProviderModel>(() => {
                   <div class="flex items-center gap-1.5 min-w-0">
                     <UIcon
                       :name="visionModel.avatar.icon"
-                      class="size-5 text-toned shrink-0"
+                      class="size-4 text-toned shrink-0"
                     />
                     <NuxtLink
                       :to="`https://openrouter.ai/${visionModel.id}`"

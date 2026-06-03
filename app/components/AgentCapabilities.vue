@@ -78,7 +78,7 @@ const onRefresh = async () => {
           :key="i"
           class="flex items-center gap-4 p-4"
         >
-          <USkeleton class="size-5 shrink-0" />
+          <USkeleton class="size-6 shrink-0" />
           <div class="flex-1 min-w-0">
             <div class="h-5 flex items-center">
               <USkeleton
@@ -110,7 +110,7 @@ const onRefresh = async () => {
         >
           <UIcon
             :name="getCapabilityIcon(capability.slug)"
-            class="size-5 text-toned shrink-0"
+            class="size-6 text-toned shrink-0"
           />
 
           <div class="flex-1 min-w-0">

@@ -79,7 +79,7 @@ const statusAria = computed(() =>
                 :src="bot.agent.avatarUrl"
                 :name="bot.agent.name"
                 :seed="bot.agent.id"
-                size="2xs"
+                size="3xs"
               />
               <span class="truncate">{{ bot.agent?.name ?? $t('__labelNoAgent') }}</span>
             </span>

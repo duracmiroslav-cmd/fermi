@@ -141,14 +141,14 @@ const onSubmit = () => {
           <UIcon
             v-if="isAgentPickerOpening"
             name="i-lucide-loader-circle"
-            class="size-5 animate-spin text-toned"
+            class="size-4 animate-spin text-toned"
           />
           <AgentAvatar
             v-else-if="selectedAgent"
             :src="selectedAgent.avatarUrl"
             :name="selectedAgent.name"
             :seed="selectedAgent.id"
-            size="2xs"
+            size="3xs"
           />
         </template>
         <template #item-leading="{ item }">
@@ -156,7 +156,7 @@ const onSubmit = () => {
             :src="item.avatarUrl"
             :name="item.label"
             :seed="item.value"
-            size="2xs"
+            size="xs"
           />
         </template>
         <template #item-label="{ item }">

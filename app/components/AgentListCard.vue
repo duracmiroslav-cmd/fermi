@@ -73,7 +73,7 @@ const textModel = computed(() => {
           <div class="flex items-center gap-1.5 text-sm text-toned min-w-0">
             <UIcon
               :name="textModel.avatar.icon"
-              class="size-5 shrink-0"
+              class="size-4 shrink-0"
             />
             <span class="truncate">
               {{ textModel.name }}
