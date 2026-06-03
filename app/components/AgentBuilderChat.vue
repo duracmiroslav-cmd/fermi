@@ -112,11 +112,11 @@ const onReset = () => {
     <UCard :ui="{ body: 'flex flex-col gap-0 p-0 sm:p-0' }">
       <div
         ref="listEl"
-        class="max-h-96 overflow-y-auto p-4 sm:p-6"
+        class="h-80 overflow-y-auto p-4 sm:p-6"
       >
         <div
           v-if="!messages.length && !isSending"
-          class="flex flex-col items-center gap-2 py-8 text-center"
+          class="flex flex-col items-center justify-center gap-2 min-h-full text-center"
         >
           <UIcon
             name="i-lucide-wand-sparkles"
