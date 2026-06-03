@@ -36,7 +36,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
   >
     <button
       type="button"
-      class="flex items-center gap-3 w-full rounded-lg p-2 text-left cursor-pointer hover:bg-elevated transition-colors"
+      class="flex items-center gap-3 w-full px-4 py-2 text-left cursor-pointer hover:bg-elevated transition-colors"
     >
       <UAvatar
         :src="avatarUrl"
@@ -48,14 +48,15 @@ const items = computed<DropdownMenuItem[][]>(() => [
         <p class="text-sm font-medium truncate">
           {{ name }}
         </p>
-        <p class="text-xs text-toned truncate">
-          {{ tierLabel }}
-        </p>
       </div>
+      <UIcon
+        name="i-lucide-chevrons-up-down"
+        class="size-4 text-muted shrink-0"
+      />
     </button>
 
     <template #content-top>
-      <div class="flex items-center gap-3 px-2 py-3 mb-1 border-b border-default">
+      <div class="flex items-center gap-3 px-2.5 py-3 mb-1 border-b border-default">
         <UAvatar
           :src="avatarUrl"
           :alt="name"
@@ -63,11 +64,20 @@ const items = computed<DropdownMenuItem[][]>(() => [
           size="md"
         />
         <div class="min-w-0">
-          <p class="text-sm font-medium truncate">
-            {{ name }}
-          </p>
+          <div class="flex items-center gap-2">
+            <p class="text-sm font-medium truncate">
+              {{ name }}
+            </p>
+            <UBadge
+              :label="tierLabel"
+              :color="profile?.tier === 'pro' ? 'primary' : 'neutral'"
+              variant="subtle"
+              size="xs"
+              class="shrink-0"
+            />
+          </div>
           <p class="text-xs text-toned truncate">
-            {{ tierLabel }}
+            {{ email }}
           </p>
         </div>
       </div>

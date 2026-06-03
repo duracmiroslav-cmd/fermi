@@ -2,12 +2,12 @@
   <div class="flex flex-col h-full">
     <NuxtLink
       to="/dashboard"
-      class="block px-5 py-5 font-mono text-base text-highlighted tracking-tight hover:opacity-80 transition-opacity"
+      class="block p-4 font-mono text-base text-highlighted tracking-tight hover:opacity-80 transition-opacity"
     >
       fermi
     </NuxtLink>
 
-    <nav class="flex-1 px-3 space-y-1">
+    <nav class="flex-1 px-2 space-y-1">
       <DashboardNavItem
         to="/dashboard/bots"
         icon="i-lucide-bot"
@@ -30,7 +30,7 @@
       />
     </nav>
 
-    <div class="p-3 border-t border-default">
+    <div class="border-t border-default">
       <DashboardUserMenu />
     </div>
   </div>
