@@ -90,6 +90,7 @@ Deno.serve(async (req) => {
         admin,
         kek,
         ownerId:     agent.ownerId,
+        agentId:     agent.id,
         threadId:    crypto.randomUUID(),
         runId:       crypto.randomUUID(),
         attachments: [],

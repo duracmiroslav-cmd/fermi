@@ -254,6 +254,17 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
       { slug: 'twinkle-hub', displayName: 'Twinkle Hub', keyType: 'twinkle', status: 'live' },
     ],
   },
+  // Retrieval over the owner's own documents (RAG). No external credential —
+  // embedding runs on fermi's platform OpenAI key — but it's a Pro-gated
+  // capability: the ingestion endpoint rejects Free. Its config surface is a
+  // document manager (AgentKnowledge.vue), not the generic settings form, so
+  // there's no `settings` descriptor here.
+  'knowledge-base': {
+    displayName:    'Knowledge base',
+    description:    'Search the operator-provided documents attached to this assistant — products, prices, hours, policies, FAQs, background. The model calls this to answer from the owner\'s own material instead of guessing.',
+    config:         {},
+    credentialType: 'none',
+  },
 };
 
 export const getBuiltInCapability = (slug: string): BuiltInCapability | null =>

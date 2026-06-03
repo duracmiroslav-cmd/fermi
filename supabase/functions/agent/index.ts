@@ -286,7 +286,7 @@ const runAgentLoop = async (params: {
       fallbackModel,
       messages,
       toolset,
-      toolContextBase: { admin, kek, ownerId: bot.ownerId, threadId, runId, attachments },
+      toolContextBase: { admin, kek, ownerId: bot.ownerId, agentId: agent.id, threadId, runId, attachments },
       maxSteps: MAX_AGENT_STEPS,
       onStep: s => logStep(admin, {
         runId,

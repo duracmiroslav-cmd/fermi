@@ -493,6 +493,118 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_chunks: {
+        Row: {
+          agent_id: string
+          chunk_index: number
+          content: string
+          created_at: string
+          document_id: string
+          embedding: string
+          id: string
+          owner_id: string
+        }
+        Insert: {
+          agent_id: string
+          chunk_index: number
+          content: string
+          created_at?: string
+          document_id: string
+          embedding: string
+          id?: string
+          owner_id: string
+        }
+        Update: {
+          agent_id?: string
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          document_id?: string
+          embedding?: string
+          id?: string
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_chunks_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_chunks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_documents: {
+        Row: {
+          agent_id: string
+          char_count: number
+          created_at: string
+          deleted_at: string | null
+          id: string
+          owner_id: string
+          source_type: string
+          source_url: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          char_count?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          owner_id: string
+          source_type: string
+          source_url?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          char_count?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          owner_id?: string
+          source_type?: string
+          source_url?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_documents_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_documents_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: Json
@@ -787,6 +899,18 @@ export type Database = {
         Returns: {
           display_name: string
           id: string
+        }[]
+      }
+      match_knowledge_chunks: {
+        Args: {
+          p_agent_id: string
+          p_match_count: number
+          p_min_similarity: number
+          p_query_embedding: string
+        }
+        Returns: {
+          content: string
+          similarity: number
         }[]
       }
       purge_expired_rate_limit_buckets: { Args: never; Returns: number }

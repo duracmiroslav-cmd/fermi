@@ -3,6 +3,7 @@ import { generateImage } from './image-gen.ts';
 import { getCurrentTime } from './time.ts';
 import { searchWeb } from './web-search.ts';
 import { fetchWeb } from './web-fetch.ts';
+import { searchKnowledge } from './knowledge-search.ts';
 import { loadCredential, type KeyType } from '../../../../shared/credentials.ts';
 import type { AttachedCapability, CapabilityConfig } from '../../../../shared/agentCapabilities.ts';
 import { DEFAULT_TOOLS } from '../../../../shared/capabilityTools.ts';
@@ -28,6 +29,9 @@ export interface ToolContext {
   admin: SupabaseClient;
   kek: CryptoKey;
   ownerId: string;
+  // The agent being run. Scopes knowledge-base retrieval to this agent's
+  // documents (match_knowledge_chunks filters by it).
+  agentId: string;
   threadId: string;
   runId: string;
   // Tools producing media use this to name storage objects; the path
@@ -48,7 +52,7 @@ export interface Tool {
   execute: (args: Record<string, unknown>, ctx: ToolContext) => unknown | Promise<unknown>;
 }
 
-const tools: Tool[] = [getCurrentTime, searchWeb, fetchWeb, generateImage];
+const tools: Tool[] = [getCurrentTime, searchWeb, fetchWeb, generateImage, searchKnowledge];
 
 export interface ToolSchema {
   type: 'function';
