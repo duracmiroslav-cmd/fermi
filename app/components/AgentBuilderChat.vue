@@ -198,7 +198,6 @@ const onReset = () => {
             autoresize
             :maxrows="5"
             :placeholder="$t('__placeholderBuilderMessage')"
-            :disabled="isSending"
             class="w-full"
             :ui="{ base: 'pe-10' }"
             @keydown.enter.exact="onEnter"
@@ -209,7 +208,6 @@ const onReset = () => {
             color="neutral"
             variant="ghost"
             :disabled="!canSend"
-            :loading="isSending"
             class="absolute end-2 top-1"
             @click="onSend"
           />
