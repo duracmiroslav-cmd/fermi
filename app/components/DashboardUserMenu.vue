@@ -36,7 +36,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
   >
     <button
       type="button"
-      class="flex items-center gap-3 w-full px-4 py-2 text-left cursor-pointer hover:bg-elevated transition-colors"
+      class="flex items-center gap-3 w-full px-4 py-3 text-left cursor-pointer hover:bg-elevated transition-colors"
     >
       <UAvatar
         :src="avatarUrl"
