@@ -642,14 +642,12 @@ onUnmounted(stopPreviewAudio);
       />
     </div>
 
-    <UFormField
+    <SettingsToggle
       v-if="isEditing"
+      v-model="state.normalizeTraditional"
       :label="$t('__labelNormalizeTraditional')"
-      name="normalizeTraditional"
-      :help="$t('__hintNormalizeTraditional')"
-    >
-      <USwitch v-model="state.normalizeTraditional" />
-    </UFormField>
+      :description="$t('__hintNormalizeTraditional')"
+    />
 
     <UFormField
       v-if="isEditing"

@@ -15,7 +15,7 @@ const model = defineModel<boolean>();
       </p>
       <p
         v-if="description"
-        class="text-xs text-toned mt-0.5"
+        class="text-xs text-muted mt-0.5"
       >
         {{ description }}
       </p>
