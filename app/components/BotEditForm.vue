@@ -3,9 +3,11 @@ import { resolveTextModel } from '~~/shared/constants/models';
 import { updateBotInputSchema } from '~~/shared/schemas/bots';
 
 interface BotEditFormValue {
-  agentId:             string;
-  disabledAt:          string | null;
-  groupActivationCode: string | null;
+  agentId:                string;
+  disabledAt:             string | null;
+  groupActivationCode:    string | null;
+  groupTranscribeEnabled: boolean;
+  groupMentionEnabled:    boolean;
 }
 
 interface AgentOption {
@@ -29,9 +31,11 @@ const emit = defineEmits<{
 const { data: agents, pending: agentsPending, refresh: refreshAgents } = useApiFetch<AgentOption[]>('/api/agents');
 
 const state = reactive<BotEditFormValue>({
-  agentId:             props.initialValue.agentId,
-  disabledAt:          props.initialValue.disabledAt,
-  groupActivationCode: props.initialValue.groupActivationCode ?? '',
+  agentId:                props.initialValue.agentId,
+  disabledAt:             props.initialValue.disabledAt,
+  groupActivationCode:    props.initialValue.groupActivationCode ?? '',
+  groupTranscribeEnabled: props.initialValue.groupTranscribeEnabled,
+  groupMentionEnabled:    props.initialValue.groupMentionEnabled,
 });
 
 const isAgentPickerOpening = ref(false);
@@ -81,9 +85,11 @@ const onRefresh = async () => {
 
 const onSubmit = () => {
   emit('submit', {
-    agentId:             state.agentId,
-    disabledAt:          state.disabledAt,
-    groupActivationCode: state.groupActivationCode?.trim() || null,
+    agentId:                state.agentId,
+    disabledAt:             state.disabledAt,
+    groupActivationCode:    state.groupActivationCode?.trim() || null,
+    groupTranscribeEnabled: state.groupTranscribeEnabled,
+    groupMentionEnabled:    state.groupMentionEnabled,
   });
 };
 </script>
@@ -223,6 +229,18 @@ const onSubmit = () => {
         {{ $t('__hintGroupActivationCode') }}
       </template>
     </UFormField>
+
+    <SettingsToggle
+      v-model="state.groupTranscribeEnabled"
+      :label="$t('__labelGroupTranscribe')"
+      :description="$t('__hintGroupTranscribe')"
+    />
+
+    <SettingsToggle
+      v-model="state.groupMentionEnabled"
+      :label="$t('__labelGroupMention')"
+      :description="$t('__hintGroupMention')"
+    />
 
     <SettingsToggle
       v-if="props.isSetupComplete"

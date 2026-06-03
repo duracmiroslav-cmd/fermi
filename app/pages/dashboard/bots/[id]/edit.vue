@@ -2,19 +2,21 @@
 definePageMeta({ layout: false });
 
 interface BotDetail {
-  id:                  string;
-  platform:            string;
-  externalId:          string;
-  displayName:         string | null;
-  avatarUrl:           string | null;
-  agentId:             string;
-  groupActivationCode: string | null;
-  disabledAt:          string | null;
-  webhookVerifiedAt:   string | null;
-  createdAt:           string;
-  updatedAt:           string;
-  webhookUrl:          string;
-  agent:               { id: string; name: string };
+  id:                     string;
+  platform:               string;
+  externalId:             string;
+  displayName:            string | null;
+  avatarUrl:              string | null;
+  agentId:                string;
+  groupActivationCode:    string | null;
+  groupTranscribeEnabled: boolean;
+  groupMentionEnabled:    boolean;
+  disabledAt:             string | null;
+  webhookVerifiedAt:      string | null;
+  createdAt:              string;
+  updatedAt:              string;
+  webhookUrl:             string;
+  agent:                  { id: string; name: string };
 }
 
 const route = useRoute();
@@ -27,7 +29,7 @@ const { status, isSetupComplete } = useBotStatus(bot);
 
 const deleteDialogOpen = ref(false);
 
-const onSubmit = async (value: { agentId: string; disabledAt: string | null; groupActivationCode: string | null }) => {
+const onSubmit = async (value: { agentId: string; disabledAt: string | null; groupActivationCode: string | null; groupTranscribeEnabled: boolean; groupMentionEnabled: boolean }) => {
   const id = route.params.id as string;
   if (await update(id, value)) await navigateTo(`/dashboard/bots/${id}`);
 };
@@ -130,6 +132,8 @@ const onDelete = async () => {
                 agentId: bot.agentId,
                 disabledAt: bot.disabledAt,
                 groupActivationCode: bot.groupActivationCode,
+                groupTranscribeEnabled: bot.groupTranscribeEnabled,
+                groupMentionEnabled: bot.groupMentionEnabled,
               }"
               :is-setup-complete="isSetupComplete"
               @submit="onSubmit"

@@ -5,9 +5,11 @@ interface BotCreate {
 }
 
 interface BotUpdate {
-  agentId:             string;
-  disabledAt:          string | null;
-  groupActivationCode: string | null;
+  agentId:                string;
+  disabledAt:             string | null;
+  groupActivationCode:    string | null;
+  groupTranscribeEnabled: boolean;
+  groupMentionEnabled:    boolean;
 }
 
 // Write side for bots — the sibling of useAgents. Each mutation invalidates the

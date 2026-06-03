@@ -359,7 +359,7 @@ const handleGroupEvents = async (
       } else if (isGroupTextMessage(event) && typeof event.source.userId === 'string') {
         const senderId = event.source.userId;
         const mentioned = event.message.mention?.mentionees?.some(m => m.isSelf) ?? false;
-        if (mentioned) {
+        if (mentioned && bot.groupMentionEnabled) {
           groupMentions.push({
             groupId,
             senderId,

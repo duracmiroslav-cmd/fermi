@@ -29,6 +29,9 @@ export const updateBotInputSchema = z.object({
     z.literal('').transform(() => null),
     z.null(),
   ]).optional(),
+  // Per-bot group behaviour toggles (both default on at the DB level).
+  groupTranscribeEnabled: z.boolean().optional(),
+  groupMentionEnabled:    z.boolean().optional(),
 }).strict();
 // `displayName` is intentionally not editable here, fermi mirrors
 // LINE's OA name through the connect / refresh flows so the two
