@@ -3,6 +3,12 @@
 // file is the rate-limit/quota counter mechanics: windows + key shapes.
 import type { Purpose } from './tiers.ts';
 
+// Group threads hold messages from people who never signed up for fermi
+// (group members), so their stored content gets a retention ceiling — the
+// one carve-out from the "content is permanent" model; 1:1 history stays.
+// Mirrored by `purge_expired_group_messages` in SQL — keep both in sync.
+export const GROUP_MESSAGE_RETENTION_DAYS = 90;
+
 // Baseline rate-limit windows — the default caps (TEST_CHAT_RATE_WINDOWS
 // below overrides them for the costlier test chat). 3 concentric fixed
 // windows: 1min catches bursts, 1day catches absolute volume, 1hour is
