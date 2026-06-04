@@ -58,22 +58,16 @@ export const generateImage: Tool = {
     additionalProperties: false,
   },
   execute: async (rawArgs, ctx) => {
-    // Quota gate first: a cheap fast-fail before fal credential
-    // resolution and the paid fal.ai call.
-    const quota = await consumeQuota(ctx.admin, COUNTER_ENV, {
-      ownerId: ctx.ownerId,
-      purpose: 'image_gen',
-    });
-    if (!quota.allowed) {
-      return {
-        error: `Image generation quota exceeded: ${quota.count}/${quota.cap} this month. Tell the user the bot owner's free image quota is used up; they can either upgrade to Pro at https://fermi.tw/dashboard/billing ($19/mo, 200 images/mo) or connect their own fal.ai key at https://fermi.tw/dashboard/connectors for unlimited usage.`,
-      };
+    const { prompt, size } = rawArgs as Args;
+    if (typeof prompt !== 'string' || prompt.trim().length === 0) {
+      return { error: 'generate_image requires a non-empty `prompt` string.' };
     }
 
     // Tier policy: Free must BYOK fal.ai; Pro falls back to fermi's
-    // platform key. Errors round-trip back to the LLM as tool-result
-    // JSON so the model can relay a sensible message in the user's
-    // language rather than crashing the loop.
+    // platform key. Resolve the key before charging quota so a Free owner
+    // with no key short-circuits without being charged an image unit.
+    // Errors round-trip back to the LLM as tool-result JSON so the model
+    // can relay a sensible message in the user's language.
     let apiKey: string;
     try {
       const resolved = await resolveKey(ctx.admin, ctx.kek, {
@@ -96,9 +90,16 @@ export const generateImage: Tool = {
       throw err;
     }
 
-    const { prompt, size } = rawArgs as Args;
-    if (typeof prompt !== 'string' || prompt.trim().length === 0) {
-      return { error: 'generate_image requires a non-empty `prompt` string.' };
+    // Quota after the key resolves: a fast-fail before the paid fal.ai call
+    // that doesn't charge an owner who couldn't have generated anyway.
+    const quota = await consumeQuota(ctx.admin, COUNTER_ENV, {
+      ownerId: ctx.ownerId,
+      purpose: 'image_gen',
+    });
+    if (!quota.allowed) {
+      return {
+        error: `Image generation quota exceeded: ${quota.count}/${quota.cap} this month. Tell the user the bot owner's free image quota is used up; they can either upgrade to Pro at https://fermi.tw/dashboard/billing ($19/mo, 200 images/mo) or connect their own fal.ai key at https://fermi.tw/dashboard/connectors for unlimited usage.`,
+      };
     }
 
     try {
