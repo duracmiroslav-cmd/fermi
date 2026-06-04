@@ -52,4 +52,21 @@ describe('updateProfileInputSchema', () => {
       expect(result.success).toBe(false);
     });
   });
+
+  describe('timezone IANA validation', () => {
+    it('accepts a real IANA zone', () => {
+      const result = updateProfileInputSchema.safeParse({ timezone: 'America/New_York' });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects a non-existent zone (would break the worker time context)', () => {
+      const result = updateProfileInputSchema.safeParse({ timezone: 'Mars/Phobos' });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects an empty string', () => {
+      const result = updateProfileInputSchema.safeParse({ timezone: '' });
+      expect(result.success).toBe(false);
+    });
+  });
 });
