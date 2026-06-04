@@ -271,6 +271,18 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     config:         {},
     credentialType: 'none',
   },
+  // Long-term memory about each end-user. The model saves durable facts via
+  // save_memory; the worker recalls the most recent few into the prompt every
+  // turn (fenced as untrusted recall). Scoped per (bot, subject), so it's the
+  // person the bot remembers, not the agent — distinct from the knowledge
+  // base, which is the operator's own per-agent material. No external
+  // credential: recall is a plain scoped read, saves a plain scoped insert.
+  'memory': {
+    displayName:    'Memory',
+    description:    'Let this assistant remember durable facts about each user — their preferences, ongoing projects, and recurring needs — and recall them in future conversations to personalize replies.',
+    config:         {},
+    credentialType: 'none',
+  },
 };
 
 export const getBuiltInCapability = (slug: string): BuiltInCapability | null =>

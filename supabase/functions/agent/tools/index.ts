@@ -5,10 +5,12 @@ import { cancelReminder, createReminder, listReminders } from './reminders.ts';
 import { searchWeb } from './web-search.ts';
 import { fetchWeb } from './web-fetch.ts';
 import { searchKnowledge } from './knowledge-search.ts';
+import { saveMemory } from './memory.ts';
 import { loadCredential, type KeyType } from '../../../../shared/credentials.ts';
 import type { AttachedCapability, CapabilityConfig } from '../../../../shared/agentCapabilities.ts';
 import { DEFAULT_TOOLS } from '../../../../shared/capabilityTools.ts';
 import { McpClient, type McpTool } from './mcp/client.ts';
+import type { ThreadSubjectType } from '../threads.ts';
 import { wrapToolOutput } from '../prompt-guard.ts';
 
 // Worker drains `attachments` after the agent loop ends and appends
@@ -39,6 +41,13 @@ export interface ToolContext {
   // external_user_id scopes the per-end-user slot cap and cancel ownership.
   botId: string;
   externalUserId: string;
+  // The conversation subject this loop serves: a 1:1 user or a group. Memory
+  // tools scope by (botId, subjectType, subjectExternalId) so recall is keyed
+  // to the person/group, surviving thread rotation and an agent swap. For a
+  // 1:1 turn subjectExternalId equals externalUserId; in a group it's the
+  // group id while externalUserId is the individual who spoke.
+  subjectType: ThreadSubjectType;
+  subjectExternalId: string;
   runId: string;
   // Tools producing media use this to name storage objects; the path
   // doubles as an audit trail back to the `agent_run_steps` row.
@@ -67,6 +76,7 @@ const tools: Tool[] = [
   fetchWeb,
   generateImage,
   searchKnowledge,
+  saveMemory,
 ];
 
 export interface ToolSchema {

@@ -12,6 +12,7 @@ import { t } from '../../../shared/i18n.ts';
 import { getKek } from '../../../shared/kek.ts';
 import { type Locale } from '../../../shared/locale.ts';
 import { loadOwnerContext } from '../../../shared/users.ts';
+import { loadRecentMemories, MEMORY_INJECT_LIMIT } from '../../../shared/memories.ts';
 import {
   FreeBYOKRequiredError,
   PlatformKeyNotConfiguredError,
@@ -516,19 +517,38 @@ const runAgentLoop = async (params: {
     const attachedCapabilities = await loadActiveCapabilities(admin, agent.id);
     const toolset = await buildToolset(attachedCapabilities, { admin, kek, ownerId: bot.ownerId });
 
-    const history = await loadRecentMessages(
-      admin,
-      threadId,
-      HISTORY_WINDOW,
-      group ? { accessToken: lineAccessToken, botId: bot.id, groupId: group.groupId } : undefined,
-    );
+    // Only opted-in agents pay for recall: gate the read on the memory
+    // capability being attached, so agents without it keep the exact prior
+    // hot path. The read runs alongside the history load to add no latency.
+    const memoryEnabled = attachedCapabilities.some((c) => c.slug === 'memory');
+    const [history, memory] = await Promise.all([
+      loadRecentMessages(
+        admin,
+        threadId,
+        HISTORY_WINDOW,
+        group ? { accessToken: lineAccessToken, botId: bot.id, groupId: group.groupId } : undefined,
+      ),
+      memoryEnabled
+        ? loadRecentMemories(admin, { botId: bot.id, subjectType, subjectExternalId, limit: MEMORY_INJECT_LIMIT })
+            .catch((memoryErr) => {
+              // Recall is best-effort personalization; a read outage degrades
+              // to no memory rather than failing the whole reply.
+              console.warn('memory recall failed; continuing without it', { botId: bot.id, err: String(memoryErr) });
+              return [] as string[];
+            })
+        : Promise.resolve<string[]>([]),
+    ]);
     // Inject current time + the owner's timezone so the LLM can resolve
     // relative times ("tomorrow 9am") for the reminder tools. In a group,
     // also append the group rules. Both are trusted fermi text, so they
-    // live inside the wrap alongside the agent's own prompt.
+    // live inside the wrap alongside the agent's own prompt. Recalled memory
+    // rides in too, but fenced as untrusted (see renderMemoryBlock).
     const systemPrompt = wrapSystemPrompt(
       `${formatTimeContext(ownerTimezone)}\n\n${agent.systemPrompt ?? defaultSystemPrompt(agent.name)}${group ? GROUP_CONTEXT_PROMPT : ''}`,
-      { hasTools: attachedCapabilities.length > 0 },
+      {
+        hasTools: attachedCapabilities.length > 0,
+        memory:   memory.length > 0 ? memory.map((m) => `- ${m}`).join('\n') : undefined,
+      },
     );
     // Any image in the history window forces a vision-capable model.
     // Without this, an agent configured with a text-only model would
@@ -558,7 +578,7 @@ const runAgentLoop = async (params: {
       fallbackModel,
       messages,
       toolset,
-      toolContextBase: { admin, kek, ownerId: bot.ownerId, agentId: agent.id, threadId, botId: bot.id, externalUserId, runId, attachments },
+      toolContextBase: { admin, kek, ownerId: bot.ownerId, agentId: agent.id, threadId, botId: bot.id, externalUserId, subjectType, subjectExternalId, runId, attachments },
       maxSteps: MAX_AGENT_STEPS,
       onStep: s => logStep(admin, {
         runId,

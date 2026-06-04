@@ -98,6 +98,8 @@ Deno.serve(async (req) => {
         threadId:       crypto.randomUUID(),
         botId:          crypto.randomUUID(),
         externalUserId: crypto.randomUUID(),
+        subjectType:    'user',
+        subjectExternalId: crypto.randomUUID(),
         runId:          crypto.randomUUID(),
         attachments:    [],
       },

@@ -79,7 +79,8 @@ insert into public.capabilities (slug, display_name) values
   ('image-gen',       'Image generation'),
   ('github',          'GitHub'),
   ('twinkle-hub',     'Twinkle Hub'),
-  ('knowledge-base',  'Knowledge base');
+  ('knowledge-base',  'Knowledge base'),
+  ('memory',          'Memory');
 
 -- encrypted_credentials.capability_id (column + scope CHECK + indexes
 -- declared in 20260521231808) couldn't carry its FK inline: that table

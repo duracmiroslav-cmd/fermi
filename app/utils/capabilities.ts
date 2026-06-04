@@ -22,6 +22,7 @@ const iconBySlug: Record<string, string> = {
   'github':         'i-simple-icons-github',
   'twinkle-hub':    'i-lucide-star',
   'knowledge-base': 'i-lucide-book-open',
+  'memory':         'i-lucide-brain',
 };
 
 export const getCapabilityIcon = (slug: string): string =>
