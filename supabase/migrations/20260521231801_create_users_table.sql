@@ -6,8 +6,11 @@ create table public.users (
   email         text,
   display_name  text,
   avatar_url    text,
-  locale        text not null default 'zh-Hant',
-  timezone      text not null default 'Asia/Taipei',
+  -- Null until first login detects the browser's values (confirm.vue);
+  -- the worker falls back to zh-Hant / Asia/Taipei. A NOT NULL default
+  -- would mask "never set" from "deliberately picked the default".
+  locale        text,
+  timezone      text,
   tier          text not null default 'free' check (tier in ('free', 'pro')),
   is_admin      boolean not null default false,
   onboarded_at  timestamptz,

@@ -49,6 +49,22 @@ Reader: a logged-in user mid-task. Font is Inter, **sentence case**.
 - Lead with the function, not a label: a section subhead says what the section
   *is for*, not what it's called.
 - Short sentences and fragments. Comma-chained clauses for rhythm.
+- **Orienting copy can be warm; instructing copy stays terse.** An
+  *instructing/functional* line names a mechanism — keep it clipped. An
+  *orienting* line welcomes the user to a page and says what lives here — it may
+  use a plain, second-person spoken cadence. This matters most in **zh-Hant**:
+  the terse-fragment style reads colder in Chinese than in English, so don't
+  translate an English noun-phrase subhead flatly; let an orienting zh line
+  breathe. Warm ≠ hype: still no exclamation, no AI-tell.
+- **A setting's helper text defines what it is, then (for a toggle) the effect
+  of flipping it: `X 是用來做 Y 的功能。開啟後，A 會做 Z。` / `X does Y. When on,
+  A does Z.`** Lead with a one-line definition of the setting or field; for a
+  toggle, follow with the conditional effect. Name the subject explicitly
+  (機器人 / Agent, matching the form it sits on). A plain field that isn't a
+  toggle needs only the definition. This is distinct from the function-first
+  section/page subheads above: a setting hint teaches "what this is and what
+  flipping it does," so the definition-then-effect frame is right here, not a
+  bare noun phrase.
 - Kill friction inline: cost, time, "no credit card", "fermi takes no cut".
 - Empty and error states stay calm and always offer the next step.
 - Sentence case for everything. Not Title Case. Not all-lowercase (that's the
@@ -208,6 +224,13 @@ TW-native usage:
 
 - 用戶 → **使用者** (用戶 reads Mainland).
 - Written noun lists take **與**, not the spoken 跟: `名稱、人物設定與預設模型`.
+  Exception: in **warm orienting copy** (above), the softer **和** fits the
+  spoken cadence better than 與 and is still written-register — `模型和能力`.
+  Reach for 與 in formal enumerations, 和 in a sentence that talks to the user.
+- A relative-time slot already carries its own tense suffix (dayjs renders
+  `{time}` as `1 小時前`). Put the slot **first**, don't prefix a state verb:
+  `{time}連接` ("1 小時前連接"), never `已連接 {time}` ("已連接 1 小時前", where
+  the trailing 前 fights the leading 已).
 - Latin acronyms inside CJK take **full-width parens**: （PAT）（UTC）, matching
   （預設） — not half-width `(PAT)`.
 

@@ -19,7 +19,6 @@ export default defineEventHandler(async (event) => {
   if ('disabledAt' in input) patch.disabled_at = input.disabledAt;
   if ('groupActivationCode' in input) patch.group_activation_code = input.groupActivationCode;
   if ('groupTranscribeEnabled' in input) patch.group_transcribe_enabled = input.groupTranscribeEnabled;
-  if ('groupMentionEnabled' in input) patch.group_mention_enabled = input.groupMentionEnabled;
 
   if (Object.keys(patch).length === 0) {
     throw createError({

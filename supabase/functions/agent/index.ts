@@ -41,6 +41,7 @@ import {
 import { OpenRouterError, type ChatMessage } from './openrouter.ts';
 import { MAX_AGENT_STEPS, runAgentConversation } from './loop.ts';
 import { COUNTER_ENV, consumeQuota } from './quota.ts';
+import { checkGroupMemberRateLimit } from './groupRateLimit.ts';
 import { deriveErrorCode, finishRun, logStep, startRun } from './runs.ts';
 import { STTError, transcribeAudio } from './stt.ts';
 import { synthesizeSpeech } from './tts.ts';
@@ -267,24 +268,35 @@ const transcribeGroupAudio = async (params: {
   bot: BotRef;
   kek: CryptoKey;
   lineAccessToken: string;
+  ownerLocale: Locale;
   groupId: string;
   userId: string;
   messageId: string;
   replyToken: string;
 }): Promise<void> => {
-  const { bot, kek, lineAccessToken, groupId, userId, messageId, replyToken } = params;
+  const { bot, kek, lineAccessToken, ownerLocale, groupId, userId, messageId, replyToken } = params;
 
+  // Failures surface the same notices as the 1:1 audio path. A silent drop
+  // in a group leaves the owner no way to tell why nothing transcribed
+  // (a missing OpenAI key being the common one) — debuggability wins over
+  // the speculative concern of one extra message in the group.
   let bytes: Uint8Array;
   let mime: AudioMime;
   try {
     const content = await fetchMessageContent(lineAccessToken, messageId);
     const detected = detectAudioMime(content.bytes);
-    if (!detected) return;
+    if (!detected) {
+      await safeReply(lineAccessToken, replyToken, t('__noticeUnsupportedAudioFormat', ownerLocale));
+      return;
+    }
     mime = detected;
     bytes = content.bytes;
   } catch (err) {
-    console.warn('group audio fetch failed', { botId: bot.id, err });
-    return;
+    if (err instanceof LineContentError && err.status === 413) {
+      await safeReply(lineAccessToken, replyToken, t('__noticeAudioTooLarge', ownerLocale));
+      return;
+    }
+    throw err;
   }
 
   let openaiKey: string;
@@ -296,29 +308,60 @@ const transcribeGroupAudio = async (params: {
     });
     openaiKey = resolved.key;
   } catch (err) {
-    // Free owner without an OpenAI key, or platform key missing. Group
-    // transcription stays quiet; the owner connects a key in the dashboard.
-    console.warn('group transcription key unavailable', { botId: bot.id, err: err instanceof Error ? err.message : err });
-    return;
+    if (err instanceof FreeBYOKRequiredError) {
+      await safeReply(lineAccessToken, replyToken, t('__noticeFreeByokOpenai', ownerLocale));
+      return;
+    }
+    if (err instanceof PlatformKeyNotConfiguredError) {
+      console.error('platform OpenAI key missing for Pro user', { ownerId: bot.ownerId });
+      await safeReply(lineAccessToken, replyToken, t('__noticePlatformKeyOps', ownerLocale));
+      return;
+    }
+    throw err;
   }
 
   const quota = await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' });
-  if (!quota.allowed) return;
+  if (!quota.allowed) {
+    await safeReply(lineAccessToken, replyToken, t('__noticeQuotaSttExhausted', ownerLocale));
+    return;
+  }
+
+  // Name lookup and the agent's normalize flag are both independent of
+  // transcription, so start them here to overlap with the Whisper call
+  // instead of serializing after it. resolveDisplayName never throws; the
+  // agent load falls back to null (default-normalize) on any DB error.
+  const namePromise = resolveDisplayName(admin, lineAccessToken, bot.id, groupId, userId);
+  const agentPromise = bot.agentId
+    ? findAgentById(admin, bot.agentId).catch(() => null)
+    : Promise.resolve(null);
 
   let transcript: string;
   try {
     transcript = await transcribeAudio({ apiKey: openaiKey, bytes, mime });
   } catch (err) {
-    console.warn('group transcription failed', { botId: bot.id, status: err instanceof STTError ? err.status : undefined });
+    if (err instanceof STTError) {
+      await safeReply(lineAccessToken, replyToken, t('__noticeAudioTranscriptionFailed', ownerLocale));
+      return;
+    }
+    throw err;
+  }
+  if (transcript.length === 0) {
+    await safeReply(lineAccessToken, replyToken, t('__noticeAudioEmpty', ownerLocale));
     return;
   }
-  if (transcript.length === 0) return;
 
-  const name = await resolveDisplayName(admin, lineAccessToken, bot.id, groupId, userId);
-  await safeReply(lineAccessToken, replyToken, `🎤 ${name}：${transcript}`);
+  // Whisper emits Simplified for Mandarin audio; run the same Simplified →
+  // Taiwan Traditional pass the 1:1 reply path uses so the relay and the
+  // stored context honor the agent's normalize_traditional setting. No
+  // agent bound → default true, matching the agents column default.
+  const agent = await agentPromise;
+  const text = normalizeReplyText(transcript, { traditional: agent?.normalizeTraditional ?? true });
+
+  const name = await namePromise;
+  await safeReply(lineAccessToken, replyToken, `🎤 ${name}：${text}`);
   // The transcript also joins the group's thread so a later @mention has
   // the spoken context, per the "voice transcripts enter context" rule.
-  await storeGroupContext(bot.id, groupId, userId, transcript);
+  await storeGroupContext(bot.id, groupId, userId, text);
 };
 
 // Group lifecycle + the activation-code gate, independent of the agent
@@ -374,19 +417,31 @@ const handleGroupEvents = async (
       // Activated. Voice → transcription relay. Text → stored for context;
       // an @mention also queues an agent reply, run after key resolution.
       if (isGroupAudioMessage(event) && bot.groupTranscribeEnabled) {
-        await transcribeGroupAudio({
-          bot,
-          kek,
-          lineAccessToken,
-          groupId,
-          userId:     event.source.userId,
-          messageId:  event.message.id,
-          replyToken: event.replyToken,
-        });
+        const senderId = event.source.userId;
+        if (await checkGroupMemberRateLimit(admin, COUNTER_ENV, { botId: bot.id, groupId, externalUserId: senderId })) {
+          await transcribeGroupAudio({
+            bot,
+            kek,
+            lineAccessToken,
+            ownerLocale,
+            groupId,
+            userId:     senderId,
+            messageId:  event.message.id,
+            replyToken: event.replyToken,
+          });
+        } else {
+          await safeReply(lineAccessToken, event.replyToken, t('__noticeGroupRateLimited', ownerLocale));
+        }
       } else if (isGroupTextMessage(event) && typeof event.source.userId === 'string') {
         const senderId = event.source.userId;
         const mentioned = event.message.mention?.mentionees?.some(m => m.isSelf) ?? false;
-        if (mentioned && bot.groupMentionEnabled) {
+        if (!mentioned) {
+          await storeGroupContext(bot.id, groupId, senderId, event.message.text);
+        } else if (await checkGroupMemberRateLimit(admin, COUNTER_ENV, { botId: bot.id, groupId, externalUserId: senderId })) {
+          // An @mention always gets a reply — ignoring an explicit summon
+          // reads as "the bot is broken." The rate limit is the only brake
+          // (group events skip the webhook's per-user limit); when it trips
+          // the member still gets a reply, just the slow-down notice.
           groupMentions.push({
             groupId,
             senderId,
@@ -395,6 +450,7 @@ const handleGroupEvents = async (
             eventTimestamp: typeof event.timestamp === 'number' ? event.timestamp : Date.now(),
           });
         } else {
+          await safeReply(lineAccessToken, event.replyToken, t('__noticeGroupRateLimited', ownerLocale));
           await storeGroupContext(bot.id, groupId, senderId, event.message.text);
         }
       }
@@ -497,9 +553,9 @@ const runAgentLoop = async (params: {
 
   // Keep LINE's "..." alive for the whole run — including while a single slow
   // LLM call is in flight — by re-firing on a timer, not at loop boundaries.
-  // Prime now (the webhook's prime may have lapsed during cron-drain delay),
-  // then refresh under LINE's 60s cap. Cleared in `finally` so it never leaks.
-  // LINE's loading indicator only works in 1:1 chats, not groups.
+  // Re-prime now (the per-message prime before dispatch is the first one;
+  // this covers the run itself), then refresh under LINE's 60s cap. Cleared
+  // in `finally` so it never leaks. Only works in 1:1 chats, not groups.
   let loadingTimer: ReturnType<typeof setInterval> | null = null;
   if (!group) {
     void showLoadingAnimation(lineAccessToken, externalUserId)
@@ -649,19 +705,22 @@ const runAgentLoop = async (params: {
     // only the quota path warrants the user-facing CTA.
     let ttsQuotaExhausted = false;
     if (wantsVoiceReply) {
-      const ttsQuota = await consumeQuota(admin, COUNTER_ENV, {
-        ownerId: bot.ownerId,
-        purpose: 'tts',
-      });
-      if (!ttsQuota.allowed) {
-        ttsQuotaExhausted = true;
-      } else {
-        try {
-          const resolved = await resolveKey(admin, kek, {
-            ownerId: bot.ownerId,
-            purpose: 'openai',
-            platformKey: PLATFORM_OPENAI_KEY,
-          });
+      try {
+        // Resolve the key before charging quota: a Free owner with no key
+        // (or a missing platform key) falls back to text here without being
+        // charged a TTS unit. Has-key + exhausted-quota still flags the CTA.
+        const resolved = await resolveKey(admin, kek, {
+          ownerId: bot.ownerId,
+          purpose: 'openai',
+          platformKey: PLATFORM_OPENAI_KEY,
+        });
+        const ttsQuota = await consumeQuota(admin, COUNTER_ENV, {
+          ownerId: bot.ownerId,
+          purpose: 'tts',
+        });
+        if (!ttsQuota.allowed) {
+          ttsQuotaExhausted = true;
+        } else {
           const speech = await synthesizeSpeech({
             apiKey:       resolved.key,
             text:         finalText,
@@ -684,13 +743,13 @@ const runAgentLoop = async (params: {
             sizeBytes: speech.bytes.byteLength,
             durationMs: speech.durationMs,
           };
-        } catch (ttsErr) {
-          console.warn('TTS failed; falling back to text', {
-            agentId: agent.id,
-            ownerId: bot.ownerId,
-            err: String(ttsErr),
-          });
         }
+      } catch (ttsErr) {
+        console.warn('TTS failed; falling back to text', {
+          agentId: agent.id,
+          ownerId: bot.ownerId,
+          err: String(ttsErr),
+        });
       }
     }
 
@@ -939,6 +998,15 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     // the call on Reply, and a 400 still falls back to Push internally.
     const eventTimestamp = typeof event.timestamp === 'number' ? event.timestamp : Date.now();
 
+    // Prime "..." as the worker's first act for any 1:1 message — before
+    // image download / audio STT — so the indicator shows reliably (the Deno
+    // worker isn't frozen mid-run like the webhook handler) without waiting on
+    // those. runAgentLoop re-primes and keeps it alive under LINE's 60s cap.
+    if (isReplyableUserMessage(event)) {
+      void showLoadingAnimation(lineAccessToken, event.source.userId)
+        .catch(err => console.error('loading animation prime failed', err));
+    }
+
     if (isTextMessageFromUser(event)) {
       await runAgentLoop({
         bot,
@@ -1011,23 +1079,12 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         throw err;
       }
 
-      // Quota gate before resolving the OpenAI key: cheap fast-fail
-      // and stops a quota-exhausted user from being told "set up your
-      // key" when the real issue is the cap.
-      const sttQuota = await consumeQuota(admin, COUNTER_ENV, {
-        ownerId: bot.ownerId,
-        purpose: 'stt',
-      });
-      if (!sttQuota.allowed) {
-        await safeReply(lineAccessToken, event.replyToken, t('__noticeQuotaSttExhausted', ownerLocale));
-        continue;
-      }
-
-      // STT runs *before* the agent loop because the rest of the
-      // pipeline only knows text + image. Whisper turns audio into
-      // text, then the loop proceeds exactly like a typed message.
-      // Errors here short-circuit with a user-facing notice. No
-      // agent_run is started for failed transcriptions.
+      // Resolve the OpenAI key before charging quota: a Free owner with no
+      // key short-circuits here without being charged an STT unit. (Has-key
+      // + exhausted-quota still gets the quota notice below — resolveKey
+      // succeeds first.) STT runs before the agent loop because the rest of
+      // the pipeline only knows text + image; a failed transcription starts
+      // no agent_run.
       let openaiKey: string;
       try {
         const resolved = await resolveKey(admin, kek, {
@@ -1047,6 +1104,15 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
           continue;
         }
         throw err;
+      }
+
+      const sttQuota = await consumeQuota(admin, COUNTER_ENV, {
+        ownerId: bot.ownerId,
+        purpose: 'stt',
+      });
+      if (!sttQuota.allowed) {
+        await safeReply(lineAccessToken, event.replyToken, t('__noticeQuotaSttExhausted', ownerLocale));
+        continue;
       }
 
       let transcript: string;
