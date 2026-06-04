@@ -1018,23 +1018,12 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         throw err;
       }
 
-      // Quota gate before resolving the OpenAI key: cheap fast-fail
-      // and stops a quota-exhausted user from being told "set up your
-      // key" when the real issue is the cap.
-      const sttQuota = await consumeQuota(admin, COUNTER_ENV, {
-        ownerId: bot.ownerId,
-        purpose: 'stt',
-      });
-      if (!sttQuota.allowed) {
-        await safeReply(lineAccessToken, event.replyToken, t('__noticeQuotaSttExhausted', ownerLocale));
-        continue;
-      }
-
-      // STT runs *before* the agent loop because the rest of the
-      // pipeline only knows text + image. Whisper turns audio into
-      // text, then the loop proceeds exactly like a typed message.
-      // Errors here short-circuit with a user-facing notice. No
-      // agent_run is started for failed transcriptions.
+      // Resolve the OpenAI key before charging quota: a Free owner with no
+      // key short-circuits here without being charged an STT unit. (Has-key
+      // + exhausted-quota still gets the quota notice below — resolveKey
+      // succeeds first.) STT runs before the agent loop because the rest of
+      // the pipeline only knows text + image; a failed transcription starts
+      // no agent_run.
       let openaiKey: string;
       try {
         const resolved = await resolveKey(admin, kek, {
@@ -1054,6 +1043,15 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
           continue;
         }
         throw err;
+      }
+
+      const sttQuota = await consumeQuota(admin, COUNTER_ENV, {
+        ownerId: bot.ownerId,
+        purpose: 'stt',
+      });
+      if (!sttQuota.allowed) {
+        await safeReply(lineAccessToken, event.replyToken, t('__noticeQuotaSttExhausted', ownerLocale));
+        continue;
       }
 
       let transcript: string;
