@@ -9,6 +9,16 @@ interface BotEditFormValue {
   groupTranscribeEnabled: boolean;
 }
 
+// Form draft state. groupActivationCode is held as a string ('' = none) so it
+// binds cleanly to the text input; onSubmit coerces '' back to null for the
+// API contract (BotEditFormValue).
+interface FormState {
+  agentId:                string;
+  disabledAt:             string | null;
+  groupActivationCode:    string;
+  groupTranscribeEnabled: boolean;
+}
+
 interface AgentOption {
   id:               string;
   name:             string;
@@ -29,7 +39,7 @@ const emit = defineEmits<{
 
 const { data: agents, pending: agentsPending, refresh: refreshAgents } = useApiFetch<AgentOption[]>('/api/agents');
 
-const state = reactive<BotEditFormValue>({
+const state = reactive<FormState>({
   agentId:                props.initialValue.agentId,
   disabledAt:             props.initialValue.disabledAt,
   groupActivationCode:    props.initialValue.groupActivationCode ?? '',
@@ -85,7 +95,7 @@ const onSubmit = () => {
   emit('submit', {
     agentId:                state.agentId,
     disabledAt:             state.disabledAt,
-    groupActivationCode:    state.groupActivationCode?.trim() || null,
+    groupActivationCode:    state.groupActivationCode.trim() || null,
     groupTranscribeEnabled: state.groupTranscribeEnabled,
   });
 };
