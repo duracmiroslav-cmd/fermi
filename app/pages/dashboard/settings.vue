@@ -77,7 +77,10 @@ onMounted(() => {
           </div>
           <UCard>
             <div class="space-y-4">
-              <UFormField :label="$t('__labelLanguage')">
+              <UFormField
+                :label="$t('__labelLanguage')"
+                :help="$t('__hintLanguage')"
+              >
                 <USelect
                   v-model="selectedLocale"
                   :items="localeItems"
@@ -85,7 +88,10 @@ onMounted(() => {
                   class="w-full"
                 />
               </UFormField>
-              <UFormField :label="$t('__labelTimezone')">
+              <UFormField
+                :label="$t('__labelTimezone')"
+                :help="$t('__hintTimezone')"
+              >
                 <USelectMenu
                   v-model="selectedTimezone"
                   :items="timezoneItems"
