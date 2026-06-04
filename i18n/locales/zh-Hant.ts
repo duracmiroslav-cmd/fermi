@@ -234,6 +234,7 @@ export default {
   __labelThisAgent:                       '此 Agent',
   __labelTierFree:                        'Free',
   __labelTierPro:                         'Pro',
+  __labelTimezone:                        '時區',
   __labelToolUsed:                        '用了 {tool} 工具',
   __labelUnnamed:                         '（未命名）',
   __labelUpdated:                         '更新時間',

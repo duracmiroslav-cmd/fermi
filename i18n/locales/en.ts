@@ -232,6 +232,7 @@ export default {
   __labelThisAgent:                       'this agent',
   __labelTierFree:                        'Free',
   __labelTierPro:                         'Pro',
+  __labelTimezone:                        'Time zone',
   __labelToolUsed:                        'used the {tool} tool',
   __labelUnnamed:                         '(unnamed)',
   __labelUpdated:                         'Updated',
