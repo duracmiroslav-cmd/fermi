@@ -914,10 +914,10 @@ export type Database = {
           email: string | null
           id: string
           is_admin: boolean
-          locale: string
+          locale: string | null
           onboarded_at: string | null
           tier: string
-          timezone: string
+          timezone: string | null
           updated_at: string
         }
         Insert: {
@@ -928,10 +928,10 @@ export type Database = {
           email?: string | null
           id: string
           is_admin?: boolean
-          locale?: string
+          locale?: string | null
           onboarded_at?: string | null
           tier?: string
-          timezone?: string
+          timezone?: string | null
           updated_at?: string
         }
         Update: {
@@ -942,10 +942,10 @@ export type Database = {
           email?: string | null
           id?: string
           is_admin?: boolean
-          locale?: string
+          locale?: string | null
           onboarded_at?: string | null
           tier?: string
-          timezone?: string
+          timezone?: string | null
           updated_at?: string
         }
         Relationships: []

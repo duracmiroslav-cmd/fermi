@@ -15,10 +15,20 @@ onMounted(async () => {
     return;
   }
 
-  await $fetch('/api/me/profile', {
-    method: 'PATCH',
-    body:   { locale: normalizeLocale(navigator.language) },
-  }).catch(err => console.warn('locale sync failed', err));
+  // Seed locale + timezone from the browser only on first login (when unset).
+  // A later manual change in settings is then the durable source of truth,
+  // not clobbered on every sign-in.
+  try {
+    const profile = await $fetch<Profile>('/api/me/profile');
+    const patch: Record<string, string> = {};
+    if (!profile.locale) patch.locale = normalizeLocale(navigator.language);
+    if (!profile.timezone) patch.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (Object.keys(patch).length > 0) {
+      await $fetch('/api/me/profile', { method: 'PATCH', body: patch });
+    }
+  } catch (err) {
+    console.warn('preference seed failed', err);
+  }
 
   await navigateTo('/dashboard');
 });
