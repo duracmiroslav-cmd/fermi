@@ -153,8 +153,6 @@ export default {
   __hintGroupActivationCode:              '設定後，成員在群組輸入這組碼即可開通機器人。留空則不開放群組。',
   __labelGroupTranscribe:                 '群組語音轉錄',
   __hintGroupTranscribe:                  '開啟後，已啟用群組裡的語音訊息會自動轉成文字。',
-  __labelGroupMention:                    '群組提及對話',
-  __hintGroupMention:                     '開啟後，在已啟用群組裡提及機器人就會用 AI 回覆。',
   __labelGroupActivationCode:             '群組啟用碼',
   __placeholderGroupActivationCode:       '4–32 個字元',
   __hintLoadingModels:                    '載入模型中…',

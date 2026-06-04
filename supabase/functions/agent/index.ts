@@ -40,6 +40,7 @@ import {
 import { OpenRouterError, type ChatMessage } from './openrouter.ts';
 import { MAX_AGENT_STEPS, runAgentConversation } from './loop.ts';
 import { COUNTER_ENV, consumeQuota } from './quota.ts';
+import { checkGroupMemberRateLimit } from './groupRateLimit.ts';
 import { deriveErrorCode, finishRun, logStep, startRun } from './runs.ts';
 import { STTError, transcribeAudio } from './stt.ts';
 import { synthesizeSpeech } from './tts.ts';
@@ -415,20 +416,31 @@ const handleGroupEvents = async (
       // Activated. Voice → transcription relay. Text → stored for context;
       // an @mention also queues an agent reply, run after key resolution.
       if (isGroupAudioMessage(event) && bot.groupTranscribeEnabled) {
-        await transcribeGroupAudio({
-          bot,
-          kek,
-          lineAccessToken,
-          ownerLocale,
-          groupId,
-          userId:     event.source.userId,
-          messageId:  event.message.id,
-          replyToken: event.replyToken,
-        });
+        const senderId = event.source.userId;
+        if (await checkGroupMemberRateLimit(admin, COUNTER_ENV, { botId: bot.id, groupId, externalUserId: senderId })) {
+          await transcribeGroupAudio({
+            bot,
+            kek,
+            lineAccessToken,
+            ownerLocale,
+            groupId,
+            userId:     senderId,
+            messageId:  event.message.id,
+            replyToken: event.replyToken,
+          });
+        } else {
+          await safeReply(lineAccessToken, event.replyToken, t('__noticeGroupRateLimited', ownerLocale));
+        }
       } else if (isGroupTextMessage(event) && typeof event.source.userId === 'string') {
         const senderId = event.source.userId;
         const mentioned = event.message.mention?.mentionees?.some(m => m.isSelf) ?? false;
-        if (mentioned && bot.groupMentionEnabled) {
+        if (!mentioned) {
+          await storeGroupContext(bot.id, groupId, senderId, event.message.text);
+        } else if (await checkGroupMemberRateLimit(admin, COUNTER_ENV, { botId: bot.id, groupId, externalUserId: senderId })) {
+          // An @mention always gets a reply — ignoring an explicit summon
+          // reads as "the bot is broken." The rate limit is the only brake
+          // (group events skip the webhook's per-user limit); when it trips
+          // the member still gets a reply, just the slow-down notice.
           groupMentions.push({
             groupId,
             senderId,
@@ -437,6 +449,7 @@ const handleGroupEvents = async (
             eventTimestamp: typeof event.timestamp === 'number' ? event.timestamp : Date.now(),
           });
         } else {
+          await safeReply(lineAccessToken, event.replyToken, t('__noticeGroupRateLimited', ownerLocale));
           await storeGroupContext(bot.id, groupId, senderId, event.message.text);
         }
       }

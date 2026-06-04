@@ -18,11 +18,9 @@ create table public.bots (
   -- chat) so deliberately not enveloped. null = group chats off.
   group_activation_code text,
   -- Whether the bot transcribes voice messages in activated groups (the
-  -- relay feature). Independent of group mention chat.
+  -- relay feature). @mention replies have no toggle — they're always on,
+  -- gated only by a per-(group, member) rate limit.
   group_transcribe_enabled boolean not null default true,
-  -- Whether the bot replies to @mentions in activated groups (mention
-  -- chat). Independent of transcription.
-  group_mention_enabled boolean not null default true,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
   disabled_at         timestamptz,

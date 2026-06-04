@@ -7,7 +7,6 @@ interface BotEditFormValue {
   disabledAt:             string | null;
   groupActivationCode:    string | null;
   groupTranscribeEnabled: boolean;
-  groupMentionEnabled:    boolean;
 }
 
 interface AgentOption {
@@ -35,7 +34,6 @@ const state = reactive<BotEditFormValue>({
   disabledAt:             props.initialValue.disabledAt,
   groupActivationCode:    props.initialValue.groupActivationCode ?? '',
   groupTranscribeEnabled: props.initialValue.groupTranscribeEnabled,
-  groupMentionEnabled:    props.initialValue.groupMentionEnabled,
 });
 
 const isAgentPickerOpening = ref(false);
@@ -89,7 +87,6 @@ const onSubmit = () => {
     disabledAt:             state.disabledAt,
     groupActivationCode:    state.groupActivationCode?.trim() || null,
     groupTranscribeEnabled: state.groupTranscribeEnabled,
-    groupMentionEnabled:    state.groupMentionEnabled,
   });
 };
 </script>
@@ -234,12 +231,6 @@ const onSubmit = () => {
       v-model="state.groupTranscribeEnabled"
       :label="$t('__labelGroupTranscribe')"
       :description="$t('__hintGroupTranscribe')"
-    />
-
-    <SettingsToggle
-      v-model="state.groupMentionEnabled"
-      :label="$t('__labelGroupMention')"
-      :description="$t('__hintGroupMention')"
     />
 
     <SettingsToggle

@@ -10,7 +10,6 @@ interface BotDetail {
   agentId:                string;
   groupActivationCode:    string | null;
   groupTranscribeEnabled: boolean;
-  groupMentionEnabled:    boolean;
   disabledAt:             string | null;
   webhookVerifiedAt:      string | null;
   createdAt:              string;
@@ -29,7 +28,7 @@ const { status, isSetupComplete } = useBotStatus(bot);
 
 const deleteDialogOpen = ref(false);
 
-const onSubmit = async (value: { agentId: string; disabledAt: string | null; groupActivationCode: string | null; groupTranscribeEnabled: boolean; groupMentionEnabled: boolean }) => {
+const onSubmit = async (value: { agentId: string; disabledAt: string | null; groupActivationCode: string | null; groupTranscribeEnabled: boolean }) => {
   const id = route.params.id as string;
   if (await update(id, value)) await navigateTo(`/dashboard/bots/${id}`);
 };
@@ -133,7 +132,6 @@ const onDelete = async () => {
                 disabledAt: bot.disabledAt,
                 groupActivationCode: bot.groupActivationCode,
                 groupTranscribeEnabled: bot.groupTranscribeEnabled,
-                groupMentionEnabled: bot.groupMentionEnabled,
               }"
               :is-setup-complete="isSetupComplete"
               @submit="onSubmit"

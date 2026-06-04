@@ -59,6 +59,24 @@ export const buildRateLimitKey = (input: {
   return `rl:bot:${input.botId}:user:${input.externalUserId}:${input.window.scope}:${bucket}`;
 };
 
+// Per-(bot, group, member) rate limit for the group actions that spend the
+// owner's quota: @mention agent replies and voice transcription. In a group
+// any member can trigger these on the owner's key, and group events bypass
+// the webhook's per-user limit (it only covers 1:1), so this is their only
+// brake. Distinct namespace from buildRateLimitKey so a member's 1:1 budget
+// and their per-group budget don't share a counter. Reuses RATE_WINDOWS.
+export const buildGroupRateLimitKey = (input: {
+  botId:          string;
+  groupId:        string;
+  externalUserId: string;
+  window:         RateWindow;
+  now?:           Date;
+}): string => {
+  const now = input.now ?? new Date();
+  const bucket = formatBucket(input.window.scope, now);
+  return `rl:bot:${input.botId}:group:${input.groupId}:user:${input.externalUserId}:${input.window.scope}:${bucket}`;
+};
+
 // Owner-scoped rate limit for dashboard TTS preview. Distinct key
 // shape from buildRateLimitKey (which is per bot+user) because
 // previews fire from logged-in dashboard sessions where there's no

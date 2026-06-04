@@ -14,11 +14,9 @@ export interface BotRef {
   groupActivationCode:    string | null;
   // Whether voice in activated groups is transcribed (relay feature).
   groupTranscribeEnabled: boolean;
-  // Whether the bot replies to @mentions in activated groups.
-  groupMentionEnabled:    boolean;
 }
 
-const BOT_SELECT = 'id, owner_id, agent_id, group_activation_code, group_transcribe_enabled, group_mention_enabled';
+const BOT_SELECT = 'id, owner_id, agent_id, group_activation_code, group_transcribe_enabled';
 
 const toBotRef = (data: {
   id:                       string;
@@ -26,14 +24,12 @@ const toBotRef = (data: {
   agent_id:                 string | null;
   group_activation_code:    string | null;
   group_transcribe_enabled: boolean;
-  group_mention_enabled:    boolean;
 }): BotRef => ({
   id:                     data.id,
   ownerId:                data.owner_id,
   agentId:                data.agent_id,
   groupActivationCode:    data.group_activation_code,
   groupTranscribeEnabled: data.group_transcribe_enabled,
-  groupMentionEnabled:    data.group_mention_enabled,
 });
 
 export const findBotByExternalId = async (
