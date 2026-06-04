@@ -10,10 +10,22 @@ interface OpenRouterStatus {
   connectedAt?:      string;
 }
 
+interface ByokStatus {
+  connected: boolean;
+}
+
 const {
   data: openrouter,
   pending: openrouterPending,
 } = useApiFetch<OpenRouterStatus>('/api/oauth/openrouter');
+
+const {
+  data: openai,
+  pending: openaiPending,
+} = useApiFetch<ByokStatus>('/api/connectors/openai');
+
+const providersPending = computed(() =>
+  (openrouterPending.value && !openrouter.value) || (openaiPending.value && !openai.value));
 
 const {
   data: capabilities,
@@ -81,18 +93,28 @@ const filteredCards = computed(() => {
           </div>
 
           <div
-            v-if="openrouterPending && !openrouter"
+            v-if="providersPending"
             class="rounded-md border border-muted bg-muted/50 divide-y divide-default overflow-hidden"
             aria-busy="true"
           >
-            <div class="flex items-center gap-4 p-4">
+            <div
+              v-for="(w, i) in ['w-40', 'w-28']"
+              :key="i"
+              class="flex items-center gap-4 p-4"
+            >
               <USkeleton class="size-6 rounded shrink-0" />
               <div class="flex-1 min-w-0">
                 <div class="h-5 flex items-center">
-                  <USkeleton class="h-3 w-40" />
+                  <USkeleton
+                    class="h-3"
+                    :class="w"
+                  />
                 </div>
                 <div class="h-4 flex items-center">
-                  <USkeleton class="h-2.5 w-64 bg-muted/70" />
+                  <USkeleton
+                    class="h-2.5 bg-muted/70"
+                    :class="i === 0 ? 'w-64' : 'w-56'"
+                  />
                 </div>
               </div>
               <USkeleton class="h-5 w-20 rounded-sm shrink-0" />
@@ -125,6 +147,31 @@ const filteredCards = computed(() => {
                 size="sm"
               >
                 {{ openrouter?.connected ? $t('__statusConnected') : $t('__statusAvailable') }}
+              </UBadge>
+            </NuxtLink>
+
+            <NuxtLink
+              to="/dashboard/connectors/openai"
+              class="flex items-center gap-4 p-4 hover:bg-muted transition-colors"
+            >
+              <UIcon
+                name="i-simple-icons-openai"
+                class="size-6 text-toned shrink-0"
+              />
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium truncate">
+                  OpenAI
+                </p>
+                <p class="text-xs text-toned">
+                  {{ $t('__descriptionOpenaiListItem') }}
+                </p>
+              </div>
+              <UBadge
+                color="neutral"
+                variant="subtle"
+                size="sm"
+              >
+                {{ openai?.connected ? $t('__statusConnected') : $t('__statusAvailable') }}
               </UBadge>
             </NuxtLink>
           </div>
