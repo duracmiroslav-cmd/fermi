@@ -687,6 +687,64 @@ export type Database = {
           },
         ]
       }
+      memories: {
+        Row: {
+          bot_id: string
+          content: string
+          created_at: string
+          id: string
+          owner_id: string
+          source_run_id: string | null
+          subject_external_id: string
+          subject_type: string
+          updated_at: string
+        }
+        Insert: {
+          bot_id: string
+          content: string
+          created_at?: string
+          id?: string
+          owner_id: string
+          source_run_id?: string | null
+          subject_external_id: string
+          subject_type: string
+          updated_at?: string
+        }
+        Update: {
+          bot_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          owner_id?: string
+          source_run_id?: string | null
+          subject_external_id?: string
+          subject_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memories_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memories_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memories_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: Json
@@ -778,6 +836,73 @@ export type Database = {
           key?: string
         }
         Relationships: []
+      }
+      reminders: {
+        Row: {
+          bot_id: string
+          created_at: string
+          external_user_id: string
+          failure_reason: string | null
+          fire_at: string
+          fired_at: string | null
+          id: string
+          message: string
+          owner_id: string
+          status: string
+          thread_id: string
+          updated_at: string
+        }
+        Insert: {
+          bot_id: string
+          created_at?: string
+          external_user_id: string
+          failure_reason?: string | null
+          fire_at: string
+          fired_at?: string | null
+          id?: string
+          message: string
+          owner_id: string
+          status?: string
+          thread_id: string
+          updated_at?: string
+        }
+        Update: {
+          bot_id?: string
+          created_at?: string
+          external_user_id?: string
+          failure_reason?: string | null
+          fire_at?: string
+          fired_at?: string | null
+          id?: string
+          message?: string
+          owner_id?: string
+          status?: string
+          thread_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       threads: {
         Row: {
@@ -888,6 +1013,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      archive_reminder_event: { Args: { msg_id: number }; Returns: boolean }
       archive_webhook_event: { Args: { msg_id: number }; Returns: boolean }
       attach_capability: {
         Args: {
@@ -921,6 +1047,13 @@ export type Database = {
         Args: { p_capability_id: string; p_owner_id: string }
         Returns: undefined
       }
+      dequeue_reminder_events: {
+        Args: { batch_size?: number; visibility_timeout?: number }
+        Returns: {
+          msg_id: number
+          payload: Json
+        }[]
+      }
       dequeue_webhook_events: {
         Args: { batch_size?: number; visibility_timeout?: number }
         Returns: {
@@ -936,6 +1069,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      enqueue_due_reminders: { Args: never; Returns: number }
       enqueue_webhook_event: { Args: { payload: Json }; Returns: number }
       get_bots_first_replied: {
         Args: { p_owner_id: string }
@@ -1000,6 +1134,10 @@ export type Database = {
           content: string
           similarity: number
         }[]
+      }
+      purge_expired_group_messages: {
+        Args: { older_than?: string }
+        Returns: number
       }
       purge_expired_rate_limit_buckets: { Args: never; Returns: number }
       purge_idempotency_keys: {
