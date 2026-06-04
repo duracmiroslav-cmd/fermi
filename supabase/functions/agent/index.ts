@@ -656,19 +656,22 @@ const runAgentLoop = async (params: {
     // only the quota path warrants the user-facing CTA.
     let ttsQuotaExhausted = false;
     if (wantsVoiceReply) {
-      const ttsQuota = await consumeQuota(admin, COUNTER_ENV, {
-        ownerId: bot.ownerId,
-        purpose: 'tts',
-      });
-      if (!ttsQuota.allowed) {
-        ttsQuotaExhausted = true;
-      } else {
-        try {
-          const resolved = await resolveKey(admin, kek, {
-            ownerId: bot.ownerId,
-            purpose: 'openai',
-            platformKey: PLATFORM_OPENAI_KEY,
-          });
+      try {
+        // Resolve the key before charging quota: a Free owner with no key
+        // (or a missing platform key) falls back to text here without being
+        // charged a TTS unit. Has-key + exhausted-quota still flags the CTA.
+        const resolved = await resolveKey(admin, kek, {
+          ownerId: bot.ownerId,
+          purpose: 'openai',
+          platformKey: PLATFORM_OPENAI_KEY,
+        });
+        const ttsQuota = await consumeQuota(admin, COUNTER_ENV, {
+          ownerId: bot.ownerId,
+          purpose: 'tts',
+        });
+        if (!ttsQuota.allowed) {
+          ttsQuotaExhausted = true;
+        } else {
           const speech = await synthesizeSpeech({
             apiKey:       resolved.key,
             text:         finalText,
@@ -691,13 +694,13 @@ const runAgentLoop = async (params: {
             sizeBytes: speech.bytes.byteLength,
             durationMs: speech.durationMs,
           };
-        } catch (ttsErr) {
-          console.warn('TTS failed; falling back to text', {
-            agentId: agent.id,
-            ownerId: bot.ownerId,
-            err: String(ttsErr),
-          });
         }
+      } catch (ttsErr) {
+        console.warn('TTS failed; falling back to text', {
+          agentId: agent.id,
+          ownerId: bot.ownerId,
+          err: String(ttsErr),
+        });
       }
     }
 
