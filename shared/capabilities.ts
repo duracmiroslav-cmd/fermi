@@ -279,7 +279,7 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
   // credential: recall is a plain scoped read, saves a plain scoped insert.
   'memory': {
     displayName:    'Memory',
-    description:    'Let this assistant remember durable facts about each user — their preferences, ongoing projects, and recurring needs — and recall them in future conversations to personalize replies.',
+    description:    'Let this assistant remember durable facts about each user — their preferences, ongoing projects, and recurring needs — recall them in future conversations to personalize replies, and review or forget them on request.',
     config:         {},
     credentialType: 'none',
   },

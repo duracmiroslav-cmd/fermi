@@ -5,7 +5,7 @@ import { cancelReminder, createReminder, listReminders } from './reminders.ts';
 import { searchWeb } from './web-search.ts';
 import { fetchWeb } from './web-fetch.ts';
 import { searchKnowledge } from './knowledge-search.ts';
-import { saveMemory } from './memory.ts';
+import { forgetMemory, listMemories, saveMemory } from './memory.ts';
 import { loadCredential, type KeyType } from '../../../../shared/credentials.ts';
 import type { AttachedCapability, CapabilityConfig } from '../../../../shared/agentCapabilities.ts';
 import { DEFAULT_TOOLS } from '../../../../shared/capabilityTools.ts';
@@ -77,6 +77,8 @@ const tools: Tool[] = [
   generateImage,
   searchKnowledge,
   saveMemory,
+  listMemories,
+  forgetMemory,
 ];
 
 export interface ToolSchema {

@@ -90,3 +90,70 @@ export const saveMemory: Tool = {
     return { ok: true };
   },
 };
+
+export const listMemories: Tool = {
+  name: 'list_memories',
+  capabilitySlug: 'memory',
+  description:
+    'List the durable facts you have remembered about the user you are talking to. Use when the user asks what you remember or know about them, or to get a memory\'s id before forgetting it. Returns each memory\'s id and content.',
+  parameters: {
+    type: 'object',
+    properties: {},
+    required: [],
+    additionalProperties: false,
+  },
+  execute: async (_rawArgs, ctx) => {
+    const { data: memories, error: memoryErr } = await ctx.admin
+      .from('memories')
+      .select('id, content')
+      .eq('bot_id', ctx.botId)
+      .eq('subject_type', ctx.subjectType)
+      .eq('subject_external_id', ctx.subjectExternalId)
+      .order('created_at', { ascending: false });
+    if (memoryErr) throw memoryErr;
+    return { memories: memories ?? [] };
+  },
+};
+
+interface ForgetArgs {
+  id?: unknown;
+}
+
+export const forgetMemory: Tool = {
+  name: 'forget_memory',
+  capabilitySlug: 'memory',
+  description:
+    'Permanently forget one remembered fact about this user, by id. Get the id from list_memories first. Use when the user asks you to forget something about them. Only a memory belonging to this user can be forgotten.',
+  parameters: {
+    type: 'object',
+    properties: {
+      id: {
+        type: 'string',
+        description: 'The memory id to forget, as returned by list_memories.',
+      },
+    },
+    required: ['id'],
+    additionalProperties: false,
+  },
+  execute: async (rawArgs, ctx) => {
+    const { id } = rawArgs as ForgetArgs;
+    if (typeof id !== 'string' || id.trim().length === 0) return { error: 'A memory id is required.' };
+
+    // Scope the delete to the full (bot, subject) tuple so one end-user can
+    // never forget another's memory. A 0-row result means the id doesn't
+    // exist or isn't theirs. Hard delete: a forgotten memory has no lifecycle
+    // worth keeping (unlike a cancelled reminder), so no soft-delete state.
+    const { data: forgotten, error: forgetErr } = await ctx.admin
+      .from('memories')
+      .delete()
+      .eq('id', id)
+      .eq('bot_id', ctx.botId)
+      .eq('subject_type', ctx.subjectType)
+      .eq('subject_external_id', ctx.subjectExternalId)
+      .select('id')
+      .maybeSingle();
+    if (forgetErr) throw forgetErr;
+    if (!forgotten) return { error: 'No such memory for this user. It may already have been forgotten.' };
+    return { ok: true, id: forgotten.id };
+  },
+};
