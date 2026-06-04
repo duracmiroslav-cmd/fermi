@@ -293,7 +293,6 @@ export type Database = {
           display_name: string | null
           external_id: string
           group_activation_code: string | null
-          group_mention_enabled: boolean
           group_transcribe_enabled: boolean
           handle: string | null
           id: string
@@ -311,7 +310,6 @@ export type Database = {
           display_name?: string | null
           external_id: string
           group_activation_code?: string | null
-          group_mention_enabled?: boolean
           group_transcribe_enabled?: boolean
           handle?: string | null
           id?: string
@@ -329,7 +327,6 @@ export type Database = {
           display_name?: string | null
           external_id?: string
           group_activation_code?: string | null
-          group_mention_enabled?: boolean
           group_transcribe_enabled?: boolean
           handle?: string | null
           id?: string
