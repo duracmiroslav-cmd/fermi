@@ -266,24 +266,35 @@ const transcribeGroupAudio = async (params: {
   bot: BotRef;
   kek: CryptoKey;
   lineAccessToken: string;
+  ownerLocale: Locale;
   groupId: string;
   userId: string;
   messageId: string;
   replyToken: string;
 }): Promise<void> => {
-  const { bot, kek, lineAccessToken, groupId, userId, messageId, replyToken } = params;
+  const { bot, kek, lineAccessToken, ownerLocale, groupId, userId, messageId, replyToken } = params;
 
+  // Failures surface the same notices as the 1:1 audio path. A silent drop
+  // in a group leaves the owner no way to tell why nothing transcribed
+  // (a missing OpenAI key being the common one) — debuggability wins over
+  // the speculative concern of one extra message in the group.
   let bytes: Uint8Array;
   let mime: AudioMime;
   try {
     const content = await fetchMessageContent(lineAccessToken, messageId);
     const detected = detectAudioMime(content.bytes);
-    if (!detected) return;
+    if (!detected) {
+      await safeReply(lineAccessToken, replyToken, t('__noticeUnsupportedAudioFormat', ownerLocale));
+      return;
+    }
     mime = detected;
     bytes = content.bytes;
   } catch (err) {
-    console.warn('group audio fetch failed', { botId: bot.id, err });
-    return;
+    if (err instanceof LineContentError && err.status === 413) {
+      await safeReply(lineAccessToken, replyToken, t('__noticeAudioTooLarge', ownerLocale));
+      return;
+    }
+    throw err;
   }
 
   let openaiKey: string;
@@ -295,23 +306,38 @@ const transcribeGroupAudio = async (params: {
     });
     openaiKey = resolved.key;
   } catch (err) {
-    // Free owner without an OpenAI key, or platform key missing. Group
-    // transcription stays quiet; the owner connects a key in the dashboard.
-    console.warn('group transcription key unavailable', { botId: bot.id, err: err instanceof Error ? err.message : err });
-    return;
+    if (err instanceof FreeBYOKRequiredError) {
+      await safeReply(lineAccessToken, replyToken, t('__noticeFreeByokOpenai', ownerLocale));
+      return;
+    }
+    if (err instanceof PlatformKeyNotConfiguredError) {
+      console.error('platform OpenAI key missing for Pro user', { ownerId: bot.ownerId });
+      await safeReply(lineAccessToken, replyToken, t('__noticePlatformKeyOps', ownerLocale));
+      return;
+    }
+    throw err;
   }
 
   const quota = await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' });
-  if (!quota.allowed) return;
+  if (!quota.allowed) {
+    await safeReply(lineAccessToken, replyToken, t('__noticeQuotaSttExhausted', ownerLocale));
+    return;
+  }
 
   let transcript: string;
   try {
     transcript = await transcribeAudio({ apiKey: openaiKey, bytes, mime });
   } catch (err) {
-    console.warn('group transcription failed', { botId: bot.id, status: err instanceof STTError ? err.status : undefined });
+    if (err instanceof STTError) {
+      await safeReply(lineAccessToken, replyToken, t('__noticeAudioTranscriptionFailed', ownerLocale));
+      return;
+    }
+    throw err;
+  }
+  if (transcript.length === 0) {
+    await safeReply(lineAccessToken, replyToken, t('__noticeAudioEmpty', ownerLocale));
     return;
   }
-  if (transcript.length === 0) return;
 
   const name = await resolveDisplayName(admin, lineAccessToken, bot.id, groupId, userId);
   await safeReply(lineAccessToken, replyToken, `🎤 ${name}：${transcript}`);
@@ -377,6 +403,7 @@ const handleGroupEvents = async (
           bot,
           kek,
           lineAccessToken,
+          ownerLocale,
           groupId,
           userId:     event.source.userId,
           messageId:  event.message.id,
