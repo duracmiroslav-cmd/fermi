@@ -181,12 +181,23 @@ const onBuilderUpdated = () => {
               >
                 {{ agent.systemPrompt }}
               </p>
-              <p
+              <div
                 v-else
-                class="text-sm text-toned p-4 sm:p-6"
+                class="flex flex-col items-start gap-3 min-h-32 p-4 sm:p-6"
               >
-                {{ $t('__descriptionNoSystemPrompt') }}
-              </p>
+                <p class="text-sm text-toned">
+                  {{ $t('__descriptionNoSystemPrompt') }}
+                </p>
+                <UButton
+                  :to="`/dashboard/agents/${agent.id}/edit`"
+                  icon="i-lucide-plus"
+                  color="primary"
+                  variant="soft"
+                  size="sm"
+                >
+                  {{ $t('__actionAddSystemPrompt') }}
+                </UButton>
+              </div>
             </UCard>
           </div>
 

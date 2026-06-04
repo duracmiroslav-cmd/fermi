@@ -123,7 +123,10 @@ const replyMessages = async (
   }
 };
 
-const pushMessages = async (
+// Exported for callers that only ever push (no reply token to spend),
+// e.g. reminder fires. `deliverMessages` stays the entry point for the
+// reply-then-fallback-to-push path of a live conversation turn.
+export const pushMessages = async (
   accessToken: string,
   to: string,
   messages: LineMessage[],

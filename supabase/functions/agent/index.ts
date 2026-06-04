@@ -11,7 +11,7 @@ import { loadCredential } from '../../../shared/credentials.ts';
 import { t } from '../../../shared/i18n.ts';
 import { getKek } from '../../../shared/kek.ts';
 import { type Locale } from '../../../shared/locale.ts';
-import { loadOwnerLocale } from '../../../shared/users.ts';
+import { loadOwnerContext } from '../../../shared/users.ts';
 import {
   FreeBYOKRequiredError,
   PlatformKeyNotConfiguredError,
@@ -31,6 +31,7 @@ import {
   LineContentError,
   LinePushError,
   LineReplyError,
+  pushMessages,
   REPLY_BUDGET_MS,
   safeReply,
   showLoadingAnimation,
@@ -72,6 +73,31 @@ const LOADING_REFRESH_MS = 50_000;
 // history feeds `[name] ...`-prefixed turns; this tells the model how to
 // read them and to answer only the mention that summoned it.
 const GROUP_CONTEXT_PROMPT = '\n\nYou are in a LINE group chat with multiple people. Each user message is prefixed with the speaker\'s name in brackets, e.g. "[Alice] ...". You are only brought in when someone @-mentions you, so answer the message that mentioned you, stay brief, and don\'t address people who didn\'t ask you anything. Never prefix your own reply with a name.';
+
+// Builds the `[Context]` line prepended to every system prompt: current
+// UTC instant plus the same instant rendered in the owner's timezone, so
+// the LLM can resolve relative reminder times without ambiguity. A bad
+// stored timezone (Intl throws) degrades to UTC-only rather than failing
+// the run.
+const formatTimeContext = (timezone: string): string => {
+  const now = new Date();
+  let local: string;
+  try {
+    local = new Intl.DateTimeFormat('en-CA', {
+      timeZone:     timezone,
+      year:         'numeric',
+      month:        '2-digit',
+      day:          '2-digit',
+      hour:         '2-digit',
+      minute:       '2-digit',
+      hour12:       false,
+      timeZoneName: 'short',
+    }).format(now);
+  } catch {
+    return `[Context] Current time: ${now.toISOString()} (UTC). User timezone unknown; treat times as UTC.`;
+  }
+  return `[Context] Current time: ${now.toISOString()} (UTC) = ${local} in ${timezone}. Resolve relative times against the user's timezone.`;
+};
 
 interface LineSource {
   type: 'user' | 'group' | 'room';
@@ -394,6 +420,7 @@ const runAgentLoop = async (params: {
     normalizeTraditional: boolean;
   };
   ownerLocale: Locale;
+  ownerTimezone: string;
   openrouterKey: string;
   lineAccessToken: string;
   kek: CryptoKey;
@@ -408,7 +435,7 @@ const runAgentLoop = async (params: {
   // to the group. `externalUserId` is then the mentioner.
   group?: { groupId: string };
 }): Promise<void> => {
-  const { bot, agent, ownerLocale, openrouterKey, lineAccessToken, kek, externalUserId, replyToken, userInput, eventTimestamp, group } = params;
+  const { bot, agent, ownerLocale, ownerTimezone, openrouterKey, lineAccessToken, kek, externalUserId, replyToken, userInput, eventTimestamp, group } = params;
 
   const subjectExternalId = group ? group.groupId : externalUserId;
   const subjectType: ThreadSubjectType = group ? 'group' : 'user';
@@ -495,8 +522,13 @@ const runAgentLoop = async (params: {
       HISTORY_WINDOW,
       group ? { accessToken: lineAccessToken, botId: bot.id, groupId: group.groupId } : undefined,
     );
+    // Inject current time + the owner's timezone so the LLM can resolve
+    // relative times ("tomorrow 9am") for the reminder tools. In a group,
+    // also append the group rules. Both are trusted fermi text, so they
+    // live inside the wrap alongside the agent's own prompt.
     const systemPrompt = wrapSystemPrompt(
-      (agent.systemPrompt ?? defaultSystemPrompt(agent.name)) + (group ? GROUP_CONTEXT_PROMPT : ''),
+      `${formatTimeContext(ownerTimezone)}\n\n${agent.systemPrompt ?? defaultSystemPrompt(agent.name)}${group ? GROUP_CONTEXT_PROMPT : ''}`,
+      { hasTools: attachedCapabilities.length > 0 },
     );
     // Any image in the history window forces a vision-capable model.
     // Without this, an agent configured with a text-only model would
@@ -526,7 +558,7 @@ const runAgentLoop = async (params: {
       fallbackModel,
       messages,
       toolset,
-      toolContextBase: { admin, kek, ownerId: bot.ownerId, threadId, runId, attachments },
+      toolContextBase: { admin, kek, ownerId: bot.ownerId, agentId: agent.id, threadId, botId: bot.id, externalUserId, runId, attachments },
       maxSteps: MAX_AGENT_STEPS,
       onStep: s => logStep(admin, {
         runId,
@@ -812,7 +844,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     return;
   }
 
-  const ownerLocale = await loadOwnerLocale(admin, bot.ownerId);
+  const { locale: ownerLocale, timezone: ownerTimezone } = await loadOwnerContext(admin, bot.ownerId);
 
   const kek = await getKek(fermiKek);
   const { plaintext: lineAccessToken } = await loadCredential(admin, kek, {
@@ -892,6 +924,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         bot,
         agent,
         ownerLocale,
+        ownerTimezone,
         openrouterKey,
         lineAccessToken,
         kek,
@@ -926,6 +959,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         bot,
         agent,
         ownerLocale,
+        ownerTimezone,
         openrouterKey,
         lineAccessToken,
         kek,
@@ -1019,6 +1053,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         bot,
         agent,
         ownerLocale,
+        ownerTimezone,
         openrouterKey,
         lineAccessToken,
         kek,
@@ -1060,6 +1095,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       bot,
       agent,
       ownerLocale,
+      ownerTimezone,
       openrouterKey,
       lineAccessToken,
       kek,
@@ -1080,6 +1116,121 @@ const processMessage = async (payload: QueuePayload): Promise<void> => {
     default: {
       const exhaustive: never = payload.platform;
       console.warn('unknown platform; dropping', { platform: exhaustive });
+    }
+  }
+};
+
+// ---- Reminder fire dispatch (reminder_events queue) ------------------------
+
+interface ReminderFirePayload {
+  reminder_id: string;
+}
+
+interface ReminderQueueMessage {
+  msg_id:  number;
+  payload: ReminderFirePayload;
+}
+
+const markReminderFailed = async (reminderId: string, reason: string): Promise<void> => {
+  const { error: failErr } = await admin
+    .from('reminders')
+    .update({ status: 'failed', failure_reason: reason })
+    .eq('id', reminderId);
+  if (failErr) console.error('reminder mark-failed failed', { reminderId, failErr });
+};
+
+// Releases a claimed fire back to pending so a later cron tick retries it.
+// Only for transient delivery failures (LINE 5xx / network).
+const releaseReminder = async (reminderId: string): Promise<void> => {
+  const { error: releaseErr } = await admin
+    .from('reminders')
+    .update({ status: 'pending', fired_at: null })
+    .eq('id', reminderId)
+    .eq('status', 'fired');
+  if (releaseErr) console.error('reminder release failed', { reminderId, releaseErr });
+};
+
+const processReminderFire = async (payload: ReminderFirePayload): Promise<void> => {
+  // CAS claim: flip pending→fired and only proceed if this call won the
+  // flip. A pgmq redelivery or a duplicate cron enqueue finds the row
+  // already fired (or cancelled) and no-ops — this is the idempotency
+  // guard that keeps a reminder from double-firing.
+  const { data: claimed, error: claimErr } = await admin
+    .from('reminders')
+    .update({ status: 'fired', fired_at: new Date().toISOString() })
+    .eq('id', payload.reminder_id)
+    .eq('status', 'pending')
+    .select('id, owner_id, bot_id, thread_id, external_user_id, message')
+    .maybeSingle();
+  if (claimErr) throw claimErr;
+  if (!claimed) return;
+
+  const bot = await findBotById(admin, claimed.bot_id);
+  if (!bot || !bot.agentId) {
+    // Bot disabled / deleted between scheduling and firing. No live
+    // transport to push through; permanent failure.
+    await markReminderFailed(claimed.id, 'bot_inactive');
+    return;
+  }
+
+  const kek = await getKek(fermiKek);
+  let lineAccessToken: string;
+  try {
+    const { plaintext } = await loadCredential(admin, kek, {
+      userId:  claimed.owner_id,
+      botId:   claimed.bot_id,
+      keyType: 'line_channel_access_token',
+    });
+    lineAccessToken = plaintext;
+  } catch (err) {
+    // Credential gone (bot disconnected). No token to retry with.
+    console.warn('reminder fire: LINE token missing', { reminderId: claimed.id, err: String(err) });
+    await markReminderFailed(claimed.id, 'credential_missing');
+    return;
+  }
+
+  const text = `🔔 ${claimed.message}`;
+
+  // A reminder fire has no LLM loop; the run + single push step exist so
+  // the admin timeline shows it alongside conversational runs.
+  const runId = await startRun(admin, {
+    threadId: claimed.thread_id,
+    botId:    claimed.bot_id,
+    agentId:  bot.agentId,
+    ownerId:  claimed.owner_id,
+  });
+  try {
+    await pushMessages(lineAccessToken, claimed.external_user_id, [{ type: 'text', text }]);
+    // Persist into the thread only after a successful push, so a
+    // transient-retry doesn't leave duplicate 🔔 rows in history.
+    await appendMessage(admin, claimed.thread_id, 'assistant', { type: 'text', text });
+    await consumeQuota(admin, COUNTER_ENV, {
+      ownerId: claimed.owner_id,
+      purpose: 'line_push',
+    }).catch((quotaErr) => console.error('line_push quota INCR failed', quotaErr));
+    await logStep(admin, {
+      runId,
+      step: 1,
+      type: 'push_succeeded',
+      payload: { method: 'push', reminder_id: claimed.id },
+    });
+    await finishRun(admin, runId, 'succeeded', 0);
+  } catch (err) {
+    const pushStatus = err instanceof LinePushError ? err.status : undefined;
+    await logStep(admin, {
+      runId,
+      step: 1,
+      type: 'push_failed',
+      payload: { reminder_id: claimed.id, message: String(err), status: pushStatus },
+    });
+    await finishRun(admin, runId, 'failed', 0, deriveErrorCode(pushStatus));
+    // 4xx = permanent (revoked token / blocked user): mark failed.
+    // Anything else (5xx / network) is transient: release the claim so a
+    // later cron tick retries.
+    if (pushStatus !== undefined && pushStatus >= 400 && pushStatus < 500) {
+      await markReminderFailed(claimed.id, `line_${pushStatus}`);
+    } else {
+      await releaseReminder(claimed.id);
     }
   }
 };
@@ -1115,7 +1266,35 @@ Deno.serve(async () => {
     }
   }
 
-  return new Response(JSON.stringify({ processed: messages.length }), {
-    headers: { 'Content-Type': 'application/json' },
+  // Drain due reminder fires from their own queue in the same
+  // invocation. Independent of the webhook queue: a reminder is not a
+  // webhook, and keeping the two separate leaves the conversational
+  // path untouched.
+  const { data: reminderData, error: reminderErr } = await admin.rpc('dequeue_reminder_events', {
+    batch_size: 10,
+    visibility_timeout: 60,
   });
+  if (reminderErr) {
+    console.error('reminder dequeue failed', reminderErr);
+    void captureException(reminderErr, { tags: { stage: 'reminder_dequeue' } });
+  }
+  const reminders = (reminderData ?? []) as ReminderQueueMessage[];
+  for (const { msg_id, payload } of reminders) {
+    try {
+      await processReminderFire(payload);
+      const { error: archiveErr } = await admin.rpc('archive_reminder_event', { msg_id });
+      if (archiveErr) {
+        console.error('reminder archive failed', { msg_id, archiveErr });
+        void captureException(archiveErr, { tags: { stage: 'reminder_archive' }, extra: { msg_id } });
+      }
+    } catch (err) {
+      console.error('reminder fire failed; leaving for retry', { msg_id, err });
+      void captureException(err, { tags: { stage: 'reminder_fire' }, extra: { msg_id } });
+    }
+  }
+
+  return new Response(
+    JSON.stringify({ processed: messages.length, reminders: reminders.length }),
+    { headers: { 'Content-Type': 'application/json' } },
+  );
 });

@@ -48,12 +48,23 @@ defineExpose({ refresh });
             {{ capability.displayName }}
           </UBadge>
         </template>
-        <p
+        <div
           v-else
-          class="text-sm text-toned"
+          class="flex flex-col items-start gap-3 min-h-32 w-full"
         >
-          {{ $t('__titleNoCapabilitiesEnabled') }}
-        </p>
+          <p class="text-sm text-toned">
+            {{ $t('__titleNoCapabilitiesEnabled') }}
+          </p>
+          <UButton
+            :to="`/dashboard/agents/${agentId}/edit`"
+            icon="i-lucide-plus"
+            color="primary"
+            variant="soft"
+            size="sm"
+          >
+            {{ $t('__actionAddCapability') }}
+          </UButton>
+        </div>
       </div>
     </UCard>
   </div>

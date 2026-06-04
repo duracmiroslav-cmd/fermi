@@ -88,6 +88,12 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     config:         {},
     credentialType: 'none',
   },
+  'reminders': {
+    displayName:    'Reminders',
+    description:    'Schedule a one-shot reminder the bot pushes to this user at a future time, and list or cancel the user\'s pending reminders. Use when the user asks to be reminded of something later. Resolve relative times ("in 2 hours", "tomorrow 9am") against the current time and timezone given in the system context.',
+    config:         {},
+    credentialType: 'none',
+  },
   'web-search': {
     displayName:    'Web search',
     description:    'Search the web for current information beyond the model\'s training cutoff. Returns ranked titles, snippets, and URLs.',
@@ -253,6 +259,17 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     providers:      [
       { slug: 'twinkle-hub', displayName: 'Twinkle Hub', keyType: 'twinkle', status: 'live' },
     ],
+  },
+  // Retrieval over the owner's own documents (RAG). No external credential —
+  // embedding runs on fermi's platform OpenAI key — but it's a Pro-gated
+  // capability: the ingestion endpoint rejects Free. Its config surface is a
+  // document manager (AgentKnowledge.vue), not the generic settings form, so
+  // there's no `settings` descriptor here.
+  'knowledge-base': {
+    displayName:    'Knowledge base',
+    description:    'Search the operator-provided documents attached to this assistant — products, prices, hours, policies, FAQs, background. The model calls this to answer from the owner\'s own material instead of guessing.',
+    config:         {},
+    credentialType: 'none',
   },
 };
 

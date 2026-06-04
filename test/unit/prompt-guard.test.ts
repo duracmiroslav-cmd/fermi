@@ -3,6 +3,7 @@ import {
   ANTI_INJECTION_SUFFIX,
   CHANNEL_CONTEXT_PREFIX,
   HONESTY_GUARD,
+  TOOL_USE_DIRECTIVE,
   checkInjection,
   wrapSystemPrompt,
   wrapToolOutput,
@@ -27,6 +28,20 @@ describe('wrapSystemPrompt', () => {
   it('preserves prompt content exactly', () => {
     const prompt = 'Custom: be concise and friendly.';
     expect(wrapSystemPrompt(prompt)).toContain(prompt);
+  });
+
+  it('omits the tool-use directive when no tools are attached', () => {
+    expect(wrapSystemPrompt('You are Aria.')).not.toContain(TOOL_USE_DIRECTIVE);
+    expect(wrapSystemPrompt('You are Aria.', { hasTools: false })).not.toContain(TOOL_USE_DIRECTIVE);
+  });
+
+  it('inserts the tool-use directive after the persona and before the guards', () => {
+    const prompt = 'You are Aria.';
+    const result = wrapSystemPrompt(prompt, { hasTools: true });
+    expect(result).toContain(TOOL_USE_DIRECTIVE);
+    expect(result.indexOf(prompt)).toBeLessThan(result.indexOf(TOOL_USE_DIRECTIVE));
+    expect(result.indexOf(TOOL_USE_DIRECTIVE)).toBeLessThan(result.indexOf(HONESTY_GUARD));
+    expect(result.endsWith(ANTI_INJECTION_SUFFIX)).toBe(true);
   });
 });
 

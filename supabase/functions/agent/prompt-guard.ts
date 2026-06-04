@@ -44,13 +44,29 @@ State only facts and sources you actually obtained this turn; if you did not ver
 export const defaultSystemPrompt = (name: string): string =>
   `You are ${name}, a helpful assistant. Reply in the user's language.`;
 
+// Inserted only when the agent has at least one capability (tool) attached.
+// The tools themselves reach the model via the API `tools` parameter, so this
+// never lists or names them — that would be a redundant second source of
+// truth that drifts as capabilities change. It only shapes the cross-cutting
+// *policy*: tool availability alone under-triggers calls (a colloquial or
+// insider-phrased question reads to weaker models like a memory question, so
+// they improvise "I have no record" instead of using the tool). Each tool's
+// own description carries the domain-specific "when to use me"; this just says
+// prefer tools over guessing and forbids the "can't remember" dodge.
+export const TOOL_USE_DIRECTIVE = `
+
+<tools>
+You have tools available this turn. When the user asks something a tool could answer better than your own knowledge — current facts, the operator's own material, or any external lookup — call the tool before replying. Do not tell the user you don't know, can't remember, or have no record if a tool could find out; use it first.
+</tools>`;
+
 // The full system prompt, each part in its own XML tag (Claude is tuned for
 // tagged structure, and it matches the <tool_output> convention): channel
 // context, then the owner's persona (or the default above) wrapped so fermi's
-// framing is visibly distinct from it, then the integrity and security guards.
-// Security stays last so nothing follows and overrides it.
-export const wrapSystemPrompt = (prompt: string): string =>
-  `${CHANNEL_CONTEXT_PREFIX}<persona>\n${prompt}\n</persona>${HONESTY_GUARD}${ANTI_INJECTION_SUFFIX}`;
+// framing is visibly distinct from it, then the (optional) tool-use directive,
+// then the integrity and security guards. Security stays last so nothing
+// follows and overrides it.
+export const wrapSystemPrompt = (prompt: string, opts?: { hasTools?: boolean }): string =>
+  `${CHANNEL_CONTEXT_PREFIX}<persona>\n${prompt}\n</persona>${opts?.hasTools ? TOOL_USE_DIRECTIVE : ''}${HONESTY_GUARD}${ANTI_INJECTION_SUFFIX}`;
 
 // Wraps externally-sourced tool result JSON so the LLM can distinguish
 // its own structured response from content that may contain adversarial

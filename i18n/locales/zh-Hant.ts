@@ -1,6 +1,7 @@
 import en from './en';
 
 export default {
+  __actionAddCapability:                  '新增能力',
   __actionAddSystemPrompt:                '新增人物設定',
   __actionBackToAgentSettings:            '返回 Agent 設定',
   __actionBackToAgents:                   '返回 Agent 列表',
@@ -230,7 +231,7 @@ export default {
   __labelThisAgent:                       '此 Agent',
   __labelTierFree:                        'Free',
   __labelTierPro:                         'Pro',
-  __labelToolUsed:                        '用了 {tool}',
+  __labelToolUsed:                        '用了 {tool} 工具',
   __labelUnnamed:                         '（未命名）',
   __labelUpdated:                         '更新時間',
   __labelUsage:                           '用量',
@@ -335,4 +336,20 @@ export default {
   __toastWebhookConnected:                'Webhook 已連接',
   __toastWebhookSetupFailed:              'Webhook 設定失敗',
   __toastWebhookTestFailed:               'Webhook 測試失敗',
+  __actionUploadDocument:                 '上傳文件',
+  __descriptionNoKnowledgeDocuments:      '上傳純文字檔（FAQ、商品細節、營業時間、政策），讓這個 Agent 作答時引用。',
+  __errorKnowledgeDocNotFound:            '找不到文件',
+  __errorKnowledgeRequiresPro:            '知識庫是 Pro 功能，升級即可新增文件。',
+  __hintKnowledgeNotAttached:             '開啟上方開關，這個 Agent 才會使用這些文件。',
+  __hintKnowledgeUpload:                  'PDF、Word（.doc／.docx）、純文字（.txt、.md、.json）。fermi 會抽取文字、切段並建立索引供檢索。',
+  __labelKnowledgeCharCount:              '{count} 字',
+  __statusFailed:                         '失敗',
+  __titleKnowledgeDocuments:              '文件',
+  __titleNoKnowledgeDocuments:            '尚無文件',
+  __toastKnowledgeAdded:                  '已新增文件',
+  __toastKnowledgeAddFailed:              '新增文件失敗',
+  __toastKnowledgeDeleted:                '已刪除文件',
+  __toastKnowledgeDeleteFailed:           '刪除文件失敗',
+  __toastKnowledgeFileTooLarge:           '檔案太大，上限 10MB。',
+  __toastKnowledgeUnsupportedFile:        '不支援的格式，請上傳 PDF、Word 或純文字檔。',
 } satisfies Record<keyof typeof en, string>;
