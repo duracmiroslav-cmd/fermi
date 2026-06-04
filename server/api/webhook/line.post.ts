@@ -2,7 +2,6 @@ import { validateSignature } from '@line/bot-sdk';
 import { z } from 'zod';
 import { showLineLoadingAnimation } from '~~/server/utils/bots/line';
 import { checkBotUserRateLimit } from '~~/server/utils/rate-limit';
-import { isTrustedTriggerHost } from '~~/server/utils/trigger';
 import { findBotByExternalId } from '~~/shared/bots';
 import { loadCredential } from '~~/shared/credentials';
 import { getKek } from '~~/shared/kek';
@@ -71,7 +70,7 @@ export default defineEventHandler(async (event) => {
     return { ok: true };
   }
 
-  const { fermiKek, supabaseUrl, supabaseSecretKey, upstashUrl, upstashToken } = useRuntimeConfig(event);
+  const { fermiKek, upstashUrl, upstashToken } = useRuntimeConfig(event);
   const kek = await getKek(fermiKek);
   const { plaintext: channelSecret } = await loadCredential(admin, kek, {
     userId:  bot.ownerId,
@@ -159,18 +158,10 @@ export default defineEventHandler(async (event) => {
     events:      payload.events,
   });
 
-  const triggerUrl = new URL('/functions/v1/agent', supabaseUrl);
-  if (isTrustedTriggerHost(triggerUrl)) {
-    void fetch(triggerUrl, {
-      method:  'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${supabaseSecretKey}`,
-      },
-    }).catch(console.error);
-  } else {
-    console.error('refusing to trigger worker on untrusted host', triggerUrl.hostname);
-  }
-
+  // The worker is triggered from Postgres inside enqueue_webhook_event
+  // (net.http_post on the always-on DB). Triggering here instead would mean
+  // a fire-and-forget fetch the serverless runtime freezes the moment this
+  // 200 is sent, dropping the trigger at random and leaving the event for
+  // the minute-aligned pg_cron drain (~tens of seconds of lag).
   return { ok: true };
 });
