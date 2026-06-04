@@ -56,6 +56,15 @@ Reader: a logged-in user mid-task. Font is Inter, **sentence case**.
   the terse-fragment style reads colder in Chinese than in English, so don't
   translate an English noun-phrase subhead flatly; let an orienting zh line
   breathe. Warm ≠ hype: still no exclamation, no AI-tell.
+- **A setting's helper text defines what it is, then (for a toggle) the effect
+  of flipping it: `X 是用來做 Y 的功能。開啟後，A 會做 Z。` / `X does Y. When on,
+  A does Z.`** Lead with a one-line definition of the setting or field; for a
+  toggle, follow with the conditional effect. Name the subject explicitly
+  (機器人 / Agent, matching the form it sits on). A plain field that isn't a
+  toggle needs only the definition. This is distinct from the function-first
+  section/page subheads above: a setting hint teaches "what this is and what
+  flipping it does," so the definition-then-effect frame is right here, not a
+  bare noun phrase.
 - Kill friction inline: cost, time, "no credit card", "fermi takes no cut".
 - Empty and error states stay calm and always offer the next step.
 - Sentence case for everything. Not Title Case. Not all-lowercase (that's the
