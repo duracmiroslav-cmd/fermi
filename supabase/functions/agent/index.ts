@@ -324,6 +324,15 @@ const transcribeGroupAudio = async (params: {
     return;
   }
 
+  // Name lookup and the agent's normalize flag are both independent of
+  // transcription, so start them here to overlap with the Whisper call
+  // instead of serializing after it. resolveDisplayName never throws; the
+  // agent load falls back to null (default-normalize) on any DB error.
+  const namePromise = resolveDisplayName(admin, lineAccessToken, bot.id, groupId, userId);
+  const agentPromise = bot.agentId
+    ? findAgentById(admin, bot.agentId).catch(() => null)
+    : Promise.resolve(null);
+
   let transcript: string;
   try {
     transcript = await transcribeAudio({ apiKey: openaiKey, bytes, mime });
@@ -339,11 +348,18 @@ const transcribeGroupAudio = async (params: {
     return;
   }
 
-  const name = await resolveDisplayName(admin, lineAccessToken, bot.id, groupId, userId);
-  await safeReply(lineAccessToken, replyToken, `🎤 ${name}：${transcript}`);
+  // Whisper emits Simplified for Mandarin audio; run the same Simplified →
+  // Taiwan Traditional pass the 1:1 reply path uses so the relay and the
+  // stored context honor the agent's normalize_traditional setting. No
+  // agent bound → default true, matching the agents column default.
+  const agent = await agentPromise;
+  const text = normalizeReplyText(transcript, { traditional: agent?.normalizeTraditional ?? true });
+
+  const name = await namePromise;
+  await safeReply(lineAccessToken, replyToken, `🎤 ${name}：${text}`);
   // The transcript also joins the group's thread so a later @mention has
   // the spoken context, per the "voice transcripts enter context" rule.
-  await storeGroupContext(bot.id, groupId, userId, transcript);
+  await storeGroupContext(bot.id, groupId, userId, text);
 };
 
 // Group lifecycle + the activation-code gate, independent of the agent
