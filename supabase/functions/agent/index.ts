@@ -539,9 +539,9 @@ const runAgentLoop = async (params: {
 
   // Keep LINE's "..." alive for the whole run — including while a single slow
   // LLM call is in flight — by re-firing on a timer, not at loop boundaries.
-  // Prime now (the webhook's prime may have lapsed during cron-drain delay),
-  // then refresh under LINE's 60s cap. Cleared in `finally` so it never leaks.
-  // LINE's loading indicator only works in 1:1 chats, not groups.
+  // Re-prime now (the per-message prime before dispatch is the first one;
+  // this covers the run itself), then refresh under LINE's 60s cap. Cleared
+  // in `finally` so it never leaks. Only works in 1:1 chats, not groups.
   let loadingTimer: ReturnType<typeof setInterval> | null = null;
   if (!group) {
     void showLoadingAnimation(lineAccessToken, externalUserId)
@@ -964,6 +964,15 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     // covers malformed payloads only; assuming "just arrived" keeps
     // the call on Reply, and a 400 still falls back to Push internally.
     const eventTimestamp = typeof event.timestamp === 'number' ? event.timestamp : Date.now();
+
+    // Prime "..." as the worker's first act for any 1:1 message — before
+    // image download / audio STT — so the indicator shows reliably (the Deno
+    // worker isn't frozen mid-run like the webhook handler) without waiting on
+    // those. runAgentLoop re-primes and keeps it alive under LINE's 60s cap.
+    if (isReplyableUserMessage(event)) {
+      void showLoadingAnimation(lineAccessToken, event.source.userId)
+        .catch(err => console.error('loading animation prime failed', err));
+    }
 
     if (isTextMessageFromUser(event)) {
       await runAgentLoop({

@@ -1,6 +1,5 @@
 import { validateSignature } from '@line/bot-sdk';
 import { z } from 'zod';
-import { showLineLoadingAnimation } from '~~/server/utils/bots/line';
 import { checkBotUserRateLimit } from '~~/server/utils/rate-limit';
 import { findBotByExternalId } from '~~/shared/bots';
 import { loadCredential } from '~~/shared/credentials';
@@ -131,26 +130,10 @@ export default defineEventHandler(async (event) => {
     return { ok: true };
   }
 
-  // Prime the LINE typing indicator before the agent loop even starts.
-  // pg_cron drain can lag the worker by up to its tick interval (~8s);
-  // firing here makes the "..." appear within tens of ms of the user
-  // pressing send. Best-effort: a missing access-token row or LINE 5xx
-  // must never block the 200 we owe LINE inside their 1-second window.
-  if (userIds.length > 0) {
-    try {
-      const { plaintext: accessToken } = await loadCredential(admin, kek, {
-        userId:  bot.ownerId,
-        botId:   bot.id,
-        keyType: 'line_channel_access_token',
-      });
-      for (const userId of userIds) {
-        void showLineLoadingAnimation(accessToken, userId).catch(console.error);
-      }
-    } catch (err) {
-      console.error('loading animation prime failed', err);
-    }
-  }
-
+  // The typing indicator is primed by the worker (Deno, never frozen) as its
+  // first act per message, not here: a fire-and-forget LINE call from this
+  // serverless handler gets frozen the moment the 200 is sent, so it showed
+  // the "..." only by luck.
   await enqueueWebhookEvent(admin, {
     platform:    'line',
     botId:       bot.id,

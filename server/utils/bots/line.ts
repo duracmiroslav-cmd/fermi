@@ -9,19 +9,6 @@ import type { LineBotInput } from '~~/shared/schemas/bots';
 // verification only confirms the Channel Access Token; a wrong Secret
 // surfaces later as a webhook signature mismatch.
 
-// Displays a typing indicator (`...`) in the user's LINE chat for up
-// to 60 seconds. Auto-cancels on the next Reply API call, so we can
-// fire-and-forget at webhook time and let the worker's eventual reply
-// dismiss it. Free, doesn't consume reply or push quota. Only works
-// in 1-on-1 chats; group / room sources are no-ops on LINE's side.
-export const showLineLoadingAnimation = async (
-  channelAccessToken: string,
-  userId: string,
-): Promise<void> => {
-  const client = new messagingApi.MessagingApiClient({ channelAccessToken });
-  await client.showLoadingAnimation({ chatId: userId, loadingSeconds: 60 });
-};
-
 export const verifyLineBot = async (channelAccessToken: string): Promise<messagingApi.BotInfoResponse> => {
   const client = LineBotClient.fromChannelAccessToken({ channelAccessToken });
   try {
