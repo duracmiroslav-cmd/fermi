@@ -2,19 +2,21 @@
 definePageMeta({ layout: false });
 
 interface BotDetail {
-  id:                string;
-  platform:          string;
-  externalId:        string;
-  handle:            string | null;
-  displayName:       string | null;
-  avatarUrl:         string | null;
-  agentId:           string;
-  disabledAt:        string | null;
-  webhookVerifiedAt: string | null;
-  firstRepliedAt:    string | null;
-  createdAt:         string;
-  updatedAt:         string;
-  webhookUrl:        string;
+  id:                     string;
+  platform:               string;
+  externalId:             string;
+  handle:                 string | null;
+  displayName:            string | null;
+  avatarUrl:              string | null;
+  agentId:                string;
+  groupActivationCode:    string | null;
+  groupTranscribeEnabled: boolean;
+  disabledAt:             string | null;
+  webhookVerifiedAt:      string | null;
+  firstRepliedAt:         string | null;
+  createdAt:              string;
+  updatedAt:              string;
+  webhookUrl:             string;
   agent: {
     id:               string;
     name:             string;
@@ -194,10 +196,29 @@ const copyWebhook = async () => {
             <UCard>
               <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm leading-7">
                 <dt class="text-toned text-right">
-                  {{ $t('__labelExternalId') }}
+                  {{ $t('__labelPlatform') }}
                 </dt>
-                <dd class="break-all">
-                  {{ bot.externalId }}
+                <dd>
+                  <PlatformLabel :platform="bot.platform" />
+                </dd>
+                <dt class="text-toned text-right">
+                  {{ $t('__labelGroupActivationCode') }}
+                </dt>
+                <dd class="min-w-0">
+                  <code
+                    v-if="bot.groupActivationCode"
+                    class="font-mono break-all select-all"
+                  >{{ bot.groupActivationCode }}</code>
+                  <span
+                    v-else
+                    class="text-muted"
+                  >—</span>
+                </dd>
+                <dt class="text-toned text-right">
+                  {{ $t('__labelGroupTranscribe') }}
+                </dt>
+                <dd>
+                  {{ bot.groupTranscribeEnabled ? $t('__labelEnabled') : $t('__labelOff') }}
                 </dd>
                 <dt class="text-toned text-right">
                   {{ $t('__labelWebhookUrl') }}
