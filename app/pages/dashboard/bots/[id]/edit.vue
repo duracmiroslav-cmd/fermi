@@ -19,7 +19,7 @@ interface BotDetail {
 }
 
 const route = useRoute();
-const { update, remove, isSubmitting, isDeleting } = useBots();
+const { update, updateCredentials, remove, isSubmitting, isDeleting } = useBots();
 
 const { data: bot, error, pending } = useApiFetch<BotDetail>(
   () => `/api/bots/${route.params.id}`,
@@ -31,6 +31,10 @@ const deleteDialogOpen = ref(false);
 const onSubmit = async (value: { agentId: string; disabledAt: string | null; groupActivationCode: string | null; groupTranscribeEnabled: boolean }) => {
   const id = route.params.id as string;
   if (await update(id, value)) await navigateTo(`/dashboard/bots/${id}`);
+};
+
+const onCredentialsUpdate = async (value: { channelSecret: string; channelAccessToken: string }) => {
+  await updateCredentials(route.params.id as string, value);
 };
 
 const onDelete = async () => {
@@ -135,6 +139,33 @@ const onDelete = async () => {
               }"
               :is-setup-complete="isSetupComplete"
               @submit="onSubmit"
+            />
+          </UCard>
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="font-semibold flex items-center gap-2">
+              <UIcon
+                name="i-lucide-key-round"
+                class="size-4 text-toned"
+              />
+              {{ $t('__titleLineCredentials') }}
+            </h2>
+            <UButton
+              type="submit"
+              form="bot-credentials-form"
+              :loading="isSubmitting"
+              size="sm"
+            >
+              {{ $t('__actionSave') }}
+            </UButton>
+          </div>
+          <UCard>
+            <LineBotConnectForm
+              form-id="bot-credentials-form"
+              description-key="__descriptionLineReconnect"
+              @submit="onCredentialsUpdate"
             />
           </UCard>
         </div>

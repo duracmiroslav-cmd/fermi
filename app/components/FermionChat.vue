@@ -114,7 +114,12 @@ const onSend = async (override?: string) => {
       method: 'POST',
       body:   {
         ...(contextBody.value ? { context: contextBody.value } : {}),
-        messages: messages.value.map(m => ({ role: m.role, content: m.content })),
+        // A widget-only reply has empty content (kept locally to render the
+        // widget); drop it from the request so it doesn't trip the API's
+        // non-empty content rule.
+        messages: messages.value
+          .map(m => ({ role: m.role, content: m.content }))
+          .filter(m => m.content.trim().length > 0),
       },
     });
     const changes = [...new Set(
@@ -393,16 +398,25 @@ onMounted(() => {
               {{ $t('__labelFermionOpenrouterConnected') }}
             </UBadge>
 
-            <div v-if="message.widget === 'setup_webhook' && !message.widgetDone && message.widgetBotId">
-              <UButton
-                icon="i-lucide-link"
-                size="sm"
-                :loading="webhookSettingUpIndex === i"
-                @click="onSetupWebhook(i, message.widgetBotId)"
-              >
-                {{ $t('__actionSetupWebhook') }}
-              </UButton>
-            </div>
+            <UCard
+              v-if="message.widget === 'setup_webhook' && !message.widgetDone && message.widgetBotId"
+              class="w-full max-w-md"
+            >
+              <div class="flex flex-col gap-3">
+                <p class="text-sm text-toned">
+                  {{ $t('__descriptionWebhookSetup') }}
+                </p>
+                <UButton
+                  icon="i-lucide-link"
+                  size="sm"
+                  class="self-start"
+                  :loading="webhookSettingUpIndex === i"
+                  @click="onSetupWebhook(i, message.widgetBotId)"
+                >
+                  {{ $t('__actionSetupWebhook') }}
+                </UButton>
+              </div>
+            </UCard>
 
             <UBadge
               v-else-if="message.widget === 'setup_webhook' && message.widgetDone"

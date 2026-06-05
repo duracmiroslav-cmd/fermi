@@ -23,7 +23,7 @@ export const connectTools: FermionTool[] = [
       type: 'function',
       function: {
         name: 'start_line_connect',
-        description: 'Show a secure form to connect a LINE bot. Call once the owner has their Channel Secret and Access Token ready. The form stores the credentials directly — NEVER ask the owner to type a secret or token into the chat.',
+        description: 'Show a secure form to connect a LINE bot. Call this as soon as the owner wants to connect one — show the form upfront, before they fetch the credentials, so they fill it instead of pasting into the chat. The form stores the credentials directly — NEVER ask the owner to type a secret or token into the chat.',
         parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
       },
     },

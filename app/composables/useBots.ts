@@ -51,6 +51,21 @@ export const useBots = () => {
     }
   };
 
+  const updateCredentials = async (id: string, body: { channelSecret: string; channelAccessToken: string }) => {
+    isSubmitting.value = true;
+    try {
+      await $fetch(`/api/bots/${id}/credentials`, { method: 'PUT', body });
+      await refreshNuxtData(id);
+      notify.success(t('__toastCredentialsUpdated'));
+      return true;
+    } catch (e) {
+      notify.error(t('__toastUpdateFailed'), e);
+      return false;
+    } finally {
+      isSubmitting.value = false;
+    }
+  };
+
   const remove = async (id: string) => {
     isDeleting.value = true;
     try {
@@ -66,5 +81,5 @@ export const useBots = () => {
     }
   };
 
-  return { isSubmitting, isDeleting, create, update, remove };
+  return { isSubmitting, isDeleting, create, update, updateCredentials, remove };
 };

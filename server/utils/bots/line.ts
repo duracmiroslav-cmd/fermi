@@ -187,3 +187,63 @@ export const connectLineBot = async (
     webhookUrl:  `${url.origin}/api/webhook/line`,
   };
 };
+
+// Re-enter the Channel Secret + Access Token for an existing bot (e.g. a
+// typo'd secret causing webhook 401s). The token is verified first, and
+// it must resolve to the SAME LINE channel — different credentials are a
+// new bot, not a fix.
+export const updateLineBotCredentials = async (
+  event: H3Event,
+  admin: SupabaseClient,
+  userId: string,
+  botId: string,
+  input: LineBotInput,
+): Promise<{ id: string; displayName: string }> => {
+  const { data: bot, error: botErr } = await admin
+    .from('bots')
+    .select('id, external_id')
+    .eq('id', botId)
+    .eq('owner_id', userId)
+    .eq('platform', 'line')
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (botErr) throw botErr;
+  if (!bot) {
+    throw createError({ statusCode: 404, statusMessage: 'Bot not found', data: { code: '__errorBotNotFound' } });
+  }
+
+  // Verify before touching anything, so a bad token fails without
+  // clearing the existing (working) credentials.
+  const botInfo = await verifyLineBot(input.channelAccessToken);
+  if (botInfo.userId !== bot.external_id) {
+    throw createError({
+      statusCode:    409,
+      statusMessage: 'These credentials are for a different LINE Channel. Connect it as a new bot instead.',
+      data:          { code: '__errorCredentialsDifferentChannel' },
+    });
+  }
+
+  const { fermiKek } = useRuntimeConfig(event);
+  const kek = await getKek(fermiKek);
+
+  // storeCredential only inserts, so clear the old rows first.
+  const { error: removeErr } = await admin
+    .from('encrypted_credentials')
+    .delete()
+    .eq('user_id', userId)
+    .eq('bot_id', botId)
+    .in('key_type', ['line_channel_secret', 'line_channel_access_token']);
+  if (removeErr) throw removeErr;
+
+  await storeCredential(admin, kek, { userId, botId, keyType: 'line_channel_secret', plaintext: input.channelSecret });
+  await storeCredential(admin, kek, { userId, botId, keyType: 'line_channel_access_token', plaintext: input.channelAccessToken });
+
+  // Refresh the LINE-mirrored fields while we have fresh bot info.
+  await admin.from('bots').update({
+    display_name: botInfo.displayName,
+    handle:       botInfo.basicId ?? null,
+    avatar_url:   botInfo.pictureUrl ?? null,
+  }).eq('id', botId);
+
+  return { id: botId, displayName: botInfo.displayName };
+};

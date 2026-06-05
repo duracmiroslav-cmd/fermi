@@ -6,9 +6,11 @@ interface LineBotConnectFormValue {
   channelAccessToken: string;
 }
 
-defineProps<{
-  formId: string;
-}>();
+withDefaults(defineProps<{
+  formId:          string;
+  // The intro line differs by context (connect vs update credentials).
+  descriptionKey?: string;
+}>(), { descriptionKey: '__descriptionLineConnect' });
 
 const emit = defineEmits<{
   submit: [value: LineBotConnectFormValue];
@@ -39,6 +41,10 @@ const onSubmit = () => {
     class="flex flex-col gap-6"
     @submit="onSubmit"
   >
+    <p class="text-sm text-toned">
+      {{ $t(descriptionKey) }}
+    </p>
+
     <UFormField
       :label="$t('__labelChannelSecret')"
       name="channelSecret"
