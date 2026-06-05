@@ -434,10 +434,20 @@ onMounted(() => {
             </UBadge>
 
             <FermionBotTestWidget
-              v-if="message.widget === 'bot_test' && message.widgetBotId"
+              v-if="message.widget === 'bot_test' && message.widgetBotId && !message.widgetDone"
               :bot-id="message.widgetBotId"
               @replied="onBotReplied(i)"
             />
+
+            <UBadge
+              v-else-if="message.widget === 'bot_test' && message.widgetDone"
+              color="primary"
+              variant="subtle"
+              size="sm"
+              icon="i-lucide-party-popper"
+            >
+              {{ $t('__labelFermionBotReplied') }}
+            </UBadge>
 
             <p
               v-if="message.hitStepCap"

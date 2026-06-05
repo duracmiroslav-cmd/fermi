@@ -27,9 +27,10 @@ const celebrate = async () => {
   });
 };
 
-// `watch` (not immediate) only fires on the transition, so confetti goes
-// off when the reply lands while the owner is watching — not if the widget
-// mounts with a reply already in the DB.
+// Confetti fires on the false→true transition. `bot` loads async, so a mount
+// onto an already-replied bot DOES transition (undefined→replied) and would
+// re-celebrate — the parent gates this widget out (`!widgetDone`) once it has
+// emitted `replied`, so it only ever mounts while a reply is still pending.
 watch(hasReplied, (replied) => {
   if (!replied) return;
   poll.pause();
