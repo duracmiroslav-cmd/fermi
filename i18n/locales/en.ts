@@ -54,7 +54,7 @@ export default {
   __descriptionBotIsLive:                 'Your bot is live and replying.',
   __descriptionBotNotFound:               'This bot may have been deleted, or the link is wrong.',
   __descriptionBotsEmpty:                 'A bot is a messaging channel registered in fermi. Add one, then attach an agent to bring it to life.',
-  __descriptionFermionAccountChat:        'I\'m fermion. I can help you connect a LINE bot and get it answering. Just tell me what you need.',
+  __descriptionFermionAccountChat:        'I\'m fermion. Tell me what you want to set up or change, and I\'ll take care of it.',
   __descriptionFermionBotTest:            'Add your bot on LINE and send it a message.',
   __fermionConnectedBotMessage:           'I\'ve connected my LINE bot.',
   __fermionConnectedOpenrouterMessage:    'I\'ve connected OpenRouter.',

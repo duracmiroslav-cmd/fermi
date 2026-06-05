@@ -56,7 +56,7 @@ export default {
   __descriptionBotIsLive:                 '機器人已上線，正在回覆訊息。',
   __descriptionBotNotFound:               '這個機器人可能已被刪除，或網址有誤。',
   __descriptionBotsEmpty:                 '機器人是在 fermi 註冊的訊息頻道。先新增一個，再綁定 Agent 讓它動起來。',
-  __descriptionFermionAccountChat:        '我是 fermion。我可以幫你接上 LINE bot、讓它開始回話。告訴我你想做什麼就好。',
+  __descriptionFermionAccountChat:        '我是 fermion。想設定或調整什麼，跟我說，我來處理。',
   __descriptionFermionBotTest:            '在 LINE 加入你的 bot，傳一則訊息給它。',
   __fermionConnectedBotMessage:           '我已經接好 LINE bot 了。',
   __fermionConnectedOpenrouterMessage:    '我已經連上 OpenRouter 了。',
