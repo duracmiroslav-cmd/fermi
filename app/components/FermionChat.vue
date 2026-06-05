@@ -363,30 +363,35 @@ onMounted(() => {
               {{ $t('__labelFermionBotConnected') }}
             </UBadge>
 
-            <div
+            <UCard
               v-if="message.widget === 'openrouter_connect' && !message.widgetDone"
-              class="flex flex-col gap-2"
+              class="w-full max-w-md"
             >
-              <UButton
-                icon="i-simple-icons-openrouter"
-                size="sm"
-                class="self-start"
-                :disabled="openrouterWaitingIndex === i"
-                @click="onConnectOpenrouter(i)"
-              >
-                {{ $t('__actionConnectOpenrouter') }}
-              </UButton>
-              <p
-                v-if="openrouterWaitingIndex === i"
-                class="flex items-center gap-1.5 text-xs text-toned"
-              >
-                <UIcon
-                  name="i-lucide-loader-circle"
-                  class="size-3.5 animate-spin"
-                />
-                {{ $t('__hintFermionWaitingOpenrouter') }}
-              </p>
-            </div>
+              <div class="flex flex-col gap-3">
+                <p class="text-sm text-toned">
+                  {{ $t('__descriptionFermionOpenrouterConnect') }}
+                </p>
+                <UButton
+                  icon="i-simple-icons-openrouter"
+                  size="sm"
+                  class="self-start"
+                  :disabled="openrouterWaitingIndex === i"
+                  @click="onConnectOpenrouter(i)"
+                >
+                  {{ $t('__actionConnectOpenrouter') }}
+                </UButton>
+                <p
+                  v-if="openrouterWaitingIndex === i"
+                  class="flex items-center gap-1.5 text-xs text-toned"
+                >
+                  <UIcon
+                    name="i-lucide-loader-circle"
+                    class="size-3.5 animate-spin"
+                  />
+                  {{ $t('__hintFermionWaitingOpenrouter') }}
+                </p>
+              </div>
+            </UCard>
 
             <UBadge
               v-else-if="message.widget === 'openrouter_connect' && message.widgetDone"

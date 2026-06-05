@@ -54,6 +54,7 @@ export default {
   __descriptionBotsEmpty:                 'A bot is a messaging channel registered in fermi. Add one, then attach an agent to bring it to life.',
   __descriptionFermionAccountChat:        'I\'m fermion. Tell me what you want to set up or change, and I\'ll take care of it.',
   __descriptionFermionBotTest:            'Add your bot on LINE and send it a message.',
+  __descriptionFermionOpenrouterConnect:  'Connect OpenRouter so it can route every message to a model. Sign-in happens in a new tab; credentials never pass through the chat.',
   __fermionConnectedBotMessage:           'I\'ve connected my LINE bot.',
   __fermionConnectedOpenrouterMessage:    'I\'ve connected OpenRouter.',
   __fermionWebhookConnectedMessage:       'The webhook is connected.',

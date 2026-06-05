@@ -56,6 +56,7 @@ export default {
   __descriptionBotsEmpty:                 '機器人是在 fermi 註冊的訊息頻道。先新增一個，再綁定 Agent 讓它動起來。',
   __descriptionFermionAccountChat:        '我是 fermion。想設定或調整什麼，跟我說，我來處理。',
   __descriptionFermionBotTest:            '在 LINE 加入你的機器人，傳一則訊息給它。',
+  __descriptionFermionOpenrouterConnect:  '連上 OpenRouter，之後每則訊息都由它轉發給模型。登入授權在新分頁完成，憑證不會經過聊天。',
   __fermionConnectedBotMessage:           '我已經接好 LINE 機器人了。',
   __fermionConnectedOpenrouterMessage:    '我已經連上 OpenRouter 了。',
   __fermionWebhookConnectedMessage:       'Webhook 連好了。',
