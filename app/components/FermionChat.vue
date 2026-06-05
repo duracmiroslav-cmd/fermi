@@ -16,9 +16,10 @@ interface BuilderMessage {
   content:     string;
   changes?:    string[];
   hitStepCap?: boolean;
-  // Account onboarding: fermion called start_line_connect, so this reply
-  // carries the secure connect form. `widgetDone` flips once connected.
-  widget?:     'line_connect';
+  // Account onboarding: fermion summoned a connect UI under this reply —
+  // a secure LINE form, or an "open OpenRouter sign-in" button.
+  // `widgetDone` flips once connected.
+  widget?:     'line_connect' | 'openrouter_connect';
   widgetDone?: boolean;
 }
 
@@ -51,6 +52,8 @@ const draft = ref('');
 const isSending = ref(false);
 const errorKey = ref<string | null>(null);
 const listEl = ref<HTMLElement | null>(null);
+// Which message's OpenRouter widget is awaiting the OAuth tab, or null.
+const openrouterWaitingIndex = ref<number | null>(null);
 
 // Empty-state copy differs by what fermion is configuring here.
 const descriptionKey = computed(() => {
@@ -99,17 +102,23 @@ const onSend = async (override?: string) => {
         .map(s => CHANGE_LABEL_KEY[String(s.payload.name ?? '')])
         .filter((k): k is string => !!k),
     )];
-    // On the account home, a start_line_connect call summons the secure
-    // connect form under this reply (credentials never enter the chat).
-    const wantsConnect = props.targetType === 'account' && res.steps.some(
-      s => s.type === 'tool_called' && s.payload.name === 'start_line_connect',
-    );
+    // On the account home, a start_*_connect call summons a connect UI
+    // under this reply (credentials / OAuth never flow through the chat).
+    const connectTool = props.targetType === 'account'
+      ? res.steps.find(s => s.type === 'tool_called'
+        && (s.payload.name === 'start_line_connect' || s.payload.name === 'start_openrouter_connect'))
+      : undefined;
+    const widget = connectTool?.payload.name === 'start_openrouter_connect'
+      ? 'openrouter_connect' as const
+      : connectTool?.payload.name === 'start_line_connect'
+        ? 'line_connect' as const
+        : undefined;
     messages.value.push({
       role:       'assistant',
       content:    res.text,
       changes,
       hitStepCap: res.hitStepCap,
-      widget:     wantsConnect ? 'line_connect' : undefined,
+      widget,
     });
     if (res.changed) emit('updated');
   } catch (err) {
@@ -137,6 +146,28 @@ const onConnect = async (index: number, value: { channelSecret: string; channelA
   // Let fermion pick up the freshly connected bot (resolved server-side
   // each turn) and carry the conversation to the next step.
   await onSend(t('__fermionConnectedBotMessage'));
+};
+
+// OpenRouter is OAuth, not an in-page form: open sign-in in a new tab and
+// poll the status endpoint (the tab has no callback to this one), then let
+// fermion continue once connected. Mirrors the bot detail page's poll.
+const { pause: pauseOpenrouterPoll, resume: resumeOpenrouterPoll } = useIntervalFn(async () => {
+  const index = openrouterWaitingIndex.value;
+  if (index === null) return;
+  const { connected } = await $fetch<{ connected: boolean }>('/api/oauth/openrouter');
+  if (!connected) return;
+  pauseOpenrouterPoll();
+  openrouterWaitingIndex.value = null;
+  const message = messages.value[index];
+  if (message) message.widgetDone = true;
+  emit('updated');
+  await onSend(t('__fermionConnectedOpenrouterMessage'));
+}, 3500, { immediate: false });
+
+const onConnectOpenrouter = (index: number) => {
+  window.open('/api/oauth/openrouter/start', '_blank', 'noopener');
+  openrouterWaitingIndex.value = index;
+  resumeOpenrouterPoll();
 };
 
 const onReset = () => {
@@ -275,6 +306,41 @@ onMounted(() => {
               icon="i-lucide-check"
             >
               {{ $t('__labelFermionBotConnected') }}
+            </UBadge>
+
+            <div
+              v-if="message.widget === 'openrouter_connect' && !message.widgetDone"
+              class="flex flex-col gap-2"
+            >
+              <UButton
+                icon="i-simple-icons-openrouter"
+                size="sm"
+                class="self-start"
+                :disabled="openrouterWaitingIndex === i"
+                @click="onConnectOpenrouter(i)"
+              >
+                {{ $t('__actionConnectOpenrouter') }}
+              </UButton>
+              <p
+                v-if="openrouterWaitingIndex === i"
+                class="flex items-center gap-1.5 text-xs text-toned"
+              >
+                <UIcon
+                  name="i-lucide-loader-circle"
+                  class="size-3.5 animate-spin"
+                />
+                {{ $t('__hintFermionWaitingOpenrouter') }}
+              </p>
+            </div>
+
+            <UBadge
+              v-else-if="message.widget === 'openrouter_connect' && message.widgetDone"
+              color="primary"
+              variant="subtle"
+              size="sm"
+              icon="i-lucide-check"
+            >
+              {{ $t('__labelFermionOpenrouterConnected') }}
             </UBadge>
 
             <p

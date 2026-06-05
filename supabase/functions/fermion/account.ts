@@ -18,6 +18,15 @@ const schemas: ToolSchema[] = [
       parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'start_openrouter_connect',
+      description:
+        'Show the owner a "Connect OpenRouter" button. OpenRouter is the AI provider that powers replies (required). The button opens OpenRouter sign-in in a new tab; once they finish, the connection is detected automatically. Call this when OpenRouter isn\'t connected yet and they\'re ready.',
+      parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
+    },
+  },
 ];
 
 // Account-level connectors the owner manages on the Connectors page,
@@ -47,18 +56,19 @@ ${CONNECTORS.map(c => `- ${c.name}${c.required ? ' (required)' : ''} — ${c.pur
 
 How to help:
 - If they have no bot, the first step is connecting one. Tell them to open the LINE Developers Console, create a Messaging API channel, and have its Channel Secret and Access Token ready. When they say they're ready, call start_line_connect to bring up a secure form. Do NOT ask them to paste the secret or token into this chat — the form handles that safely.
-- Once a bot is connected, if OpenRouter isn't connected yet, that's the next step: point them to Connectors → OpenRouter (a one-click sign-in). Replies won't work until it's connected.
+- Once a bot is connected, if OpenRouter isn't connected yet, that's the next step. When they're ready, call start_openrouter_connect to show a Connect button (it opens OpenRouter sign-in in a new tab; the connection is detected automatically when they finish). Replies won't work until it's connected.
 - After both are set, help them shape what the assistant says — that's configured on the agent's page.
 - Answer "how do I start" / "what now" by naming the single next step, not the whole checklist at once.
 - Reply in the user's language. Be warm and concise. Don't dump jargon.`;
 
 const buildAccountToolset = (): Toolset => ({
   schemas,
-  // start_line_connect has no server effect — it's a directive the chat UI
-  // renders as the connect form. Acknowledging it lets the model continue.
+  // These tools have no server effect — they're directives the chat UI
+  // renders (connect form / connect button). Acknowledging lets the model
+  // continue; the actual connect goes through the dedicated secure paths.
   execute: (name: string): Promise<string> =>
     Promise.resolve(
-      name === 'start_line_connect'
+      name === 'start_line_connect' || name === 'start_openrouter_connect'
         ? JSON.stringify({ ok: true })
         : JSON.stringify({ error: `Unknown tool: ${name}` }),
     ),
