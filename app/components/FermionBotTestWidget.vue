@@ -24,9 +24,23 @@ const qrImageUrl = computed(() => {
 // from agent_runs, so it flips as soon as the worker logs a succeeded run).
 const poll = useIntervalFn(() => refresh(), 4000, { immediate: true });
 
+const celebrate = async () => {
+  const { default: confetti } = await import('canvas-confetti');
+  confetti({
+    particleCount: 160,
+    spread:        140,
+    origin:        { y: 0.4 },
+    colors:        ['#f48c6c', '#88bf68', '#ed9800', '#f03553'],
+  });
+};
+
+// `watch` (not immediate) only fires on the transition, so confetti goes
+// off when the reply lands while the owner is watching — not if the widget
+// mounts with a reply already in the DB.
 watch(hasReplied, (replied) => {
   if (!replied) return;
   poll.pause();
+  celebrate();
   emit('replied');
 });
 </script>

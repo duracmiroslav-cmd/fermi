@@ -33,44 +33,13 @@ const { data: bot, error, refresh, pending } = useApiFetch<BotDetail>(
   () => `/api/bots/${route.params.id}`,
   { key: route.params.id as string },
 );
-const {
-  status,
-  isOpenrouterConnected,
-  isWebhookVerified,
-  isSetupComplete,
-  refreshOpenrouter,
-} = useBotStatus(bot);
+const { status } = useBotStatus(bot);
 
 const { syncingId, sync: syncFromLine } = useBotAvatar(refresh);
 
 const webhookCopied = ref(false);
 
 const syncing = computed(() => syncingId.value !== null);
-
-const isBotActive = computed(() => !!bot.value && !bot.value.disabledAt);
-const hasFirstReplied = computed(() => !!bot.value?.firstRepliedAt);
-
-// Poll OpenRouter status while not yet connected. OAuth runs in a
-// separate tab with no callback to this one, so polling surfaces the
-// change here. Stop once connected.
-const openrouterPoll = useIntervalFn(() => refreshOpenrouter(), 4000, { immediate: false });
-watchEffect(() => {
-  const shouldPoll = !isOpenrouterConnected.value;
-  if (shouldPoll && !openrouterPoll.isActive.value) openrouterPoll.resume();
-  if (!shouldPoll && openrouterPoll.isActive.value) openrouterPoll.pause();
-});
-
-// Poll bot detail while setup is complete but the first reply hasn't
-// landed. `firstRepliedAt` is derived from agent_runs, so it flips as
-// soon as the worker logs a succeeded run; polling just surfaces it to
-// the UI. Stop once detected (or if the bot is paused, since a paused
-// bot never pushes).
-const firstReplyPoll = useIntervalFn(() => refresh(), 4000, { immediate: false });
-watchEffect(() => {
-  const shouldPoll = isBotActive.value && isSetupComplete.value && !hasFirstReplied.value;
-  if (shouldPoll && !firstReplyPoll.isActive.value) firstReplyPoll.resume();
-  if (!shouldPoll && firstReplyPoll.isActive.value) firstReplyPoll.pause();
-});
 
 const copyWebhook = async () => {
   if (!bot.value) return;
@@ -169,15 +138,6 @@ const copyWebhook = async () => {
             {{ $t('__actionEdit') }}
           </UButton>
         </div>
-
-        <LineBotSetupBanner
-          v-if="status && status !== 'paused'"
-          :bot="bot"
-          :is-openrouter-connected="isOpenrouterConnected"
-          :is-webhook-verified="isWebhookVerified"
-          :is-setup-complete="isSetupComplete"
-          @refresh="refresh"
-        />
 
         <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
           <FermionChat
