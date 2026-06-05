@@ -56,8 +56,11 @@ const WIDGET_BY_TOOL: Record<string, Widget> = {
   start_bot_test:           'bot_test',
 };
 
-// Seed prompts offered in the empty state.
-const SEEDS = ['__seedFermionStart', '__seedFermionConnectBot'];
+// Seed prompts offered in the empty state, by where fermion is embedded:
+// onboarding on the home, config shortcuts on an agent / bot page.
+const HOME_SEEDS = ['__seedFermionStart', '__seedFermionConnectBot'];
+const AGENT_SEEDS = ['__seedFermionAgentPersona', '__seedFermionAgentVoice', '__seedFermionAgentModel'];
+const BOT_SEEDS = ['__seedFermionBotAgent', '__seedFermionBotGroup', '__seedFermionBotPause'];
 
 const messages = ref<FermionMessage[]>([]);
 const draft = ref('');
@@ -75,6 +78,12 @@ const contextBody = computed(() => {
   if (props.contextAgentId) return { agentId: props.contextAgentId };
   if (props.contextBotId) return { botId: props.contextBotId };
   return undefined;
+});
+
+const seeds = computed(() => {
+  if (props.contextAgentId) return AGENT_SEEDS;
+  if (props.contextBotId) return BOT_SEEDS;
+  return HOME_SEEDS;
 });
 
 // One shared conversation across the home + page embeds, so it reads as a
@@ -273,7 +282,7 @@ onMounted(() => {
           </p>
           <div class="flex flex-wrap justify-center gap-2">
             <UButton
-              v-for="seed in SEEDS"
+              v-for="seed in seeds"
               :key="seed"
               color="neutral"
               variant="soft"
