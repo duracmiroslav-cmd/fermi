@@ -560,65 +560,80 @@ const runAgentLoop = async (params: {
   const deliverTo = group ? group.groupId : externalUserId;
 
   const threadId = await resolveOrCreateLatestThread(admin, bot.id, subjectExternalId, subjectType);
-  if (userInput.type === 'text') {
-    await appendMessage(admin, threadId, 'user', { type: 'text', text: userInput.text }, externalUserId);
-  } else if (userInput.type === 'audio') {
-    // Upload the raw bytes alongside the transcript: LLM history
-    // rebuild reads the transcript (so re-loads never re-pay
-    // Whisper), a future replay viewer reads the storagePath. Bytes
-    // are retained for thread lifetime and prefix-deleted with the
-    // rest of the thread's media when retention cleanup runs.
-    const { storagePath } = await uploadUserAudio(admin, {
-      ownerId: bot.ownerId,
-      threadId,
-      lineMessageId: userInput.lineMessageId,
-      mime: userInput.mime,
-      bytes: userInput.bytes,
-    });
-    await appendMessage(admin, threadId, 'user', {
-      type: 'audio',
-      mime: userInput.mime,
-      sizeBytes: userInput.bytes.byteLength,
-      storagePath,
-      transcript: userInput.transcript,
-    }, externalUserId);
-  } else if (userInput.type === 'image') {
-    const { storagePath } = await uploadUserImage(admin, {
-      ownerId: bot.ownerId,
-      threadId,
-      lineMessageId: userInput.lineMessageId,
-      mime: userInput.mime,
-      bytes: userInput.bytes,
-    });
-    await appendMessage(admin, threadId, 'user', {
-      type: 'image',
-      mime: userInput.mime,
-      sizeBytes: userInput.bytes.byteLength,
-      storagePath,
-    }, externalUserId);
-  } else if (userInput.type === 'document') {
-    // Document: the extracted text is the persisted content (no original
-    // bytes stored — nothing replays a file). History rebuild re-injects it
-    // as `[file: name]\n<text>` so follow-up questions stay answerable.
-    await appendMessage(admin, threadId, 'user', {
-      type: 'document',
-      filename: userInput.filename,
-      text: userInput.text,
-    }, externalUserId);
-  } else if (userInput.type === 'sticker') {
-    await appendMessage(admin, threadId, 'user', {
-      type: 'sticker',
-      keywords: userInput.keywords,
-      ...(userInput.text ? { text: userInput.text } : {}),
-    }, externalUserId);
-  } else {
-    await appendMessage(admin, threadId, 'user', {
-      type: 'location',
-      ...(userInput.title ? { title: userInput.title } : {}),
-      ...(userInput.address ? { address: userInput.address } : {}),
-      latitude: userInput.latitude,
-      longitude: userInput.longitude,
-    }, externalUserId);
+  switch (userInput.type) {
+    case 'text':
+      await appendMessage(admin, threadId, 'user', { type: 'text', text: userInput.text }, externalUserId);
+      break;
+    case 'audio': {
+      // Upload the raw bytes alongside the transcript: LLM history
+      // rebuild reads the transcript (so re-loads never re-pay
+      // Whisper), a future replay viewer reads the storagePath. Bytes
+      // are retained for thread lifetime and prefix-deleted with the
+      // rest of the thread's media when retention cleanup runs.
+      const { storagePath } = await uploadUserAudio(admin, {
+        ownerId: bot.ownerId,
+        threadId,
+        lineMessageId: userInput.lineMessageId,
+        mime: userInput.mime,
+        bytes: userInput.bytes,
+      });
+      await appendMessage(admin, threadId, 'user', {
+        type: 'audio',
+        mime: userInput.mime,
+        sizeBytes: userInput.bytes.byteLength,
+        storagePath,
+        transcript: userInput.transcript,
+      }, externalUserId);
+      break;
+    }
+    case 'image': {
+      const { storagePath } = await uploadUserImage(admin, {
+        ownerId: bot.ownerId,
+        threadId,
+        lineMessageId: userInput.lineMessageId,
+        mime: userInput.mime,
+        bytes: userInput.bytes,
+      });
+      await appendMessage(admin, threadId, 'user', {
+        type: 'image',
+        mime: userInput.mime,
+        sizeBytes: userInput.bytes.byteLength,
+        storagePath,
+      }, externalUserId);
+      break;
+    }
+    case 'document':
+      // Document: the extracted text is the persisted content (no original
+      // bytes stored — nothing replays a file). History rebuild re-injects it
+      // as `[file: name]\n<text>` so follow-up questions stay answerable.
+      await appendMessage(admin, threadId, 'user', {
+        type: 'document',
+        filename: userInput.filename,
+        text: userInput.text,
+      }, externalUserId);
+      break;
+    case 'sticker':
+      await appendMessage(admin, threadId, 'user', {
+        type: 'sticker',
+        keywords: userInput.keywords,
+        ...(userInput.text ? { text: userInput.text } : {}),
+      }, externalUserId);
+      break;
+    case 'location':
+      await appendMessage(admin, threadId, 'user', {
+        type: 'location',
+        ...(userInput.title ? { title: userInput.title } : {}),
+        ...(userInput.address ? { address: userInput.address } : {}),
+        latitude: userInput.latitude,
+        longitude: userInput.longitude,
+      }, externalUserId);
+      break;
+    default: {
+      // A new UserInput variant added without a persist branch trips this
+      // at compile time rather than silently misfiling into an old branch.
+      const exhaustive: never = userInput;
+      throw new Error(`unhandled user input: ${JSON.stringify(exhaustive)}`);
+    }
   }
 
   const runId = await startRun(admin, {
