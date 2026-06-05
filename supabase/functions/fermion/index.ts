@@ -11,6 +11,7 @@ import { DEFAULT_TEXT_MODEL } from '../../../shared/constants/models.ts';
 import type { ChatMessage } from '../agent/openrouter.ts';
 import { MAX_AGENT_STEPS, runAgentConversation } from '../agent/loop.ts';
 import { inspectInternalAuth } from '../agent/internal-auth.ts';
+import { stripMarkdown } from '../agent/markdown.ts';
 import { loadAccountState } from './state.ts';
 import { type FermionContext, fermionSystemPrompt } from './prompt.ts';
 import { FERMION_MUTATING_TOOLS, buildFermionToolset } from './toolset.ts';
@@ -91,7 +92,10 @@ Deno.serve(async (req) => {
     const changed = result.steps.some(
       s => s.type === 'tool_called' && FERMION_MUTATING_TOOLS.includes(String(s.payload.name)),
     );
-    return json({ text: result.text, hitStepCap: result.hitStepCap, steps: result.steps, changed });
+    // Flatten markdown to plain text, same as the LINE worker: the chat
+    // renders replies as raw text, so the prompt's "no Markdown" rule is
+    // belt; this is suspenders for when the model slips a **bold** through.
+    return json({ text: stripMarkdown(result.text), hitStepCap: result.hitStepCap, steps: result.steps, changed });
   } catch (err) {
     console.error('fermion failed', err);
     return json({ error: 'build_failed', detail: String(err) }, 502);
