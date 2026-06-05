@@ -24,6 +24,11 @@ import {
   uploadUserAudio,
 } from '../../../shared/messageAudio.ts';
 import { uploadUserImage } from '../../../shared/messageImages.ts';
+import {
+  UnsupportedFileError,
+  extractDocumentText,
+  isSupportedDocumentFilename,
+} from '../../../shared/documentText.ts';
 import { DEFAULT_TEXT_MODEL, DEFAULT_VISION_MODEL } from '../../../shared/constants/models.ts';
 import { tryClaimIdempotencyKey } from './dedup.ts';
 import {
@@ -65,6 +70,13 @@ const admin = createClient(supabaseUrl, supabaseSecretKey, {
 });
 
 const HISTORY_WINDOW = 20;
+
+// Inline file read carries the document's full extracted text in thread history
+// every turn it stays in the window, so cap it well below the knowledge base's
+// 200k ingestion limit. ~30k chars ≈ 20–30 pages / a few×10k tokens per turn;
+// larger documents are routed to the knowledge base (RAG), which is built for
+// them, rather than bloating every turn here.
+const INLINE_DOCUMENT_MAX_CHARS = 30_000;
 
 // LINE's loading indicator lasts at most 60s per call. Re-fire a little
 // before that so a multi-step run that runs long keeps showing "..." rather
@@ -113,7 +125,7 @@ interface LineEvent {
   timestamp?: number;
   replyToken?: string;
   source?: LineSource;
-  message?: { type: string; id?: string; text?: string; mention?: { mentionees?: { isSelf?: boolean }[] } };
+  message?: { type: string; id?: string; text?: string; fileName?: string; fileSize?: number; mention?: { mentionees?: { isSelf?: boolean }[] } };
   webhookEventId?: string;
 }
 
@@ -124,7 +136,8 @@ interface LineEvent {
 type UserInput
   = | { type: 'text';  text: string }
     | { type: 'audio'; lineMessageId: string; mime: AudioMime; bytes: Uint8Array; transcript: string }
-    | { type: 'image'; lineMessageId: string; mime: ImageMime; bytes: Uint8Array };
+    | { type: 'image'; lineMessageId: string; mime: ImageMime; bytes: Uint8Array }
+    | { type: 'document'; lineMessageId: string; filename: string; text: string };
 
 interface LinePayload {
   platform: 'line';
@@ -182,6 +195,22 @@ const isAudioMessageFromUser = (event: LineEvent): event is LineEvent & {
   && typeof event.source.userId === 'string'
 );
 
+// LINE 'file' messages carry the original filename (extension drives which
+// extractor runs) and an id to pull the bytes from the Content API.
+const isFileMessageFromUser = (event: LineEvent): event is LineEvent & {
+  replyToken: string;
+  source: LineSource & { userId: string };
+  message: { type: 'file'; id: string; fileName: string };
+} => (
+  event.type === 'message'
+  && event.message?.type === 'file'
+  && typeof event.message.id === 'string'
+  && typeof event.message.fileName === 'string'
+  && typeof event.replyToken === 'string'
+  && event.source?.type === 'user'
+  && typeof event.source.userId === 'string'
+);
+
 // Lets early-return paths (no agent / no openrouter key) surface a
 // configuration notice regardless of the input modality.
 const isReplyableUserMessage = (event: LineEvent): event is LineEvent & {
@@ -191,6 +220,7 @@ const isReplyableUserMessage = (event: LineEvent): event is LineEvent & {
   isTextMessageFromUser(event)
   || isImageMessageFromUser(event)
   || isAudioMessageFromUser(event)
+  || isFileMessageFromUser(event)
 );
 
 const isGroupTextMessage = (event: LineEvent): event is LineEvent & {
@@ -522,7 +552,7 @@ const runAgentLoop = async (params: {
       storagePath,
       transcript: userInput.transcript,
     }, externalUserId);
-  } else {
+  } else if (userInput.type === 'image') {
     const { storagePath } = await uploadUserImage(admin, {
       ownerId: bot.ownerId,
       threadId,
@@ -535,6 +565,15 @@ const runAgentLoop = async (params: {
       mime: userInput.mime,
       sizeBytes: userInput.bytes.byteLength,
       storagePath,
+    }, externalUserId);
+  } else {
+    // Document: the extracted text is the persisted content (no original
+    // bytes stored — nothing replays a file). History rebuild re-injects it
+    // as `[file: name]\n<text>` so follow-up questions stay answerable.
+    await appendMessage(admin, threadId, 'user', {
+      type: 'document',
+      filename: userInput.filename,
+      text: userInput.text,
     }, externalUserId);
   }
 
@@ -1157,10 +1196,73 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       continue;
     }
 
-    // Unsupported message subtypes (sticker / video / file / location /
-    // imagemap) get one scope-notice reply. Non-message events (follow /
-    // unfollow / postback / ...) drop silently — they have no replyToken
-    // to address.
+    if (isFileMessageFromUser(event)) {
+      const filename = event.message.fileName;
+      // Extension gate before the download: don't spend a Content API fetch
+      // on a file we can't read (e.g. .doc / .pptx / .zip).
+      if (!isSupportedDocumentFilename(filename)) {
+        await safeReply(lineAccessToken, event.replyToken, t('__noticeUnsupportedDocumentType', ownerLocale));
+        continue;
+      }
+
+      let fileBytes: Uint8Array;
+      try {
+        const content = await fetchMessageContent(lineAccessToken, event.message.id);
+        fileBytes = content.bytes;
+      } catch (err) {
+        if (err instanceof LineContentError && err.status === 413) {
+          await safeReply(lineAccessToken, event.replyToken, t('__noticeDocumentTooLarge', ownerLocale));
+          continue;
+        }
+        throw err;
+      }
+
+      let documentText: string;
+      try {
+        documentText = (await extractDocumentText(filename, fileBytes)).trim();
+      } catch (err) {
+        if (err instanceof UnsupportedFileError) {
+          await safeReply(lineAccessToken, event.replyToken, t('__noticeUnsupportedDocumentType', ownerLocale));
+          continue;
+        }
+        // A corrupt / unreadable PDF or docx lands here.
+        console.warn('document extraction failed', { err: String(err) });
+        await safeReply(lineAccessToken, event.replyToken, t('__noticeDocumentUnreadable', ownerLocale));
+        continue;
+      }
+      // Empty after trim = no text layer (scanned / photo PDF) or an empty
+      // file. unpdf reads the text layer, not OCR, so an image-only PDF is
+      // expected to land here.
+      if (!documentText) {
+        await safeReply(lineAccessToken, event.replyToken, t('__noticeDocumentEmpty', ownerLocale));
+        continue;
+      }
+      // Over the inline cap → the knowledge base (RAG) is the right home for a
+      // document this large; carrying it in every turn here would not be.
+      if (documentText.length > INLINE_DOCUMENT_MAX_CHARS) {
+        await safeReply(lineAccessToken, event.replyToken, t('__noticeDocumentTooLong', ownerLocale));
+        continue;
+      }
+
+      await runAgentLoop({
+        bot,
+        agent,
+        ownerLocale,
+        ownerTimezone,
+        openrouterKey,
+        lineAccessToken,
+        kek,
+        externalUserId: event.source.userId,
+        replyToken: event.replyToken,
+        userInput: { type: 'document', lineMessageId: event.message.id, filename, text: documentText },
+        eventTimestamp,
+      });
+      continue;
+    }
+
+    // Unsupported message subtypes (sticker / video / location / imagemap)
+    // get one scope-notice reply. Non-message events (follow / unfollow /
+    // postback / ...) drop silently — they have no replyToken to address.
     if (
       event.type === 'message'
       && typeof event.replyToken === 'string'

@@ -13,7 +13,12 @@ import type { ChatMessage } from './openrouter.ts';
 type TextContent  = { type: 'text';  text: string };
 type ImageContent = { type: 'image'; mime: string; sizeBytes: number; storagePath: string };
 type AudioContent = { type: 'audio'; mime: string; sizeBytes: number; storagePath: string; transcript: string };
-export type MessageContent = TextContent | ImageContent | AudioContent;
+// Inline file read: the extracted text *is* the content the LLM consumes, so
+// it lives in the row (no storagePath — unlike image/audio there's no replay
+// of the original file). Carried in history so follow-up questions about the
+// document work; the worker's char cap is what bounds its size.
+type DocumentContent = { type: 'document'; filename: string; text: string };
+export type MessageContent = TextContent | ImageContent | AudioContent | DocumentContent;
 
 export type MessageRole = 'user' | 'assistant' | 'tool';
 
@@ -115,6 +120,11 @@ export const loadRecentMessages = async (
       // History rebuild reads the transcript only; the storagePath
       // exists for the (future) replay viewer, not the LLM.
       return { role, content: `[audio] ${c.transcript}` };
+    }
+    if (c.type === 'document') {
+      // The full extracted text re-enters every turn it's still in the
+      // window, which is what makes follow-up questions answerable.
+      return { role, content: `[file: ${c.filename}]\n${c.text}` };
     }
     return null;
   }));
