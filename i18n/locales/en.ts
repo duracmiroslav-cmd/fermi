@@ -265,6 +265,7 @@ export default {
   __statusBuiltIn:                        'Built-in',
   __statusComingSoon:                     'Coming soon',
   __statusConnected:                      'Connected',
+  __statusNeedsConnection:                'Needs connection',
   __statusNeedsSetup:                     'Needs setup',
   __statusNotAttached:                    'Not attached',
   __statusNotConnected:                   'Not connected',

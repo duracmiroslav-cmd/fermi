@@ -267,6 +267,7 @@ export default {
   __statusBuiltIn:                        '內建',
   __statusComingSoon:                     '即將推出',
   __statusConnected:                      '已連接',
+  __statusNeedsConnection:                '需要連接',
   __statusNeedsSetup:                     '待設定',
   __statusNotAttached:                    '未附加',
   __statusNotConnected:                   '尚未連接',

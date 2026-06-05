@@ -61,10 +61,16 @@ export interface CapabilitySettingField {
 export type CredentialType = 'none' | 'providers' | 'coming_soon';
 
 export interface ProviderMeta {
-  slug:        string;
-  displayName: string;
-  keyType:     string;
-  status:      'live' | 'coming_soon';
+  slug:           string;
+  displayName:    string;
+  keyType:        string;
+  status:         'live' | 'coming_soon';
+  // Whether fermi backs this provider with its own platform key, so a Pro
+  // owner is covered without connecting their own (e.g. Tavily). OAuth
+  // providers (github, twinkle) are false — they always use the owner's token.
+  // Asserts the worker's resolveKey wiring (whether its tool passes a platform
+  // key for this purpose); keep the two in step.
+  platformBacked: boolean;
 }
 
 export interface BuiltInCapability {
@@ -100,7 +106,7 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     config:         {},
     credentialType: 'providers',
     providers:      [
-      { slug: 'tavily', displayName: 'Tavily', keyType: 'tavily', status: 'live' },
+      { slug: 'tavily', displayName: 'Tavily', keyType: 'tavily', status: 'live', platformBacked: true },
     ],
   },
   'web-fetch': {
@@ -146,7 +152,7 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     },
     credentialType: 'providers',
     providers:      [
-      { slug: 'github', displayName: 'GitHub', keyType: 'github', status: 'live' },
+      { slug: 'github', displayName: 'GitHub', keyType: 'github', status: 'live', platformBacked: false },
     ],
   },
   // Twinkle Hub bundles Taiwan-specific lookup tools + data.gov.tw open
@@ -257,7 +263,7 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     },
     credentialType: 'providers',
     providers:      [
-      { slug: 'twinkle-hub', displayName: 'Twinkle Hub', keyType: 'twinkle', status: 'live' },
+      { slug: 'twinkle-hub', displayName: 'Twinkle Hub', keyType: 'twinkle', status: 'live', platformBacked: false },
     ],
   },
   // Retrieval over the owner's own documents (RAG). No external credential —
@@ -287,3 +293,25 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
 
 export const getBuiltInCapability = (slug: string): BuiltInCapability | null =>
   BUILT_IN_CAPABILITIES[slug] ?? null;
+
+// Whether a capability's required provider credential is unmet for an owner,
+// mirroring resolveKey: a connected provider key works for anyone; absent that,
+// only a Pro owner is covered, and only for a provider fermi platform-backs
+// (`platformBacked`). Returns false (nothing to connect) when the capability
+// needs no provider. The dashboard shows a "needs connection" badge when this
+// is true and the capability is attached, so the badge never disagrees with
+// what the worker resolves at run time.
+export const capabilityNeedsConnection = (params: {
+  credentialType:    CredentialType;
+  providers?:        ProviderMeta[];
+  tier:              string;
+  connectedKeyTypes: ReadonlySet<string>;
+}): boolean => {
+  const { credentialType, providers, tier, connectedKeyTypes } = params;
+  if (credentialType !== 'providers' || !providers) return false;
+  const live = providers.filter(p => p.status !== 'coming_soon');
+  if (live.length === 0) return false;
+  const hasConnected = live.some(p => connectedKeyTypes.has(p.keyType));
+  const proCovered = tier === 'pro' && live.some(p => p.platformBacked);
+  return !hasConnected && !proCovered;
+};

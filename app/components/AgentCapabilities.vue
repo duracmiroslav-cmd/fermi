@@ -134,6 +134,14 @@ const onRefresh = async () => {
             {{ $t('__statusComingSoon') }}
           </UBadge>
           <UBadge
+            v-else-if="capability.attached && capability.needsConnection"
+            color="warning"
+            variant="subtle"
+            size="sm"
+          >
+            {{ $t('__statusNeedsConnection') }}
+          </UBadge>
+          <UBadge
             v-else-if="capability.attached"
             color="primary"
             variant="subtle"

@@ -4,6 +4,7 @@ import {
   type CapabilitySettingField,
   type CredentialType,
   type ProviderMeta,
+  capabilityNeedsConnection,
 } from '~~/shared/capabilities';
 
 export type { CapabilitySettingField } from '~~/shared/capabilities';
@@ -34,6 +35,12 @@ export interface CapabilityRow {
   displayName:           string;
   description:           string | null;
   credentialType:        CredentialType;
+  // True when this capability needs a provider credential the owner hasn't
+  // satisfied (no connected key, and not Pro-covered for a platform-backed
+  // provider) — so an attached-but-unconnected capability reads as "needs
+  // connection" instead of silently failing at run time. Computed via
+  // `capabilityNeedsConnection`; false for capabilities that need no provider.
+  needsConnection:       boolean;
   // BYO (user-created) capability vs fermi built-in. The connectors page
   // routes these to the Custom MCP servers manager instead of the built-in
   // Capabilities list; both still attach to agents the same way.
@@ -82,6 +89,16 @@ export const listCapabilitiesForUser = async (
   if (credsErr) throw credsErr;
 
   const credByKeyType = new Map((creds ?? []).map(c => [c.key_type, c]));
+  const connectedKeyTypes = new Set(credByKeyType.keys());
+
+  // Tier gates the platform fallback: a Pro owner is covered for a
+  // platform-backed provider (Tavily) without connecting their own key.
+  const { data: userRow, error: userErr } = await admin
+    .from('users')
+    .select('tier')
+    .eq('id', userId)
+    .single();
+  if (userErr) throw userErr;
 
   return (capabilities ?? []).map((capability) => {
     const builtIn = capability.owner_id === null
@@ -90,12 +107,18 @@ export const listCapabilitiesForUser = async (
     const credentialType: CredentialType = builtIn?.credentialType ?? 'none';
     const providers: ProviderMeta[] | undefined = builtIn?.providers;
     const row: CapabilityRow = {
-      id:          capability.id,
-      slug:        capability.slug,
-      displayName: builtIn?.displayName ?? capability.display_name,
-      description: builtIn?.description ?? capability.description,
+      id:              capability.id,
+      slug:            capability.slug,
+      displayName:     builtIn?.displayName ?? capability.display_name,
+      description:     builtIn?.description ?? capability.description,
       credentialType,
-      isCustom:    capability.owner_id !== null,
+      needsConnection: capabilityNeedsConnection({
+        credentialType,
+        providers,
+        tier: userRow.tier,
+        connectedKeyTypes,
+      }),
+      isCustom: capability.owner_id !== null,
     };
     if (builtIn?.config.toolGroups) {
       row.toolGroups = Object.fromEntries(
