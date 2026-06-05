@@ -55,6 +55,11 @@ interface CurrentBot {
   disabled:               boolean;
   groupActivationCode:    string | null;
   groupTranscribeEnabled: boolean;
+  platform:               string;
+  externalId:             string;
+  webhookVerified:        boolean;
+  hasAvatar:              boolean;
+  createdAt:              string;
 }
 
 interface OwnerAgent {
@@ -71,6 +76,11 @@ A "bot" is a connected LINE Official Account. An "agent" is the assistant person
 - Status: ${current.disabled ? 'paused (not replying)' : 'active'}
 - Group chats: ${current.groupActivationCode ? `on (activation passphrase: "${current.groupActivationCode}")` : 'off'}
 - Transcribe group voice messages: ${current.groupTranscribeEnabled ? 'on' : 'off'}
+- Platform: ${current.platform}
+- LINE channel id (external id): ${current.externalId}
+- Webhook: ${current.webhookVerified ? 'verified' : 'not verified yet'}
+- Avatar: ${current.hasAvatar ? 'set' : 'not set'}
+- Connected since: ${current.createdAt}
 
 The owner's agents you can connect (use the id with update_bot):
 ${agents.length ? agents.map(a => `- ${a.name} (${a.id})`).join('\n') : '- (none)'}
@@ -176,7 +186,7 @@ export const botTarget: FermionTarget = {
     // bot. deleted_at is still excluded.
     const { data: bot, error: botErr } = await admin
       .from('bots')
-      .select('id, owner_id, agent_id, display_name, disabled_at, group_activation_code, group_transcribe_enabled')
+      .select('id, owner_id, agent_id, display_name, disabled_at, group_activation_code, group_transcribe_enabled, platform, external_id, webhook_verified_at, avatar_url, created_at')
       .eq('id', id)
       .is('deleted_at', null)
       .maybeSingle();
@@ -203,6 +213,11 @@ export const botTarget: FermionTarget = {
           disabled:               bot.disabled_at !== null,
           groupActivationCode:    bot.group_activation_code,
           groupTranscribeEnabled: bot.group_transcribe_enabled,
+          platform:               bot.platform,
+          externalId:             bot.external_id,
+          webhookVerified:        bot.webhook_verified_at !== null,
+          hasAvatar:              bot.avatar_url !== null,
+          createdAt:              bot.created_at,
         },
         (agents ?? []).map(a => ({ id: a.id, name: a.name })),
       ),

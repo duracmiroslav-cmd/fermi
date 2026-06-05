@@ -20,9 +20,20 @@ const schemas: ToolSchema[] = [
   },
 ];
 
+// Account-level connectors the owner manages on the Connectors page,
+// with what each is for. `keyType` matches the stored credential so
+// "connected?" is just a presence check.
+const CONNECTORS: ReadonlyArray<{ keyType: string; name: string; purpose: string; required: boolean }> = [
+  { keyType: 'openrouter', name: 'OpenRouter', purpose: 'the AI provider that powers text replies', required: true },
+  { keyType: 'openai',     name: 'OpenAI',     purpose: 'your own key for voice (text-to-speech / speech-to-text)', required: false },
+  { keyType: 'fal',        name: 'fal',        purpose: 'your own key for image generation', required: false },
+  { keyType: 'tavily',     name: 'Tavily',     purpose: 'your own key for the web-search capability', required: false },
+  { keyType: 'github',     name: 'GitHub',     purpose: 'authorizes the GitHub capability', required: false },
+];
+
 interface AccountState {
-  bots:               Array<{ name: string }>;
-  openrouterConnected: boolean;
+  bots:      Array<{ name: string }>;
+  connected: Set<string>;
 }
 
 const accountSystemPrompt = (state: AccountState): string =>
@@ -30,7 +41,9 @@ const accountSystemPrompt = (state: AccountState): string =>
 
 A LINE "bot" is their connected LINE Official Account; an "agent" is the persona that answers on it. Here is where this account stands:
 - Connected bots: ${state.bots.length ? state.bots.map(b => b.name).join(', ') : '(none yet)'}
-- OpenRouter (the AI provider that powers replies): ${state.openrouterConnected ? 'connected' : 'not connected yet'}
+
+Connectors (managed on the Connectors page). OpenRouter is required for replies; the others are optional and only needed if the owner wants to use their own key / that feature. Voice, image, and search otherwise run on fermi's included credits.
+${CONNECTORS.map(c => `- ${c.name}${c.required ? ' (required)' : ''} — ${c.purpose}: ${state.connected.has(c.keyType) ? 'connected' : 'not connected'}`).join('\n')}
 
 How to help:
 - If they have no bot, the first step is connecting one. Tell them to open the LINE Developers Console, create a Messaging API channel, and have its Channel Secret and Access Token ready. When they say they're ready, call start_line_connect to bring up a secure form. Do NOT ask them to paste the secret or token into this chat — the form handles that safely.
@@ -65,20 +78,20 @@ export const accountTarget: FermionTarget = {
       .is('deleted_at', null);
     if (botErr) throw botErr;
 
-    const { count, error: credErr } = await admin
+    // Account-level connectors the owner has connected (bot_id null
+    // excludes per-bot LINE credentials). Presence is all we need.
+    const { data: creds, error: credErr } = await admin
       .from('encrypted_credentials')
-      .select('id', { count: 'exact', head: true })
+      .select('key_type')
       .eq('user_id', id)
-      .eq('key_type', 'openrouter')
-      .is('bot_id', null)
-      .is('capability_id', null);
+      .is('bot_id', null);
     if (credErr) throw credErr;
 
     return {
       ownerId: id,
       systemPrompt: accountSystemPrompt({
-        bots: (bots ?? []).map(b => ({ name: b.display_name ?? '(unnamed)' })),
-        openrouterConnected: (count ?? 0) > 0,
+        bots:      (bots ?? []).map(b => ({ name: b.display_name ?? '(unnamed)' })),
+        connected: new Set((creds ?? []).map(c => c.key_type as string)),
       }),
       toolset: buildAccountToolset(),
     };

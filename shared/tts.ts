@@ -53,6 +53,21 @@ export const TTS_VOICES: readonly { name: string; value: TtsVoice }[] = [
   { name: 'Verse', value: 'verse' },
 ];
 
+export type VoiceGender = 'female' | 'male' | 'neutral';
+
+export const TTS_VOICE_GENDERS: Record<TtsVoice, VoiceGender> = {
+  cedar:   'male',
+  marin:   'female',
+  alloy:   'neutral',
+  ash:     'male',
+  ballad:  'male',
+  coral:   'female',
+  echo:    'male',
+  sage:    'female',
+  shimmer: 'female',
+  verse:   'male',
+};
+
 export const DEFAULT_TTS_MODEL: TtsModel = 'gpt-4o-mini-tts-2025-03-20';
 export const DEFAULT_TTS_VOICE: TtsVoice = 'cedar';
 
