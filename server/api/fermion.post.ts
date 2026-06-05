@@ -10,14 +10,17 @@ import { getCurrentUser } from '~~/server/utils/auth';
 import { checkOwnerPreviewRateLimit } from '~~/server/utils/rate-limit';
 import { isTrustedTriggerHost } from '~~/server/utils/trigger';
 
-// Maps a target type to the table whose `(id, owner_id)` proves ownership.
-// Every entry must have `owner_id` + `deleted_at`; keep in step with the
-// Edge Function's TARGETS registry.
+// Maps a resource target type to the table whose `(id, owner_id)` proves
+// ownership. Every entry must have `owner_id` + `deleted_at`; keep in step
+// with the Edge Function's TARGETS registry. `account` is absent on
+// purpose — it has no resource, it's scoped to the authenticated user.
 const TARGET_TABLE = { agent: 'agents', bot: 'bots' } as const;
 
 const bodySchema = z.object({
-  targetType: z.enum(['agent', 'bot']),
-  targetId:   z.string().uuid(),
+  targetType: z.enum(['account', 'agent', 'bot']),
+  // Required for resource targets (agent / bot); ignored for `account`,
+  // which the route binds to the authenticated user instead.
+  targetId:   z.string().uuid().optional(),
   messages:   z.array(z.object({
     role:    z.enum(['user', 'assistant']),
     content: z.string().min(1).max(5000),
@@ -31,24 +34,35 @@ export default defineEventHandler(async (event) => {
   if (!parsed.success) {
     throw createError({ statusCode: 400, statusMessage: parsed.error.message });
   }
-  const { targetType, targetId, messages } = parsed.data;
+  const { targetType, messages } = parsed.data;
 
   const admin = useSupabaseAdmin();
 
-  const { data: resource, error: resourceErr } = await admin
-    .from(TARGET_TABLE[targetType])
-    .select('id')
-    .eq('id', targetId)
-    .eq('owner_id', user.id)
-    .is('deleted_at', null)
-    .maybeSingle();
-  if (resourceErr) throw resourceErr;
-  if (!resource) {
-    throw createError({
-      statusCode:    404,
-      statusMessage: 'Target not found',
-      data:          { code: targetType === 'bot' ? '__errorBotNotFound' : '__errorAgentNotFound' },
-    });
+  // `account` is bound to the caller; resource targets are looked up and
+  // ownership-checked here, since the Edge Function trusts the id it gets.
+  let targetId: string;
+  if (targetType === 'account') {
+    targetId = user.id;
+  } else {
+    if (!parsed.data.targetId) {
+      throw createError({ statusCode: 400, statusMessage: 'targetId is required for this target' });
+    }
+    const { data: resource, error: resourceErr } = await admin
+      .from(TARGET_TABLE[targetType])
+      .select('id')
+      .eq('id', parsed.data.targetId)
+      .eq('owner_id', user.id)
+      .is('deleted_at', null)
+      .maybeSingle();
+    if (resourceErr) throw resourceErr;
+    if (!resource) {
+      throw createError({
+        statusCode:    404,
+        statusMessage: 'Target not found',
+        data:          { code: targetType === 'bot' ? '__errorBotNotFound' : '__errorAgentNotFound' },
+      });
+    }
+    targetId = parsed.data.targetId;
   }
 
   const { upstashUrl, upstashToken, supabaseUrl, fermiInternalSecret } = useRuntimeConfig(event);

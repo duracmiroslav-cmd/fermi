@@ -16,12 +16,25 @@ interface BuilderMessage {
   content:     string;
   changes?:    string[];
   hitStepCap?: boolean;
+  // Account onboarding: fermion called start_line_connect, so this reply
+  // carries the secure connect form. `widgetDone` flips once connected.
+  widget?:     'line_connect';
+  widgetDone?: boolean;
 }
 
-const props = defineProps<{ targetType: 'agent' | 'bot'; targetId: string }>();
-// Fires when fermion mutated the resource, so the page refetches its
-// config (and any preview picks up the new behavior).
+const props = defineProps<{
+  targetType: 'account' | 'agent' | 'bot';
+  // Resource targets (agent / bot) pass an id; account binds to the user.
+  targetId?:  string;
+  // The dashboard home renders fermion full-height rather than as a panel.
+  home?:      boolean;
+}>();
+// Fires when fermion mutated the resource (or a bot was connected), so the
+// host page refetches.
 const emit = defineEmits<{ updated: [] }>();
+
+const { t } = useI18n();
+const { create, isSubmitting } = useBots();
 
 // Config-mutating tools → the chip shown under fermion's reply.
 const CHANGE_LABEL_KEY: Record<string, string> = {
@@ -30,10 +43,8 @@ const CHANGE_LABEL_KEY: Record<string, string> = {
   update_bot:       '__labelBuilderUpdatedBot',
 };
 
-// Empty-state copy differs by what fermion is configuring here.
-const descriptionKey = computed(() =>
-  props.targetType === 'bot' ? '__descriptionFermionBotChat' : '__descriptionBuilderChat',
-);
+// Seed prompts offered in the account home's empty state.
+const ACCOUNT_SEEDS = ['__seedFermionStart', '__seedFermionConnectBot'];
 
 const messages = ref<BuilderMessage[]>([]);
 const draft = ref('');
@@ -41,7 +52,18 @@ const isSending = ref(false);
 const errorKey = ref<string | null>(null);
 const listEl = ref<HTMLElement | null>(null);
 
+// Empty-state copy differs by what fermion is configuring here.
+const descriptionKey = computed(() => {
+  if (props.targetType === 'account') return '__descriptionFermionAccountChat';
+  if (props.targetType === 'bot') return '__descriptionFermionBotChat';
+  return '__descriptionBuilderChat';
+});
+
 const canSend = computed(() => draft.value.trim().length > 0 && !isSending.value);
+
+// Non-persistent across sessions, but survives in-app navigation + reload
+// within the tab so the conversation doesn't evaporate when you click away.
+const storageKey = `fermion-chat:${props.targetType}:${props.targetId ?? 'me'}`;
 
 watch(
   () => messages.value.length + (isSending.value ? 1 : 0),
@@ -50,11 +72,16 @@ watch(
   }),
 );
 
-const onSend = async () => {
-  if (!canSend.value) return;
+watch(messages, (v) => {
+  if (import.meta.client) sessionStorage.setItem(storageKey, JSON.stringify(v));
+}, { deep: true });
+
+const onSend = async (override?: string) => {
+  const text = (override ?? draft.value).trim();
+  if (!text || isSending.value) return;
   errorKey.value = null;
-  messages.value.push({ role: 'user', content: draft.value.trim() });
-  draft.value = '';
+  messages.value.push({ role: 'user', content: text });
+  if (override === undefined) draft.value = '';
   isSending.value = true;
 
   try {
@@ -62,7 +89,7 @@ const onSend = async () => {
       method: 'POST',
       body:   {
         targetType: props.targetType,
-        targetId:   props.targetId,
+        ...(props.targetId ? { targetId: props.targetId } : {}),
         messages:   messages.value.map(m => ({ role: m.role, content: m.content })),
       },
     });
@@ -72,7 +99,18 @@ const onSend = async () => {
         .map(s => CHANGE_LABEL_KEY[String(s.payload.name ?? '')])
         .filter((k): k is string => !!k),
     )];
-    messages.value.push({ role: 'assistant', content: res.text, changes, hitStepCap: res.hitStepCap });
+    // On the account home, a start_line_connect call summons the secure
+    // connect form under this reply (credentials never enter the chat).
+    const wantsConnect = props.targetType === 'account' && res.steps.some(
+      s => s.type === 'tool_called' && s.payload.name === 'start_line_connect',
+    );
+    messages.value.push({
+      role:       'assistant',
+      content:    res.text,
+      changes,
+      hitStepCap: res.hitStepCap,
+      widget:     wantsConnect ? 'line_connect' : undefined,
+    });
     if (res.changed) emit('updated');
   } catch (err) {
     const status = (err as { statusCode?: number }).statusCode;
@@ -90,15 +128,36 @@ const onEnter = (e: KeyboardEvent) => {
   onSend();
 };
 
+const onConnect = async (index: number, value: { channelSecret: string; channelAccessToken: string }) => {
+  const created = await create({ platform: 'line', ...value });
+  if (!created) return;
+  const message = messages.value[index];
+  if (message) message.widgetDone = true;
+  emit('updated');
+  // Let fermion pick up the freshly connected bot (resolved server-side
+  // each turn) and carry the conversation to the next step.
+  await onSend(t('__fermionConnectedBotMessage'));
+};
+
 const onReset = () => {
   messages.value = [];
   errorKey.value = null;
   draft.value = '';
 };
+
+onMounted(() => {
+  const saved = sessionStorage.getItem(storageKey);
+  if (!saved) return;
+  try {
+    messages.value = JSON.parse(saved) as BuilderMessage[];
+  } catch {
+    sessionStorage.removeItem(storageKey);
+  }
+});
 </script>
 
 <template>
-  <div class="flex flex-col gap-3">
+  <div :class="['flex flex-col gap-3', home && 'h-full']">
     <div class="flex items-center justify-between gap-4">
       <h2 class="font-semibold flex items-center gap-2">
         <UIcon
@@ -119,14 +178,17 @@ const onReset = () => {
       </UButton>
     </div>
 
-    <UCard :ui="{ body: 'flex flex-col gap-0 p-0 sm:p-0' }">
+    <UCard
+      :class="home && 'flex-1 min-h-0'"
+      :ui="{ root: home ? 'flex flex-col' : '', body: 'flex flex-col gap-0 p-0 sm:p-0 min-h-0 flex-1' }"
+    >
       <div
         ref="listEl"
-        class="h-80 overflow-y-auto p-4 sm:p-6"
+        :class="['overflow-y-auto p-4 sm:p-6', home ? 'flex-1 min-h-0' : 'h-80']"
       >
         <div
           v-if="!messages.length && !isSending"
-          class="flex flex-col items-center justify-center gap-2 min-h-full text-center"
+          class="flex flex-col items-center justify-center gap-3 min-h-full text-center"
         >
           <UIcon
             name="i-lucide-atom"
@@ -135,6 +197,21 @@ const onReset = () => {
           <p class="text-sm text-toned max-w-xs">
             {{ $t(descriptionKey) }}
           </p>
+          <div
+            v-if="targetType === 'account'"
+            class="flex flex-wrap justify-center gap-2"
+          >
+            <UButton
+              v-for="seed in ACCOUNT_SEEDS"
+              :key="seed"
+              color="neutral"
+              variant="soft"
+              size="sm"
+              @click="onSend($t(seed))"
+            >
+              {{ $t(seed) }}
+            </UButton>
+          </div>
         </div>
 
         <ul
@@ -169,6 +246,36 @@ const onReset = () => {
                 {{ $t(changeKey) }}
               </UBadge>
             </div>
+
+            <UCard
+              v-if="message.widget === 'line_connect' && !message.widgetDone"
+              class="w-full max-w-md"
+            >
+              <LineBotConnectForm
+                :form-id="`fermion-connect-${i}`"
+                @submit="(value) => onConnect(i, value)"
+              />
+              <div class="mt-4 flex justify-end">
+                <UButton
+                  type="submit"
+                  :form="`fermion-connect-${i}`"
+                  :loading="isSubmitting"
+                  size="sm"
+                >
+                  {{ $t('__actionConnect') }}
+                </UButton>
+              </div>
+            </UCard>
+
+            <UBadge
+              v-else-if="message.widget === 'line_connect' && message.widgetDone"
+              color="primary"
+              variant="subtle"
+              size="sm"
+              icon="i-lucide-check"
+            >
+              {{ $t('__labelFermionBotConnected') }}
+            </UBadge>
 
             <p
               v-if="message.hitStepCap"
@@ -219,7 +326,7 @@ const onReset = () => {
             variant="ghost"
             :disabled="!canSend"
             class="absolute end-2 top-1"
-            @click="onSend"
+            @click="onSend()"
           />
         </div>
       </div>

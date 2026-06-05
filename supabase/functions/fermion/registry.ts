@@ -6,6 +6,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Toolset } from '../agent/tools/index.ts';
+import { accountTarget } from './account.ts';
 import { agentTarget } from './agent.ts';
 import { botTarget } from './bot.ts';
 
@@ -25,6 +26,7 @@ export interface FermionTarget {
 }
 
 export const TARGETS: Record<string, FermionTarget> = {
-  agent: agentTarget,
-  bot:   botTarget,
+  account: accountTarget,
+  agent:   agentTarget,
+  bot:     botTarget,
 };
