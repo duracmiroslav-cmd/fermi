@@ -28,7 +28,7 @@ const messages: Record<Locale, Record<string, string>> = {
     __noticeUnsupportedAudioFormat:    '⚠️ 不支援的音訊格式。',
     __noticeUnsupportedDocumentType:   '⚠️ 目前只能讀 PDF、Word（.docx）、純文字（.txt／.md／.json）。',
     __noticeUnsupportedImageFormat:    '⚠️ 目前只支援 JPG / PNG / GIF / WebP。',
-    __noticeUnsupportedMessageType:    '⚠️ 目前只支援文字、圖片、語音、檔案訊息。',
+    __noticeUnsupportedMessageType:    '⚠️ 目前我還看不懂這種訊息，你可以用文字或語音跟我說。',
   },
   'en': {
     __noticeAgentStepsExceeded:        '⚠️ Took {steps} steps without converging. Stopping. Try rephrasing.',
@@ -54,7 +54,7 @@ const messages: Record<Locale, Record<string, string>> = {
     __noticeUnsupportedAudioFormat:    '⚠️ Unsupported audio format.',
     __noticeUnsupportedDocumentType:   '⚠️ I can only read PDF, Word (.docx), and plain text (.txt / .md / .json).',
     __noticeUnsupportedImageFormat:    '⚠️ Only JPG / PNG / GIF / WebP images are supported.',
-    __noticeUnsupportedMessageType:    '⚠️ Only text, image, audio, and file messages are supported.',
+    __noticeUnsupportedMessageType:    '⚠️ I can\'t read this kind of message yet. You can use text or voice.',
   },
 };
 
