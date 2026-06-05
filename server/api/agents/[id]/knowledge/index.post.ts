@@ -1,6 +1,6 @@
 import { getCurrentUser } from '~~/server/utils/auth';
 import { ingestTextDocument } from '~~/server/utils/knowledge';
-import { UnsupportedFileError, extractDocumentText } from '~~/server/utils/knowledge-extract';
+import { UnsupportedFileError, extractDocumentText } from '~~/shared/documentText';
 
 // Raw upload cap (binary files run larger than their text). The extracted
 // text has its own, smaller cap below — that's what actually bounds embedding

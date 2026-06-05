@@ -343,7 +343,7 @@ export default {
   __errorKnowledgeDocNotFound:            'Document not found',
   __errorKnowledgeRequiresPro:            'The knowledge base is a Pro feature. Upgrade to add documents.',
   __hintKnowledgeNotAttached:             'Turn on the switch above so this agent uses these documents.',
-  __hintKnowledgeUpload:                  'PDF, Word (.doc / .docx), and plain text (.txt, .md, .json). fermi extracts the text, splits it, and indexes it for retrieval.',
+  __hintKnowledgeUpload:                  'PDF, Word (.docx), and plain text (.txt, .md, .json). fermi extracts the text, splits it, and indexes it for retrieval.',
   __labelKnowledgeCharCount:              '{count} characters',
   __statusFailed:                         'Failed',
   __titleKnowledgeDocuments:              'Documents',

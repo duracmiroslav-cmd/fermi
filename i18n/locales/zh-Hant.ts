@@ -345,7 +345,7 @@ export default {
   __errorKnowledgeDocNotFound:            '找不到文件',
   __errorKnowledgeRequiresPro:            '知識庫是 Pro 功能，升級即可新增文件。',
   __hintKnowledgeNotAttached:             '開啟上方開關，這個 Agent 才會使用這些文件。',
-  __hintKnowledgeUpload:                  'PDF、Word（.doc／.docx）、純文字（.txt、.md、.json）。fermi 會抽取文字、切段並建立索引供檢索。',
+  __hintKnowledgeUpload:                  'PDF、Word（.docx）、純文字（.txt、.md、.json）。fermi 會抽取文字、切段並建立索引供檢索。',
   __labelKnowledgeCharCount:              '{count} 字',
   __statusFailed:                         '失敗',
   __titleKnowledgeDocuments:              '文件',

@@ -30,8 +30,8 @@ const DOC_WIDTHS = ['w-40', 'w-32', 'w-48'];
 // are fast feedback; the server validates again.
 const { t } = useI18n();
 const notify = useNotify();
-const ACCEPT = '.txt,.md,.markdown,.text,.json,.pdf,.doc,.docx';
-const ALLOWED_EXT = /\.(txt|md|markdown|text|json|pdf|doc|docx)$/i;
+const ACCEPT = '.txt,.md,.markdown,.text,.json,.pdf,.docx';
+const ALLOWED_EXT = /\.(txt|md|markdown|text|json|pdf|docx)$/i;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const fileInput = ref<HTMLInputElement | null>(null);
 
