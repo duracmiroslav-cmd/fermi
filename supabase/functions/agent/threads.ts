@@ -18,7 +18,15 @@ type AudioContent = { type: 'audio'; mime: string; sizeBytes: number; storagePat
 // of the original file). Carried in history so follow-up questions about the
 // document work; the worker's char cap is what bounds its size.
 type DocumentContent = { type: 'document'; filename: string; text: string };
-export type MessageContent = TextContent | ImageContent | AudioContent | DocumentContent;
+// Sticker / location carry no binary — the structured fields *are* the whole
+// content. Stored as-is and rendered to a bracket-tagged line at history
+// rebuild (like [audio] / [file:]), so a future thread viewer can re-render a
+// map pin or the sticker image without re-parsing a flattened string. Sticker
+// keywords are LINE's own semantic labels (the emotion); `text` rides only on
+// message stickers.
+type StickerContent  = { type: 'sticker'; keywords: string[]; text?: string };
+type LocationContent = { type: 'location'; title?: string; address?: string; latitude: number; longitude: number };
+export type MessageContent = TextContent | ImageContent | AudioContent | DocumentContent | StickerContent | LocationContent;
 
 export type MessageRole = 'user' | 'assistant' | 'tool';
 
@@ -125,6 +133,17 @@ export const loadRecentMessages = async (
       // The full extracted text re-enters every turn it's still in the
       // window, which is what makes follow-up questions answerable.
       return { role, content: `[file: ${c.filename}]\n${c.text}` };
+    }
+    if (c.type === 'sticker') {
+      const detail = [
+        c.text || null,
+        c.keywords.length ? `keywords: ${c.keywords.join(', ')}` : null,
+      ].filter(Boolean).join(' — ');
+      return { role, content: detail ? `[sticker] ${detail}` : '[sticker]' };
+    }
+    if (c.type === 'location') {
+      const place = [c.title, c.address].filter(Boolean).join(', ');
+      return { role, content: `[location] ${place || 'shared'} (${c.latitude}, ${c.longitude})` };
     }
     return null;
   }));

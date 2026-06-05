@@ -125,7 +125,7 @@ interface LineEvent {
   timestamp?: number;
   replyToken?: string;
   source?: LineSource;
-  message?: { type: string; id?: string; text?: string; fileName?: string; fileSize?: number; mention?: { mentionees?: { isSelf?: boolean }[] } };
+  message?: { type: string; id?: string; text?: string; fileName?: string; fileSize?: number; keywords?: string[]; title?: string; address?: string; latitude?: number; longitude?: number; mention?: { mentionees?: { isSelf?: boolean }[] } };
   webhookEventId?: string;
 }
 
@@ -137,7 +137,9 @@ type UserInput
   = | { type: 'text';  text: string }
     | { type: 'audio'; lineMessageId: string; mime: AudioMime; bytes: Uint8Array; transcript: string }
     | { type: 'image'; lineMessageId: string; mime: ImageMime; bytes: Uint8Array }
-    | { type: 'document'; lineMessageId: string; filename: string; text: string };
+    | { type: 'document'; lineMessageId: string; filename: string; text: string }
+    | { type: 'sticker'; keywords: string[]; text?: string }
+    | { type: 'location'; title?: string; address?: string; latitude: number; longitude: number };
 
 interface LinePayload {
   platform: 'line';
@@ -211,6 +213,32 @@ const isFileMessageFromUser = (event: LineEvent): event is LineEvent & {
   && typeof event.source.userId === 'string'
 );
 
+const isStickerMessageFromUser = (event: LineEvent): event is LineEvent & {
+  replyToken: string;
+  source: LineSource & { userId: string };
+  message: { type: 'sticker' };
+} => (
+  event.type === 'message'
+  && event.message?.type === 'sticker'
+  && typeof event.replyToken === 'string'
+  && event.source?.type === 'user'
+  && typeof event.source.userId === 'string'
+);
+
+const isLocationMessageFromUser = (event: LineEvent): event is LineEvent & {
+  replyToken: string;
+  source: LineSource & { userId: string };
+  message: { type: 'location'; latitude: number; longitude: number };
+} => (
+  event.type === 'message'
+  && event.message?.type === 'location'
+  && typeof event.message.latitude === 'number'
+  && typeof event.message.longitude === 'number'
+  && typeof event.replyToken === 'string'
+  && event.source?.type === 'user'
+  && typeof event.source.userId === 'string'
+);
+
 // Lets early-return paths (no agent / no openrouter key) surface a
 // configuration notice regardless of the input modality.
 const isReplyableUserMessage = (event: LineEvent): event is LineEvent & {
@@ -221,6 +249,8 @@ const isReplyableUserMessage = (event: LineEvent): event is LineEvent & {
   || isImageMessageFromUser(event)
   || isAudioMessageFromUser(event)
   || isFileMessageFromUser(event)
+  || isStickerMessageFromUser(event)
+  || isLocationMessageFromUser(event)
 );
 
 const isGroupTextMessage = (event: LineEvent): event is LineEvent & {
@@ -566,7 +596,7 @@ const runAgentLoop = async (params: {
       sizeBytes: userInput.bytes.byteLength,
       storagePath,
     }, externalUserId);
-  } else {
+  } else if (userInput.type === 'document') {
     // Document: the extracted text is the persisted content (no original
     // bytes stored — nothing replays a file). History rebuild re-injects it
     // as `[file: name]\n<text>` so follow-up questions stay answerable.
@@ -574,6 +604,20 @@ const runAgentLoop = async (params: {
       type: 'document',
       filename: userInput.filename,
       text: userInput.text,
+    }, externalUserId);
+  } else if (userInput.type === 'sticker') {
+    await appendMessage(admin, threadId, 'user', {
+      type: 'sticker',
+      keywords: userInput.keywords,
+      ...(userInput.text ? { text: userInput.text } : {}),
+    }, externalUserId);
+  } else {
+    await appendMessage(admin, threadId, 'user', {
+      type: 'location',
+      ...(userInput.title ? { title: userInput.title } : {}),
+      ...(userInput.address ? { address: userInput.address } : {}),
+      latitude: userInput.latitude,
+      longitude: userInput.longitude,
     }, externalUserId);
   }
 
@@ -1260,9 +1304,57 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       continue;
     }
 
-    // Unsupported message subtypes (sticker / video / location / imagemap)
-    // get one scope-notice reply. Non-message events (follow / unfollow /
-    // postback / ...) drop silently — they have no replyToken to address.
+    // Sticker / location carry no binary and no Content API fetch: the
+    // webhook fields are the whole payload. Persist them as their own turn
+    // and run the same loop as everything else — in a 1:1 chat a reply is
+    // what tells the user the bot isn't dead.
+    if (isStickerMessageFromUser(event)) {
+      await runAgentLoop({
+        bot,
+        agent,
+        ownerLocale,
+        ownerTimezone,
+        openrouterKey,
+        lineAccessToken,
+        kek,
+        externalUserId: event.source.userId,
+        replyToken: event.replyToken,
+        userInput: {
+          type: 'sticker',
+          keywords: Array.isArray(event.message.keywords) ? event.message.keywords : [],
+          ...(typeof event.message.text === 'string' ? { text: event.message.text } : {}),
+        },
+        eventTimestamp,
+      });
+      continue;
+    }
+
+    if (isLocationMessageFromUser(event)) {
+      await runAgentLoop({
+        bot,
+        agent,
+        ownerLocale,
+        ownerTimezone,
+        openrouterKey,
+        lineAccessToken,
+        kek,
+        externalUserId: event.source.userId,
+        replyToken: event.replyToken,
+        userInput: {
+          type: 'location',
+          ...(typeof event.message.title === 'string' ? { title: event.message.title } : {}),
+          ...(typeof event.message.address === 'string' ? { address: event.message.address } : {}),
+          latitude: event.message.latitude,
+          longitude: event.message.longitude,
+        },
+        eventTimestamp,
+      });
+      continue;
+    }
+
+    // Unsupported message subtypes (video / imagemap) get one scope-notice
+    // reply. Non-message events (follow / unfollow / postback / ...) drop
+    // silently — they have no replyToken to address.
     if (
       event.type === 'message'
       && typeof event.replyToken === 'string'
