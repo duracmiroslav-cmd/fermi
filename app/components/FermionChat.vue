@@ -305,6 +305,7 @@ onMounted(() => {
             :class="message.role === 'user' ? 'items-end' : 'items-start'"
           >
             <div
+              v-if="message.content"
               class="max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words leading-relaxed"
               :class="message.role === 'user' ? 'bg-primary/10' : 'bg-muted'"
             >
