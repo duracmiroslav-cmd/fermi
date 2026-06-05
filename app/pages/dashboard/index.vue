@@ -10,10 +10,7 @@ definePageMeta({ layout: false });
       </template>
 
       <div class="h-full px-6 sm:px-8 py-6 mx-auto w-full max-w-3xl">
-        <FermionChat
-          target-type="account"
-          home
-        />
+        <FermionChat home />
       </div>
     </NuxtLayout>
   </div>

@@ -1,31 +1,40 @@
-// fermion chat. The owner converses with fermi's setup assistant to
-// configure a resource (an agent's persona, a bot's settings) instead of
-// editing fields by hand. Auth boundary + thin proxy: the loop +
-// config-mutating tools run in the `fermion` Edge Function, which trusts
-// the id it's handed — so ownership MUST be enforced here, per target
-// type, before forwarding.
+// fermion chat. The owner converses with fermi's one assistant to connect
+// bots, configure agents, and set up providers. Auth boundary + thin
+// proxy: the loop + tools run in the `fermion` Edge Function (owner-scoped;
+// each tool enforces ownership by id). This route authenticates the owner,
+// validates the optional page-context ids belong to them, and forwards.
 
 import { z } from 'zod';
 import { getCurrentUser } from '~~/server/utils/auth';
 import { checkOwnerPreviewRateLimit } from '~~/server/utils/rate-limit';
 import { isTrustedTriggerHost } from '~~/server/utils/trigger';
 
-// Maps a resource target type to the table whose `(id, owner_id)` proves
-// ownership. Every entry must have `owner_id` + `deleted_at`; keep in step
-// with the Edge Function's TARGETS registry. `account` is absent on
-// purpose — it has no resource, it's scoped to the authenticated user.
-const TARGET_TABLE = { agent: 'agents', bot: 'bots' } as const;
-
 const bodySchema = z.object({
-  targetType: z.enum(['account', 'agent', 'bot']),
-  // Required for resource targets (agent / bot); ignored for `account`,
-  // which the route binds to the authenticated user instead.
-  targetId:   z.string().uuid().optional(),
-  messages:   z.array(z.object({
+  // The page the chat is embedded on, if any → "currently viewing X" hint.
+  context: z.object({
+    agentId: z.string().uuid().optional(),
+    botId:   z.string().uuid().optional(),
+  }).strict().optional(),
+  messages: z.array(z.object({
     role:    z.enum(['user', 'assistant']),
     content: z.string().min(1).max(5000),
   })).min(1).max(50),
 }).strict();
+
+// Confirms a context id belongs to the caller before it reaches the prompt;
+// a foreign id is dropped (not an error) so a stale hint never leaks names.
+const ownedId = async (
+  admin: ReturnType<typeof useSupabaseAdmin>,
+  table: 'agents' | 'bots',
+  id: string | undefined,
+  ownerId: string,
+): Promise<string | undefined> => {
+  if (!id) return undefined;
+  const { data, error } = await admin
+    .from(table).select('id').eq('id', id).eq('owner_id', ownerId).is('deleted_at', null).maybeSingle();
+  if (error) throw error;
+  return data ? id : undefined;
+};
 
 export default defineEventHandler(async (event) => {
   const user = await getCurrentUser(event);
@@ -34,36 +43,16 @@ export default defineEventHandler(async (event) => {
   if (!parsed.success) {
     throw createError({ statusCode: 400, statusMessage: parsed.error.message });
   }
-  const { targetType, messages } = parsed.data;
+  const { context, messages } = parsed.data;
 
   const admin = useSupabaseAdmin();
 
-  // `account` is bound to the caller; resource targets are looked up and
-  // ownership-checked here, since the Edge Function trusts the id it gets.
-  let targetId: string;
-  if (targetType === 'account') {
-    targetId = user.id;
-  } else {
-    if (!parsed.data.targetId) {
-      throw createError({ statusCode: 400, statusMessage: 'targetId is required for this target' });
-    }
-    const { data: resource, error: resourceErr } = await admin
-      .from(TARGET_TABLE[targetType])
-      .select('id')
-      .eq('id', parsed.data.targetId)
-      .eq('owner_id', user.id)
-      .is('deleted_at', null)
-      .maybeSingle();
-    if (resourceErr) throw resourceErr;
-    if (!resource) {
-      throw createError({
-        statusCode:    404,
-        statusMessage: 'Target not found',
-        data:          { code: targetType === 'bot' ? '__errorBotNotFound' : '__errorAgentNotFound' },
-      });
-    }
-    targetId = parsed.data.targetId;
-  }
+  const validatedContext = context
+    ? {
+        agentId: await ownedId(admin, 'agents', context.agentId, user.id),
+        botId:   await ownedId(admin, 'bots', context.botId, user.id),
+      }
+    : undefined;
 
   const { upstashUrl, upstashToken, supabaseUrl, fermiInternalSecret } = useRuntimeConfig(event);
 
@@ -94,7 +83,7 @@ export default defineEventHandler(async (event) => {
       // internal-auth.ts). No Supabase key in this call path.
       'x-fermi-internal-secret': fermiInternalSecret,
     },
-    body: JSON.stringify({ targetType, targetId, messages }),
+    body: JSON.stringify({ ownerId: user.id, context: validatedContext, messages }),
   });
   if (!res.ok) {
     const detail = await res.text();

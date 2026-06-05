@@ -1,227 +1,230 @@
-// The bot target: fermion configuring a *bot*'s settings (which agent it
-// runs, pause, group-chat gate + transcription) by talking with the
-// owner instead of editing the form by hand. Mirrors the agent target:
-// the toolset closes over the bound bot + owner and ignores the per-call
-// ToolContext the loop passes.
+// Bot-domain tools for the unified fermion: discover (list/get), edit any
+// of the owner's bots by id, and summon the webhook-setup / add-and-test
+// widgets. Every tool scopes by ownerId.
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { ToolSchema, Toolset } from '../agent/tools/index.ts';
-import type { FermionTarget } from './registry.ts';
+import type { FermionTool, FermionToolContext } from './tool.ts';
+import { repliedBotIds } from './state.ts';
 
-interface UpdateBotArgs {
-  agent_id?:                 string;
-  disabled?:                 boolean;
-  group_activation_code?:    string | null;
-  group_transcribe_enabled?: boolean;
-}
-
-const schemas: ToolSchema[] = [
-  {
-    type: 'function',
-    function: {
-      name: 'update_bot',
-      description:
-        'Change this bot\'s settings. Pass only the fields you want to change. agent_id switches which assistant persona answers; an agent can only be connected to one bot at a time.',
-      parameters: {
-        type: 'object',
-        properties: {
-          agent_id: {
-            type:        'string',
-            description: 'Connect this bot to one of the owner\'s agents, by its id (see the list in your instructions). Pick by the name the user refers to.',
-          },
-          disabled: {
-            type:        'boolean',
-            description: 'true pauses the bot (it stops replying but stays connected); false resumes it.',
-          },
-          group_activation_code: {
-            type:        ['string', 'null'],
-            description: 'A 4–32 character passphrase an end-user types in a LINE group to turn the bot on there. Set it to enable group chats; pass an empty string or null to turn group chats off.',
-          },
-          group_transcribe_enabled: {
-            type:        'boolean',
-            description: 'Whether voice messages in activated groups are transcribed to text.',
-          },
-        },
-        required: [],
-        additionalProperties: false,
-      },
-    },
-  },
-];
-
-interface CurrentBot {
-  displayName:            string | null;
-  agentName:             string;
-  disabled:               boolean;
-  groupActivationCode:    string | null;
-  groupTranscribeEnabled: boolean;
-  platform:               string;
-  externalId:             string;
-  webhookVerified:        boolean;
-  hasAvatar:              boolean;
-  createdAt:              string;
-}
-
-interface OwnerAgent {
-  id:   string;
-  name: string;
-}
-
-const botSystemPrompt = (current: CurrentBot, agents: OwnerAgent[]): string =>
-  `You are fermion, fermi's setup assistant. You help a non-technical person configure their LINE bot by talking with them.
-
-A "bot" is a connected LINE Official Account. An "agent" is the assistant persona that answers on it. Here is this bot's current configuration:
-- Name: ${current.displayName ?? '(unnamed)'}
-- Connected agent: ${current.agentName}
-- Status: ${current.disabled ? 'paused (not replying)' : 'active'}
-- Group chats: ${current.groupActivationCode ? `on (activation passphrase: "${current.groupActivationCode}")` : 'off'}
-- Transcribe group voice messages: ${current.groupTranscribeEnabled ? 'on' : 'off'}
-- Platform: ${current.platform}
-- LINE channel id (external id): ${current.externalId}
-- Webhook: ${current.webhookVerified ? 'verified' : 'not verified yet'}
-- Avatar: ${current.hasAvatar ? 'set' : 'not set'}
-- Connected since: ${current.createdAt}
-
-The owner's agents you can connect (use the id with update_bot):
-${agents.length ? agents.map(a => `- ${a.name} (${a.id})`).join('\n') : '- (none)'}
-
-How to work:
-- Make the change the user asks for with update_bot, passing only the fields that change.
-- To switch persona, match what the user says to an agent above and pass its agent_id. Each agent connects to only one bot — if it's already connected elsewhere the change will fail and you should tell the user.
-- "Pause" / "stop replying" → disabled: true. "Resume" / "turn back on" → disabled: false.
-- To open the bot to LINE groups, set group_activation_code to a short passphrase (the owner picks it; end-users type it in the group). To close groups, clear it.
-- After making changes, briefly tell the user what you set, in their language. Be warm and concise.
-
-What you can't change from here, and should point elsewhere for:
-- Connecting or reconnecting the LINE account, and the bot's name (that mirrors the LINE Official Account — rename it in LINE OA Manager and sync). These live on the bot's setup, not in this chat.
-- The agent's own persona, voice, or capabilities — those are configured on that agent's page.`;
-
-export const buildBotToolset = (
-  admin:       SupabaseClient,
-  ownerId:     string,
-  targetBotId: string,
-): Toolset => {
-  const updateBot = async (args: UpdateBotArgs): Promise<unknown> => {
-    const patch: Record<string, string | boolean | null> = {};
-
-    if (typeof args.agent_id === 'string') {
-      const { data: agent, error: agentErr } = await admin
-        .from('agents')
-        .select('id')
-        .eq('id', args.agent_id)
-        .eq('owner_id', ownerId)
-        .is('deleted_at', null)
-        .maybeSingle();
-      if (agentErr) throw agentErr;
-      if (!agent) return { error: 'That agent does not exist. Use one of the agent ids from your instructions.' };
-      patch.agent_id = args.agent_id;
-    }
-
-    if (typeof args.disabled === 'boolean') {
-      patch.disabled_at = args.disabled ? new Date().toISOString() : null;
-    }
-
-    if (args.group_activation_code !== undefined) {
-      const raw = args.group_activation_code;
-      if (raw === null || raw.trim() === '') {
-        patch.group_activation_code = null;
-      } else {
-        const code = raw.trim();
-        if (code.length < 4 || code.length > 32) {
-          return { error: 'The group activation passphrase must be 4–32 characters.' };
-        }
-        patch.group_activation_code = code;
-      }
-    }
-
-    if (typeof args.group_transcribe_enabled === 'boolean') {
-      patch.group_transcribe_enabled = args.group_transcribe_enabled;
-    }
-
-    if (Object.keys(patch).length === 0) {
-      return { error: 'Nothing to update: pass agent_id, disabled, group_activation_code, and/or group_transcribe_enabled.' };
-    }
-
-    const { error: updateErr } = await admin
-      .from('bots')
-      .update(patch)
-      .eq('id', targetBotId)
-      .eq('owner_id', ownerId)
-      .is('deleted_at', null);
-    if (updateErr) {
-      // 1:1 bot↔agent binding enforced by a unique constraint on agent_id.
-      if ((updateErr as { code?: string }).code === '23505') {
-        return { error: 'That agent is already connected to another bot. Disconnect it there first, or pick a different agent.' };
-      }
-      throw updateErr;
-    }
-    return { ok: true, updated: Object.keys(patch) };
-  };
-
-  // ctx is the end-user run context the shared loop passes; the bot tools
-  // operate on the bound bot and ignore it.
-  const execute = async (name: string, argumentsJson: string): Promise<string> => {
-    let args: Record<string, unknown>;
-    try {
-      args = JSON.parse(argumentsJson) as Record<string, unknown>;
-    } catch {
-      return JSON.stringify({ error: 'Tool arguments were not valid JSON.' });
-    }
-    try {
-      if (name === 'update_bot') return JSON.stringify(await updateBot(args));
-      return JSON.stringify({ error: `Unknown tool: ${name}` });
-    } catch (err) {
-      return JSON.stringify({ error: `Tool execution failed: ${String(err)}` });
-    }
-  };
-
-  return { schemas, execute };
+// Confirms a bot id belongs to the owner (disabled bots included; deleted
+// excluded). Returns the row or null.
+const ownedBot = async (
+  admin: SupabaseClient,
+  ownerId: string,
+  botId: unknown,
+): Promise<{ id: string } | null> => {
+  if (typeof botId !== 'string') return null;
+  const { data, error } = await admin
+    .from('bots')
+    .select('id')
+    .eq('id', botId)
+    .eq('owner_id', ownerId)
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
 };
 
-export const botTarget: FermionTarget = {
-  mutatingTools: ['update_bot'],
-  resolve: async (admin, id) => {
-    // Unlike findBotById (active bots only), load regardless of
-    // disabled_at: fermion must see — and be able to re-enable — a paused
-    // bot. deleted_at is still excluded.
-    const { data: bot, error: botErr } = await admin
-      .from('bots')
-      .select('id, owner_id, agent_id, display_name, disabled_at, group_activation_code, group_transcribe_enabled, platform, external_id, webhook_verified_at, avatar_url, created_at')
-      .eq('id', id)
+const listBots = async (_args: Record<string, unknown>, { admin, ownerId }: FermionToolContext): Promise<unknown> => {
+  const { data: bots, error: botErr } = await admin
+    .from('bots')
+    .select('id, display_name, agent_id, disabled_at, webhook_verified_at')
+    .eq('owner_id', ownerId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false });
+  if (botErr) throw botErr;
+  const replied = await repliedBotIds(admin, ownerId);
+  return {
+    bots: (bots ?? []).map(b => ({
+      id:               b.id,
+      name:             b.display_name ?? '(unnamed)',
+      agent_id:         b.agent_id,
+      status:           b.disabled_at ? 'paused' : 'active',
+      webhook_verified: b.webhook_verified_at !== null,
+      has_replied:      replied.has(b.id),
+    })),
+  };
+};
+
+const getBot = async (args: Record<string, unknown>, { admin, ownerId }: FermionToolContext): Promise<unknown> => {
+  if (typeof args.bot_id !== 'string') return { error: 'Pass bot_id (from list_bots).' };
+  const { data: bot, error: botErr } = await admin
+    .from('bots')
+    .select('id, display_name, agent_id, disabled_at, group_activation_code, group_transcribe_enabled, platform, external_id, webhook_verified_at, avatar_url, created_at')
+    .eq('id', args.bot_id)
+    .eq('owner_id', ownerId)
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (botErr) throw botErr;
+  if (!bot) return { error: 'No bot with that id (or it isn\'t yours).' };
+  const replied = await repliedBotIds(admin, ownerId);
+  return {
+    id:                       bot.id,
+    name:                     bot.display_name ?? '(unnamed)',
+    agent_id:                 bot.agent_id,
+    status:                   bot.disabled_at ? 'paused' : 'active',
+    group_chats:              bot.group_activation_code ? `on (passphrase: "${bot.group_activation_code}")` : 'off',
+    group_transcribe:         bot.group_transcribe_enabled,
+    platform:                 bot.platform,
+    external_id:              bot.external_id,
+    webhook_verified:         bot.webhook_verified_at !== null,
+    has_replied:              replied.has(bot.id),
+    avatar:                   bot.avatar_url ? 'set' : 'not set',
+  };
+};
+
+const updateBot = async (args: Record<string, unknown>, { admin, ownerId }: FermionToolContext): Promise<unknown> => {
+  const owned = await ownedBot(admin, ownerId, args.bot_id);
+  if (!owned) return { error: 'No bot with that id (or it isn\'t yours). Use list_bots.' };
+  const botId = owned.id;
+
+  const patch: Record<string, string | boolean | null> = {};
+
+  if (typeof args.agent_id === 'string') {
+    const { data: agent, error: agentErr } = await admin
+      .from('agents')
+      .select('id')
+      .eq('id', args.agent_id)
+      .eq('owner_id', ownerId)
       .is('deleted_at', null)
       .maybeSingle();
-    if (botErr) throw botErr;
-    if (!bot) return null;
-
-    const { data: agents, error: agentErr } = await admin
-      .from('agents')
-      .select('id, name')
-      .eq('owner_id', bot.owner_id)
-      .is('deleted_at', null)
-      .order('is_default', { ascending: false })
-      .order('created_at', { ascending: false });
     if (agentErr) throw agentErr;
+    if (!agent) return { error: 'That agent does not exist (or it isn\'t yours). Use list_agents.' };
+    patch.agent_id = args.agent_id;
+  }
 
-    const agentName = agents?.find(a => a.id === bot.agent_id)?.name ?? '(none)';
+  if (typeof args.disabled === 'boolean') {
+    patch.disabled_at = args.disabled ? new Date().toISOString() : null;
+  }
 
-    return {
-      ownerId: bot.owner_id,
-      systemPrompt: botSystemPrompt(
-        {
-          displayName:            bot.display_name,
-          agentName,
-          disabled:               bot.disabled_at !== null,
-          groupActivationCode:    bot.group_activation_code,
-          groupTranscribeEnabled: bot.group_transcribe_enabled,
-          platform:               bot.platform,
-          externalId:             bot.external_id,
-          webhookVerified:        bot.webhook_verified_at !== null,
-          hasAvatar:              bot.avatar_url !== null,
-          createdAt:              bot.created_at,
-        },
-        (agents ?? []).map(a => ({ id: a.id, name: a.name })),
-      ),
-      toolset: buildBotToolset(admin, bot.owner_id, bot.id),
-    };
-  },
+  if (args.group_activation_code !== undefined) {
+    const raw = args.group_activation_code;
+    if (raw === null || (typeof raw === 'string' && raw.trim() === '')) {
+      patch.group_activation_code = null;
+    } else if (typeof raw === 'string') {
+      const code = raw.trim();
+      if (code.length < 4 || code.length > 32) return { error: 'The group activation passphrase must be 4–32 characters.' };
+      patch.group_activation_code = code;
+    } else {
+      return { error: 'group_activation_code must be a string or null.' };
+    }
+  }
+
+  if (typeof args.group_transcribe_enabled === 'boolean') {
+    patch.group_transcribe_enabled = args.group_transcribe_enabled;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return { error: 'Nothing to update: pass agent_id, disabled, group_activation_code, and/or group_transcribe_enabled.' };
+  }
+
+  const { error: updateErr } = await admin
+    .from('bots')
+    .update(patch)
+    .eq('id', botId)
+    .eq('owner_id', ownerId)
+    .is('deleted_at', null);
+  if (updateErr) {
+    // 1:1 bot↔agent binding enforced by a unique constraint on agent_id.
+    if ((updateErr as { code?: string }).code === '23505') {
+      return { error: 'That agent is already connected to another bot. Disconnect it there first, or pick a different agent.' };
+    }
+    throw updateErr;
+  }
+  return { ok: true, bot_id: botId, updated: Object.keys(patch) };
 };
+
+// Widget directives: no server effect — the chat UI renders the action
+// (webhook setup / add-and-test) against the existing secure endpoints.
+// Validate ownership so fermion gets a clear error for a bad id.
+const startWidget = (kind: string) =>
+  async (args: Record<string, unknown>, { admin, ownerId }: FermionToolContext): Promise<unknown> => {
+    const owned = await ownedBot(admin, ownerId, args.bot_id);
+    if (!owned) return { error: 'No bot with that id (or it isn\'t yours). Use list_bots.' };
+    return { ok: true, widget: kind, bot_id: owned.id };
+  };
+
+export const botTools: FermionTool[] = [
+  {
+    schema: {
+      type: 'function',
+      function: {
+        name: 'list_bots',
+        description: 'List the owner\'s bots (id, name, connected agent, status, whether the webhook is verified and the bot has ever replied). Use to find a bot\'s id.',
+        parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
+      },
+    },
+    run: listBots,
+  },
+  {
+    schema: {
+      type: 'function',
+      function: {
+        name: 'get_bot',
+        description: 'Get one bot\'s full configuration (connected agent, status, group chats, webhook, etc.).',
+        parameters: {
+          type: 'object',
+          properties: { bot_id: { type: 'string', description: 'The bot id from list_bots.' } },
+          required: ['bot_id'],
+          additionalProperties: false,
+        },
+      },
+    },
+    run: getBot,
+  },
+  {
+    schema: {
+      type: 'function',
+      function: {
+        name: 'update_bot',
+        description: 'Edit a bot. Pass bot_id plus only the fields to change. agent_id switches which agent answers (an agent connects to only one bot). disabled pauses/resumes. group_activation_code (4–32 chars, or empty/null to turn off) gates group chats.',
+        parameters: {
+          type: 'object',
+          properties: {
+            bot_id:                   { type: 'string', description: 'The bot id from list_bots.' },
+            agent_id:                 { type: 'string', description: 'Connect this bot to one of the owner\'s agents (list_agents).' },
+            disabled:                 { type: 'boolean', description: 'true pauses (stops replying, stays connected); false resumes.' },
+            group_activation_code:    { type: ['string', 'null'], description: 'A 4–32 char passphrase end-users type in a LINE group to turn the bot on there. Empty/null turns group chats off.' },
+            group_transcribe_enabled: { type: 'boolean', description: 'Whether group voice messages are transcribed to text.' },
+          },
+          required: ['bot_id'],
+          additionalProperties: false,
+        },
+      },
+    },
+    mutating: true,
+    run: updateBot,
+  },
+  {
+    schema: {
+      type: 'function',
+      function: {
+        name: 'setup_webhook',
+        description: 'Show a button that connects this bot\'s webhook to LINE and verifies it (fermi does it via the LINE API — the owner does NOT touch the LINE console). Use after a bot is connected and its webhook isn\'t verified yet.',
+        parameters: {
+          type: 'object',
+          properties: { bot_id: { type: 'string', description: 'The bot id from list_bots.' } },
+          required: ['bot_id'],
+          additionalProperties: false,
+        },
+      },
+    },
+    run: startWidget('setup_webhook'),
+  },
+  {
+    schema: {
+      type: 'function',
+      function: {
+        name: 'start_bot_test',
+        description: 'Show an "add this bot on LINE" QR/link so the owner can message it, and watch for the first reply. fermi cannot send the message for them — they message the bot and we detect it works. Use as the final onboarding step.',
+        parameters: {
+          type: 'object',
+          properties: { bot_id: { type: 'string', description: 'The bot id from list_bots.' } },
+          required: ['bot_id'],
+          additionalProperties: false,
+        },
+      },
+    },
+    run: startWidget('bot_test'),
+  },
+];

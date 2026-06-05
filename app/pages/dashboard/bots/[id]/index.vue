@@ -178,8 +178,7 @@ const copyWebhook = async () => {
         />
 
         <FermionChat
-          target-type="bot"
-          :target-id="bot.id"
+          :context-bot-id="bot.id"
           @updated="refresh"
         />
 

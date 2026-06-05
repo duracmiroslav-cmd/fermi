@@ -11,30 +11,34 @@ interface BuildResponse {
   changed:    boolean;
 }
 
-interface BuilderMessage {
-  role:        'user' | 'assistant';
-  content:     string;
-  changes?:    string[];
-  hitStepCap?: boolean;
-  // Account onboarding: fermion summoned a connect UI under this reply —
-  // a secure LINE form, or an "open OpenRouter sign-in" button.
-  // `widgetDone` flips once connected.
-  widget?:     'line_connect' | 'openrouter_connect';
-  widgetDone?: boolean;
+type Widget = 'line_connect' | 'openrouter_connect' | 'setup_webhook' | 'bot_test';
+
+interface FermionMessage {
+  role:         'user' | 'assistant';
+  content:      string;
+  changes?:     string[];
+  hitStepCap?:  boolean;
+  // fermion summoned a connect/setup UI under this reply (credentials /
+  // OAuth never flow through the chat). `widgetDone` flips once finished.
+  widget?:      Widget;
+  widgetBotId?: string;
+  widgetDone?:  boolean;
 }
 
 const props = defineProps<{
-  targetType: 'account' | 'agent' | 'bot';
-  // Resource targets (agent / bot) pass an id; account binds to the user.
-  targetId?:  string;
+  // When embedded on an agent/bot page, the resource the user is viewing →
+  // a "currently viewing X" hint so they needn't restate which one.
+  contextAgentId?: string;
+  contextBotId?:   string;
   // The dashboard home renders fermion full-height rather than as a panel.
-  home?:      boolean;
+  home?:           boolean;
 }>();
-// Fires when fermion mutated the resource (or a bot was connected), so the
+// Fires when fermion mutated a resource (or connected something), so the
 // host page refetches.
 const emit = defineEmits<{ updated: [] }>();
 
 const { t } = useI18n();
+const notify = useNotify();
 const { create, isSubmitting } = useBots();
 
 // Config-mutating tools → the chip shown under fermion's reply.
@@ -44,29 +48,38 @@ const CHANGE_LABEL_KEY: Record<string, string> = {
   update_bot:       '__labelBuilderUpdatedBot',
 };
 
-// Seed prompts offered in the account home's empty state.
-const ACCOUNT_SEEDS = ['__seedFermionStart', '__seedFermionConnectBot'];
+// tool name → the widget rendered under fermion's reply.
+const WIDGET_BY_TOOL: Record<string, Widget> = {
+  start_line_connect:       'line_connect',
+  start_openrouter_connect: 'openrouter_connect',
+  setup_webhook:            'setup_webhook',
+  start_bot_test:           'bot_test',
+};
 
-const messages = ref<BuilderMessage[]>([]);
+// Seed prompts offered in the empty state.
+const SEEDS = ['__seedFermionStart', '__seedFermionConnectBot'];
+
+const messages = ref<FermionMessage[]>([]);
 const draft = ref('');
 const isSending = ref(false);
 const errorKey = ref<string | null>(null);
 const listEl = ref<HTMLElement | null>(null);
 // Which message's OpenRouter widget is awaiting the OAuth tab, or null.
 const openrouterWaitingIndex = ref<number | null>(null);
-
-// Empty-state copy differs by what fermion is configuring here.
-const descriptionKey = computed(() => {
-  if (props.targetType === 'account') return '__descriptionFermionAccountChat';
-  if (props.targetType === 'bot') return '__descriptionFermionBotChat';
-  return '__descriptionBuilderChat';
-});
+// Which message's webhook setup is in flight, or null.
+const webhookSettingUpIndex = ref<number | null>(null);
 
 const canSend = computed(() => draft.value.trim().length > 0 && !isSending.value);
 
-// Non-persistent across sessions, but survives in-app navigation + reload
-// within the tab so the conversation doesn't evaporate when you click away.
-const storageKey = `fermion-chat:${props.targetType}:${props.targetId ?? 'me'}`;
+const contextBody = computed(() => {
+  if (props.contextAgentId) return { agentId: props.contextAgentId };
+  if (props.contextBotId) return { botId: props.contextBotId };
+  return undefined;
+});
+
+// One shared conversation across the home + page embeds, so it reads as a
+// single assistant that follows you. Survives in-app nav + reload (no DB).
+const storageKey = 'fermion-chat:me';
 
 watch(
   () => messages.value.length + (isSending.value ? 1 : 0),
@@ -91,9 +104,8 @@ const onSend = async (override?: string) => {
     const res = await $fetch<BuildResponse>('/api/fermion', {
       method: 'POST',
       body:   {
-        targetType: props.targetType,
-        ...(props.targetId ? { targetId: props.targetId } : {}),
-        messages:   messages.value.map(m => ({ role: m.role, content: m.content })),
+        ...(contextBody.value ? { context: contextBody.value } : {}),
+        messages: messages.value.map(m => ({ role: m.role, content: m.content })),
       },
     });
     const changes = [...new Set(
@@ -102,23 +114,23 @@ const onSend = async (override?: string) => {
         .map(s => CHANGE_LABEL_KEY[String(s.payload.name ?? '')])
         .filter((k): k is string => !!k),
     )];
-    // On the account home, a start_*_connect call summons a connect UI
-    // under this reply (credentials / OAuth never flow through the chat).
-    const connectTool = props.targetType === 'account'
-      ? res.steps.find(s => s.type === 'tool_called'
-        && (s.payload.name === 'start_line_connect' || s.payload.name === 'start_openrouter_connect'))
-      : undefined;
-    const widget = connectTool?.payload.name === 'start_openrouter_connect'
-      ? 'openrouter_connect' as const
-      : connectTool?.payload.name === 'start_line_connect'
-        ? 'line_connect' as const
-        : undefined;
+    const widgetCall = res.steps.find(
+      s => s.type === 'tool_called' && WIDGET_BY_TOOL[String(s.payload.name ?? '')],
+    );
+    const widget = widgetCall ? WIDGET_BY_TOOL[String(widgetCall.payload.name)] : undefined;
+    let widgetBotId: string | undefined;
+    if (widget === 'setup_webhook' || widget === 'bot_test') {
+      try {
+        widgetBotId = (JSON.parse(String(widgetCall!.payload.arguments)) as { bot_id?: string }).bot_id;
+      } catch { widgetBotId = undefined; }
+    }
     messages.value.push({
       role:       'assistant',
       content:    res.text,
       changes,
       hitStepCap: res.hitStepCap,
       widget,
+      widgetBotId,
     });
     if (res.changed) emit('updated');
   } catch (err) {
@@ -143,14 +155,13 @@ const onConnect = async (index: number, value: { channelSecret: string; channelA
   const message = messages.value[index];
   if (message) message.widgetDone = true;
   emit('updated');
-  // Let fermion pick up the freshly connected bot (resolved server-side
-  // each turn) and carry the conversation to the next step.
+  // fermion re-resolves account state each turn, so the freshly connected
+  // bot is visible and it carries on to the next step.
   await onSend(t('__fermionConnectedBotMessage'));
 };
 
 // OpenRouter is OAuth, not an in-page form: open sign-in in a new tab and
-// poll the status endpoint (the tab has no callback to this one), then let
-// fermion continue once connected. Mirrors the bot detail page's poll.
+// poll the status endpoint (the tab has no callback to this one).
 const { pause: pauseOpenrouterPoll, resume: resumeOpenrouterPoll } = useIntervalFn(async () => {
   const index = openrouterWaitingIndex.value;
   if (index === null) return;
@@ -170,6 +181,38 @@ const onConnectOpenrouter = (index: number) => {
   resumeOpenrouterPoll();
 };
 
+// fermi sets + verifies the webhook on LINE via the Messaging API; the
+// owner never touches the LINE console. Reuses the bot setup endpoints.
+const onSetupWebhook = async (index: number, botId: string) => {
+  webhookSettingUpIndex.value = index;
+  try {
+    await $fetch(`/api/bots/${botId}/webhook/endpoint`, { method: 'PUT' });
+    const result = await $fetch<{ success: boolean; detail?: string; reason?: string }>(
+      `/api/bots/${botId}/webhook/test`, { method: 'POST' },
+    );
+    if (!result.success) {
+      notify.error(t('__toastWebhookTestFailed'), new Error(result.detail ?? result.reason ?? t('__errorUnknown')));
+      return;
+    }
+    const message = messages.value[index];
+    if (message) message.widgetDone = true;
+    emit('updated');
+    await onSend(t('__fermionWebhookConnectedMessage'));
+  } catch (e) {
+    notify.error(t('__toastWebhookSetupFailed'), e);
+  } finally {
+    webhookSettingUpIndex.value = null;
+  }
+};
+
+const onBotReplied = async (index: number) => {
+  const message = messages.value[index];
+  if (!message || message.widgetDone) return;
+  message.widgetDone = true;
+  emit('updated');
+  await onSend(t('__fermionBotRepliedMessage'));
+};
+
 const onReset = () => {
   messages.value = [];
   errorKey.value = null;
@@ -180,7 +223,7 @@ onMounted(() => {
   const saved = sessionStorage.getItem(storageKey);
   if (!saved) return;
   try {
-    messages.value = JSON.parse(saved) as BuilderMessage[];
+    messages.value = JSON.parse(saved) as FermionMessage[];
   } catch {
     sessionStorage.removeItem(storageKey);
   }
@@ -226,14 +269,11 @@ onMounted(() => {
             class="size-8 text-muted"
           />
           <p class="text-sm text-toned max-w-xs">
-            {{ $t(descriptionKey) }}
+            {{ $t('__descriptionFermionAccountChat') }}
           </p>
-          <div
-            v-if="targetType === 'account'"
-            class="flex flex-wrap justify-center gap-2"
-          >
+          <div class="flex flex-wrap justify-center gap-2">
             <UButton
-              v-for="seed in ACCOUNT_SEEDS"
+              v-for="seed in SEEDS"
               :key="seed"
               color="neutral"
               variant="soft"
@@ -342,6 +382,33 @@ onMounted(() => {
             >
               {{ $t('__labelFermionOpenrouterConnected') }}
             </UBadge>
+
+            <div v-if="message.widget === 'setup_webhook' && !message.widgetDone && message.widgetBotId">
+              <UButton
+                icon="i-lucide-link"
+                size="sm"
+                :loading="webhookSettingUpIndex === i"
+                @click="onSetupWebhook(i, message.widgetBotId)"
+              >
+                {{ $t('__actionSetupWebhook') }}
+              </UButton>
+            </div>
+
+            <UBadge
+              v-else-if="message.widget === 'setup_webhook' && message.widgetDone"
+              color="primary"
+              variant="subtle"
+              size="sm"
+              icon="i-lucide-check"
+            >
+              {{ $t('__labelFermionWebhookConnected') }}
+            </UBadge>
+
+            <FermionBotTestWidget
+              v-if="message.widget === 'bot_test' && message.widgetBotId"
+              :bot-id="message.widgetBotId"
+              @replied="onBotReplied(i)"
+            />
 
             <p
               v-if="message.hitStepCap"
