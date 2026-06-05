@@ -12,13 +12,6 @@ const emit = defineEmits<{ replied: [] }>();
 const { data: bot, refresh } = useApiFetch<BotInfo>(() => `/api/bots/${props.botId}`);
 
 const hasReplied = computed(() => !!bot.value?.firstRepliedAt);
-const friendAddUrl = computed(() =>
-  bot.value?.handle ? `https://line.me/R/ti/p/${bot.value.handle}` : null,
-);
-const qrImageUrl = computed(() => {
-  if (!bot.value?.handle) return null;
-  return `https://qr-official.line.me/sid/L/${bot.value.handle.replace(/^@/, '')}.png`;
-});
 
 // Poll the bot until its first reply is detected (firstRepliedAt derives
 // from agent_runs, so it flips as soon as the worker logs a succeeded run).
@@ -61,25 +54,10 @@ watch(hasReplied, (replied) => {
       v-else
       class="flex flex-col items-center gap-3 text-center"
     >
-      <img
-        v-if="qrImageUrl"
-        :src="qrImageUrl"
-        :alt="$t('__hintScanToAddBot')"
-        class="size-32 rounded-md"
-      >
       <p class="text-sm text-toned">
         {{ $t('__descriptionFermionBotTest') }}
       </p>
-      <UButton
-        v-if="friendAddUrl"
-        :to="friendAddUrl"
-        target="_blank"
-        rel="noopener"
-        icon="i-simple-icons-line"
-        size="sm"
-      >
-        {{ $t('__actionAddBotOnLine') }}
-      </UButton>
+      <LineBotAddQr :handle="bot?.handle ?? null" />
       <p class="flex items-center gap-1.5 text-xs text-toned">
         <UIcon
           name="i-lucide-loader-circle"

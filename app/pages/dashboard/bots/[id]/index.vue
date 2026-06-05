@@ -220,6 +220,19 @@ const copyWebhook = async () => {
             </h2>
             <AgentListCard :agent="bot.agent" />
           </div>
+
+          <div class="flex flex-col gap-3">
+            <h2 class="font-semibold flex items-center gap-2">
+              <UIcon
+                name="i-lucide-qr-code"
+                class="size-4 text-toned"
+              />
+              {{ $t('__titleShare') }}
+            </h2>
+            <UCard>
+              <LineBotAddQr :handle="bot.handle" />
+            </UCard>
+          </div>
         </div>
       </DashboardContainer>
     </NuxtLayout>
