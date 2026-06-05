@@ -371,7 +371,7 @@ allow_dynamic_registration = false
 [functions.agent-invoke]
 verify_jwt = false
 
-[functions.agent-build]
+[functions.fermion]
 verify_jwt = false
 
 [edge_runtime]

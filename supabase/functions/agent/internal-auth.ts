@@ -1,6 +1,6 @@
 // Authenticates fermi's internal synchronous Edge endpoints
-// (agent-invoke, agent-build). The caller is the Nitro layer, which has
-// already authenticated the user + verified agent ownership.
+// (agent-invoke, fermion). The caller is the Nitro layer, which has
+// already authenticated the user + verified resource ownership.
 //
 // The shared secret is a dedicated FERMI_INTERNAL_SECRET set identically
 // on both sides — deliberately NOT a Supabase key. Supabase keys exist

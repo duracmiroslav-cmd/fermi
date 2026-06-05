@@ -159,8 +159,9 @@ const onBuilderUpdated = () => {
         </div>
 
         <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
-          <AgentBuilderChat
-            :agent-id="agent.id"
+          <FermionChat
+            target-type="agent"
+            :target-id="agent.id"
             @updated="onBuilderUpdated"
           />
 

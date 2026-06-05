@@ -18,16 +18,22 @@ interface BuilderMessage {
   hitStepCap?: boolean;
 }
 
-const props = defineProps<{ agentId: string }>();
-// Fires when the builder mutated the agent, so the page refetches its
-// config (and the test chat picks up the new behavior).
+const props = defineProps<{ targetType: 'agent' | 'bot'; targetId: string }>();
+// Fires when fermion mutated the resource, so the page refetches its
+// config (and any preview picks up the new behavior).
 const emit = defineEmits<{ updated: [] }>();
 
-// Config-mutating tools → the chip shown under the builder's reply.
+// Config-mutating tools → the chip shown under fermion's reply.
 const CHANGE_LABEL_KEY: Record<string, string> = {
   update_agent:     '__labelBuilderUpdatedAgent',
   set_capabilities: '__labelBuilderSetCapabilities',
+  update_bot:       '__labelBuilderUpdatedBot',
 };
+
+// Empty-state copy differs by what fermion is configuring here.
+const descriptionKey = computed(() =>
+  props.targetType === 'bot' ? '__descriptionFermionBotChat' : '__descriptionBuilderChat',
+);
 
 const messages = ref<BuilderMessage[]>([]);
 const draft = ref('');
@@ -52,9 +58,13 @@ const onSend = async () => {
   isSending.value = true;
 
   try {
-    const res = await $fetch<BuildResponse>(`/api/agents/${props.agentId}/build`, {
+    const res = await $fetch<BuildResponse>('/api/fermion', {
       method: 'POST',
-      body:   { messages: messages.value.map(m => ({ role: m.role, content: m.content })) },
+      body:   {
+        targetType: props.targetType,
+        targetId:   props.targetId,
+        messages:   messages.value.map(m => ({ role: m.role, content: m.content })),
+      },
     });
     const changes = [...new Set(
       res.steps
@@ -123,7 +133,7 @@ const onReset = () => {
             class="size-8 text-muted"
           />
           <p class="text-sm text-toned max-w-xs">
-            {{ $t('__descriptionBuilderChat') }}
+            {{ $t(descriptionKey) }}
           </p>
         </div>
 

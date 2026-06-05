@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it } from 'vitest';
-import { buildBuilderToolset, builderSystemPrompt } from '../../supabase/functions/agent-build/builder';
+import { buildBuilderToolset, builderSystemPrompt } from '../../supabase/functions/fermion/agent';
 
 // In-memory model of the rows + RPCs the builder tools touch, so the
 // set_capabilities diff (attach desired, detach removed, ignore unknown

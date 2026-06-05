@@ -1,13 +1,15 @@
-// The builder agent: a fermi-owned assistant whose tools edit the
-// *target* agent's config instead of doing end-user work. It reuses the
-// same runAgentConversation loop; its toolset closes over the target
+// The agent target: fermion configuring an *agent*'s persona. Its tools
+// edit the bound agent's config instead of doing end-user work. It reuses
+// the same runAgentConversation loop; the toolset closes over the target
 // agent + owner and ignores the per-call ToolContext the loop passes
-// (which carries end-user-run plumbing the builder doesn't need).
+// (which carries end-user-run plumbing it doesn't need).
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { BUILT_IN_CAPABILITIES } from '../../../shared/capabilities.ts';
-import { VOICE_REPLY_MODES } from '../../../shared/agents.ts';
+import { VOICE_REPLY_MODES, findAgentById } from '../../../shared/agents.ts';
+import { loadActiveCapabilities } from '../../../shared/agentCapabilities.ts';
 import type { ToolSchema, Toolset } from '../agent/tools/index.ts';
+import type { FermionTarget } from './registry.ts';
 
 const BUILTIN_SLUGS = Object.keys(BUILT_IN_CAPABILITIES);
 
@@ -205,4 +207,27 @@ export const buildBuilderToolset = (
   };
 
   return { schemas, execute };
+};
+
+export const agentTarget: FermionTarget = {
+  mutatingTools: ['update_agent', 'set_capabilities'],
+  resolve: async (admin, id) => {
+    const agent = await findAgentById(admin, id);
+    if (!agent) return null;
+    // Inject the agent's current config so fermion edits in place (revise
+    // the existing prompt, keep capabilities it isn't changing) rather
+    // than starting blind on every turn.
+    const capabilities = await loadActiveCapabilities(admin, agent.id);
+    return {
+      ownerId: agent.ownerId,
+      systemPrompt: builderSystemPrompt({
+        name:            agent.name,
+        systemPrompt:    agent.systemPrompt,
+        capabilitySlugs: capabilities.map(c => c.slug),
+        ttsInstructions: agent.ttsInstructions,
+        voiceReplyMode:  agent.voiceReplyMode,
+      }),
+      toolset: buildBuilderToolset(admin, agent.ownerId, agent.id),
+    };
+  },
 };

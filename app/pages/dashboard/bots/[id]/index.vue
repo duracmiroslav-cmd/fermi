@@ -177,6 +177,12 @@ const copyWebhook = async () => {
           @refresh="refresh"
         />
 
+        <FermionChat
+          target-type="bot"
+          :target-id="bot.id"
+          @updated="refresh"
+        />
+
         <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
           <div class="flex flex-col gap-3">
             <h2 class="font-semibold flex items-center gap-2">
