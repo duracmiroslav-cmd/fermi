@@ -15,7 +15,7 @@ export interface AgentCapabilityEditorContext {
   capability:        ComputedRef<AgentCapabilityRow | null>;
   pending:           ComputedRef<boolean>;
   isLocked:          ComputedRef<boolean>;
-  lockedHint:        ComputedRef<{ text: string; to: string } | null>;
+  credentialHint:    ComputedRef<{ text: string; to: string } | null>;
   statusHeadline:    ComputedRef<string>;
   breadcrumbItems:   ComputedRef<BreadcrumbItem[]>;
   effectiveTools:    ComputedRef<Set<string>>;
@@ -84,20 +84,25 @@ export const useAgentCapabilityEditor = (
   const pending = computed(() => agentPending.value || rowsPending.value);
   const capability = computed(() => (rows.value ?? []).find(c => c.slug === slug.value) ?? null);
 
+  // Attaching is blocked until the capability can actually run: coming-soon is
+  // never attachable, and a provider-backed one needs its credential satisfied
+  // — via the tier-aware server-computed needsConnection, so a Pro owner
+  // (covered by a platform key) isn't wrongly blocked. Once attached the switch
+  // only detaches, so it's never locked.
   const isLocked = computed((): boolean => {
     const cap = capability.value;
     if (!cap || cap.attached) return false;
     if (cap.credentialType === 'coming_soon') return true;
-    if (cap.credentialType === 'providers') {
-      return !cap.providers?.some(p => p.status === 'connected');
-    }
-    return false;
+    return cap.needsConnection;
   });
 
-  const lockedHint = computed((): { text: string; to: string } | null => {
+  // The connect-credential prompt shows whenever the provider credential is
+  // unmet — whether it's blocking a not-yet-attached capability or explaining
+  // why an already-attached one won't work yet. Keyed on the same
+  // needsConnection as the list badge, so the two never disagree.
+  const credentialHint = computed((): { text: string; to: string } | null => {
     const cap = capability.value;
-    if (!cap || !isLocked.value) return null;
-    if (cap.credentialType === 'coming_soon') return null;
+    if (!cap || !cap.needsConnection) return null;
     return { text: t('__actionConnectCredential'), to: `/dashboard/connectors/${cap.slug}` };
   });
 
@@ -279,7 +284,7 @@ export const useAgentCapabilityEditor = (
     capability,
     pending,
     isLocked,
-    lockedHint,
+    credentialHint,
     statusHeadline,
     breadcrumbItems,
     effectiveTools,

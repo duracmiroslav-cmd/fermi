@@ -86,6 +86,7 @@ export default {
   __descriptionFermiQuoteAnswer:          'they\'re on LINE.',
   __descriptionFermiQuoteAttribution:     ',  enrico fermi, 1950',
   __descriptionFooterCopyright:           '© fermi · gpt-ai-assistant 的精神繼承者',
+  __descriptionAttachedNeedsCredential:   '此能力已附加，但要先到連接器頁面連接提供者才會運作。',
   __descriptionGithubConnector:           '連接細粒度個人存取 token（PAT）。無論 token 範圍如何，fermi 只開放唯讀的 GitHub 工具，因此只要對 Agent 要看的 repo 授予讀取權限就夠了。',
   __descriptionHeroSubline:               'fermi 把 MCP-connected agents 放進 LINE。不用部署、不用學新 app。加個好友、串好工具，照常聊天，只是現在聊天就能幫你把事情做完。',
   __descriptionLockedRequiresCredential:  '先到連接器頁面連接提供者，再回來把此能力附加到 {agent}。',

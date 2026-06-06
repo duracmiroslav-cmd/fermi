@@ -18,7 +18,7 @@ const {
   capability,
   pending,
   isLocked,
-  lockedHint,
+  credentialHint,
   statusHeadline,
   breadcrumbItems,
   isDirty,
@@ -72,13 +72,15 @@ const {
         </p>
 
         <UAlert
-          v-if="lockedHint"
-          icon="i-lucide-lock"
+          v-if="credentialHint"
+          :icon="capability.attached ? 'i-lucide-triangle-alert' : 'i-lucide-lock'"
           color="warning"
           variant="subtle"
           :title="$t('__hintCredentialRequired')"
-          :description="$t('__descriptionLockedRequiresCredential', { agent: agent?.name ?? $t('__labelThisAgent') })"
-          :actions="[{ label: lockedHint.text, to: lockedHint.to, color: 'warning', variant: 'soft', size: 'md' }]"
+          :description="capability.attached
+            ? $t('__descriptionAttachedNeedsCredential')
+            : $t('__descriptionLockedRequiresCredential', { agent: agent?.name ?? $t('__labelThisAgent') })"
+          :actions="[{ label: credentialHint.text, to: credentialHint.to, color: 'warning', variant: 'soft', size: 'md' }]"
         />
 
         <section

@@ -84,6 +84,7 @@ export default {
   __descriptionFermiQuoteAnswer:          'they\'re on LINE.',
   __descriptionFermiQuoteAttribution:     ',  enrico fermi, 1950',
   __descriptionFooterCopyright:           '© fermi · spiritual successor to gpt-ai-assistant',
+  __descriptionAttachedNeedsCredential:   'This capability is attached but stays inactive until you connect a provider on the Connectors page.',
   __descriptionGithubConnector:           'Connect a fine-grained personal access token. fermi only exposes read-only GitHub tools regardless of the token\'s scope, so granting read access on the repos you want the agent to see is enough.',
   __descriptionHeroSubline:               'fermi puts MCP-connected agents inside LINE. No deploy, no new app to learn. Add a friend, link your tools, and chat like normal, only now your chat ships work.',
   __descriptionLockedRequiresCredential:  'Connect a provider on the Connectors page, then come back here to attach this capability to {agent}.',
