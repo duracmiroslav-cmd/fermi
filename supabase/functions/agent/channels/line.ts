@@ -90,10 +90,25 @@ export const fetchGroupMemberProfile = async (
 
 // ---- Outbound: Messaging API (api.line.me) ---------------------------------
 
-export type LineMessage
-  = | { type: 'text';  text: string }
-    | { type: 'audio'; originalContentUrl: string; duration: number }
-    | { type: 'image'; originalContentUrl: string; previewImageUrl: string };
+// Quick-reply buttons render above the keyboard, attached to a message and
+// dismissed once the user acts. We use a postback action so a tap fires a
+// structured `postback` event (no stray user-text bubble, no keyword collision
+// with normal input) that the worker maps to a command.
+export interface LineQuickReply {
+  items: {
+    type: 'action';
+    action: { type: 'postback'; label: string; data: string; displayText?: string };
+  }[];
+}
+
+// `quickReply` rides on any message and is serialized as-is by reply/push.
+// LINE honors the quick reply on the last message of a multi-message send, so
+// callers attach it to the final message.
+export type LineMessage = (
+  | { type: 'text';  text: string }
+  | { type: 'audio'; originalContentUrl: string; duration: number }
+  | { type: 'image'; originalContentUrl: string; previewImageUrl: string }
+) & { quickReply?: LineQuickReply };
 
 // LINE reply tokens are valid roughly one minute from webhook delivery.
 // Switch to Push API after ~25s elapsed, leaving headroom for the LLM

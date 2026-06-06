@@ -42,6 +42,7 @@ import {
   safeReply,
   showLoadingAnimation,
   type LineMessage,
+  type LineQuickReply,
 } from './channels/line.ts';
 import { OpenRouterError, type ChatMessage } from './openrouter.ts';
 import { MAX_AGENT_STEPS, runAgentConversation } from './loop.ts';
@@ -54,6 +55,7 @@ import {
   appendMessage,
   loadRecentMessages,
   resolveOrCreateLatestThread,
+  softDeleteLatestThreads,
   type ThreadSubjectType,
 } from './threads.ts';
 import { type ToolAttachment, buildToolset } from './tools/index.ts';
@@ -126,6 +128,7 @@ interface LineEvent {
   replyToken?: string;
   source?: LineSource;
   message?: { type: string; id?: string; text?: string; fileName?: string; fileSize?: number; keywords?: string[]; title?: string; address?: string; latitude?: number; longitude?: number; mention?: { mentionees?: { isSelf?: boolean }[] } };
+  postback?: { data?: string };
   webhookEventId?: string;
 }
 
@@ -238,6 +241,36 @@ const isLocationMessageFromUser = (event: LineEvent): event is LineEvent & {
   && event.source?.type === 'user'
   && typeof event.source.userId === 'string'
 );
+
+// A tap on the "new conversation" quick-reply button arrives as a postback
+// carrying this data; the worker maps it to a thread reset.
+const RESET_POSTBACK_DATA = 'action=new-thread';
+
+const isNewThreadPostbackFromUser = (event: LineEvent): event is LineEvent & {
+  replyToken: string;
+  source: LineSource & { userId: string };
+} => (
+  event.type === 'postback'
+  && event.postback?.data === RESET_POSTBACK_DATA
+  && typeof event.replyToken === 'string'
+  && event.source?.type === 'user'
+  && typeof event.source.userId === 'string'
+);
+
+// The persistent "new conversation" button attached to bot replies so the user
+// can reset the conversation anytime. Postback (not a message action) keeps it
+// from leaving a stray user-text bubble or colliding with real input.
+const newThreadQuickReply = (locale: Locale): LineQuickReply => ({
+  items: [{
+    type: 'action',
+    action: {
+      type:        'postback',
+      label:       t('__quickReplyNewThread', locale),
+      data:        RESET_POSTBACK_DATA,
+      displayText: t('__quickReplyNewThread', locale),
+    },
+  }],
+});
 
 // Lets early-return paths (no agent / no openrouter key) surface a
 // configuration notice regardless of the input modality.
@@ -898,6 +931,13 @@ const runAgentLoop = async (params: {
       }
     }
 
+    // Persistent reset affordance: LINE shows the quick reply of the last
+    // message in the send, so attach it there. 1:1 only — group replies go out
+    // via a different path and don't carry it.
+    if (!group) {
+      outbound[outbound.length - 1].quickReply = newThreadQuickReply(ownerLocale);
+    }
+
     const elapsedMs = Date.now() - eventTimestamp;
     try {
       const method = await deliverMessages({
@@ -1035,6 +1075,26 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
   // @mentions that do need the loop (handled after agent + key resolve).
   const { directEvents: events, groupMentions } = await handleGroupEvents(allEvents, bot, kek, lineAccessToken, ownerLocale);
   if (events.length === 0 && groupMentions.length === 0) return;
+
+  // A "new conversation" quick-reply tap arrives as a postback. Handle it before
+  // agent/key gating so a reset works even on a misconfigured bot: soft-delete
+  // the user's active threads (the next message starts fresh) and confirm.
+  // Long-term memory is intentionally preserved.
+  for (const event of events) {
+    if (!isNewThreadPostbackFromUser(event)) continue;
+    await softDeleteLatestThreads(admin, bot.id, event.source.userId);
+    await deliverMessages({
+      accessToken: lineAccessToken,
+      replyToken:  event.replyToken,
+      userId:      event.source.userId,
+      messages:    [{ type: 'text', text: t('__noticeNewThreadStarted', ownerLocale), quickReply: newThreadQuickReply(ownerLocale) }],
+      elapsedMs:   typeof event.timestamp === 'number' ? Date.now() - event.timestamp : 0,
+    }).catch(err => console.error('new-thread confirm delivery failed', err));
+  }
+  // Reset-only payloads need no agent run; skip the rest to avoid pointless
+  // agent/key resolution. Mixed payloads (rare) fall through and the postback
+  // is inert in the dispatch loop below.
+  if (events.every(isNewThreadPostbackFromUser) && groupMentions.length === 0) return;
 
   // Bot has no agent bound, or the binding was cleared (agent soft-
   // deleted). Reply with an actionable message instead of silence.

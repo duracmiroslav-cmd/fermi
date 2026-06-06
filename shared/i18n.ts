@@ -19,6 +19,7 @@ const messages: Record<Locale, Record<string, string>> = {
     __noticeGroupJoinPrompt:           '👋 你好，我是這個群組的助理。輸入啟用碼即可開通；開通後群組訊息會被處理以提供服務（例如語音轉文字、被 @ 時回應）。',
     __noticeGroupRateLimited:          '⏳ 訊息太頻繁了，請稍等一下再試。',
     __noticeImageTooLarge:             '⚠️ 圖片太大，上限 10MB。',
+    __noticeNewThreadStarted:          '👋 好，開了一段新對話。剛剛聊的內容我不會再記得，但你請我長期記住的事還留著。',
     __noticeNoAgent:                   '⚙️ 這個機器人還沒設定 Agent，請到 https://fermi.tw/dashboard 綁定一個。',
     __noticePlatformKeyOps:            '⚠️ Pro 服務暫時不可用，已通知 fermi 處理，請稍後再試。',
     __noticeQuotaExtendedRunExhausted: '⚠️ 這個月長對話額度已用完。可換更具體的問法，或請機器人主人升 Pro 換更高上限：https://fermi.tw/dashboard/billing',
@@ -29,6 +30,7 @@ const messages: Record<Locale, Record<string, string>> = {
     __noticeUnsupportedDocumentType:   '⚠️ 目前只能讀 PDF、Word（.docx）、純文字（.txt／.md／.json）。',
     __noticeUnsupportedImageFormat:    '⚠️ 目前只支援 JPG / PNG / GIF / WebP。',
     __noticeUnsupportedMessageType:    '⚠️ 目前我還看不懂這種訊息，你可以用文字或語音跟我說。',
+    __quickReplyNewThread:             '開新對話',
   },
   'en': {
     __noticeAgentStepsExceeded:        '⚠️ Took {steps} steps without converging. Stopping. Try rephrasing.',
@@ -45,6 +47,7 @@ const messages: Record<Locale, Record<string, string>> = {
     __noticeGroupJoinPrompt:           '👋 Hi, I\'m this group\'s assistant. Enter the activation code to enable me. Once enabled, group messages are processed to provide the service (e.g. voice-to-text, replying when mentioned).',
     __noticeGroupRateLimited:          '⏳ Too many messages right now. Please wait a moment and try again.',
     __noticeImageTooLarge:             '⚠️ Image too large. Limit is 10MB.',
+    __noticeNewThreadStarted:          '👋 Fresh start. I won\'t remember what we just talked about, but anything you asked me to remember long-term is still saved.',
     __noticeNoAgent:                   '⚙️ This bot has no agent attached. The owner needs to bind one at https://fermi.tw/dashboard',
     __noticePlatformKeyOps:            '⚠️ Pro service temporarily unavailable. fermi has been notified. Please try again later.',
     __noticeQuotaExtendedRunExhausted: '⚠️ This month\'s extended-conversation quota is exhausted. Try a more specific question, or ask the owner to upgrade to Pro: https://fermi.tw/dashboard/billing',
@@ -55,6 +58,7 @@ const messages: Record<Locale, Record<string, string>> = {
     __noticeUnsupportedDocumentType:   '⚠️ I can only read PDF, Word (.docx), and plain text (.txt / .md / .json).',
     __noticeUnsupportedImageFormat:    '⚠️ Only JPG / PNG / GIF / WebP images are supported.',
     __noticeUnsupportedMessageType:    '⚠️ I can\'t read this kind of message yet. You can use text or voice.',
+    __quickReplyNewThread:             'New conversation',
   },
 };
 
