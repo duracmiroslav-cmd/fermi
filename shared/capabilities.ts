@@ -35,6 +35,10 @@ export interface CapabilityConfig {
   // loosen its own image safety filter. fal `safety_tolerance` 1 (strict) – 6
   // (permissive); omitted ⇒ fal's own default.
   safetyTolerance?:      number;
+  // Per-agent owner choice of image-generation model (an `IMAGE_MODELS` id;
+  // see shared/imageModels.ts). Validated against the allowlist at run time;
+  // omitted ⇒ the default model.
+  imageModel?:           string;
 }
 
 export interface ToolGroup {

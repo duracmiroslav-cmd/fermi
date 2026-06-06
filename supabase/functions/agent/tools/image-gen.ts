@@ -5,13 +5,12 @@ import {
 } from '../../../../shared/keys.ts';
 import { signMessageImageUrl, uploadGeneratedImage } from '../../../../shared/messageImages.ts';
 import {
-  DEFAULT_IMAGE_MODEL,
   ImageGenError,
-  type ImageSize,
   // Both the client and the tool object want the name `generateImage`;
   // alias the client so the tool keeps the export.
   generateImage as runImageGen,
 } from '../imagegen.ts';
+import type { ImageSize } from '../../../../shared/imageModels.ts';
 import { COUNTER_ENV, consumeQuota } from '../quota.ts';
 import type { Tool } from './index.ts';
 
@@ -27,13 +26,6 @@ const parseSize = (raw: unknown): ImageSize => (
     ? raw as ImageSize
     : 'square'
 );
-
-// Owner config (not an LLM arg). Reject non-integers / out-of-band values so a
-// stale or hand-edited config can't 4xx the call; undefined ⇒ fal's default.
-const parseSafetyTolerance = (raw: unknown): number | undefined =>
-  typeof raw === 'number' && Number.isInteger(raw) && raw >= 1 && raw <= 6
-    ? raw
-    : undefined;
 
 export const generateImage: Tool = {
   name: 'generate_image',
@@ -105,10 +97,10 @@ export const generateImage: Tool = {
     try {
       const generated = await runImageGen({
         apiKey,
-        model: DEFAULT_IMAGE_MODEL,
+        model: ctx.capabilityConfig?.imageModel,
         prompt: prompt.trim(),
         size: parseSize(size),
-        safetyTolerance: parseSafetyTolerance(ctx.capabilityConfig?.safetyTolerance),
+        config: ctx.capabilityConfig ?? {},
       });
       // Path doubles as an audit handle: the tool call ID ties the
       // object back to the `tool_called` / `tool_responded` step rows.

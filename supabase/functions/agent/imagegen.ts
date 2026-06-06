@@ -1,26 +1,15 @@
 // Uses fal's synchronous `https://fal.run/{model}` endpoint rather
-// than the queue API: nano-banana finishes well under the worker's
+// than the queue API: the supported models finish well under the worker's
 // 400s wall clock, so polling buys nothing.
+
+import type { CapabilityConfig } from '../../../shared/capabilities.ts';
+import { type ImageSize, resolveImageModel } from '../../../shared/imageModels.ts';
 
 export class ImageGenError extends Error {
   constructor(public readonly status: number, message: string) {
     super(message);
   }
 }
-
-export const DEFAULT_IMAGE_MODEL = 'fal-ai/nano-banana';
-
-// Maps the LLM-facing size enum to nano-banana's `aspect_ratio`. The model
-// (Gemini Flash Image) has no `image_size` field — it only honors
-// `aspect_ratio`, so a stray `image_size` is silently dropped and every
-// image falls back to the 1:1 default. The friendly size names resolve to
-// ratios: portrait → 9:16 (phone wallpaper), landscape → 16:9 (banner).
-export type ImageSize = 'square' | 'portrait' | 'landscape';
-const aspectRatioMap: Record<ImageSize, string> = {
-  square:    '1:1',
-  portrait:  '9:16',
-  landscape: '16:9',
-};
 
 // Watermark suffix appended to every prompt. Prompt-based watermarks
 // are unreliable (model may ignore, may draw something other than
@@ -46,15 +35,18 @@ interface FalResponse {
 
 export const generateImage = async (params: {
   apiKey: string;
-  model: string;
+  // Owner-chosen model id; validated against the catalog allowlist (unknown ⇒
+  // default) before it reaches the fal URL.
+  model: unknown;
   prompt: string;
   size: ImageSize;
-  // Owner-set content-filter strength (fal `safety_tolerance`, 1 strict – 6
-  // permissive). Omitted ⇒ fal's own default. Validated by the caller.
-  safetyTolerance?: number;
+  // The capability's owner config (e.g. safetyTolerance). Each model's adapter
+  // reads and validates the fields it supports.
+  config: CapabilityConfig;
 }): Promise<ImageResult> => {
-  const { apiKey, model, prompt, size, safetyTolerance } = params;
-  const res = await fetch(`https://fal.run/${model}`, {
+  const { apiKey, model, prompt, size, config } = params;
+  const spec = resolveImageModel(model);
+  const res = await fetch(`https://fal.run/${spec.id}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -63,9 +55,8 @@ export const generateImage = async (params: {
     },
     body: JSON.stringify({
       prompt: `${prompt}${WATERMARK_SUFFIX}`,
-      aspect_ratio: aspectRatioMap[size],
       num_images: 1,
-      ...(safetyTolerance !== undefined ? { safety_tolerance: safetyTolerance } : {}),
+      ...spec.buildParams(size, config),
     }),
   });
   if (!res.ok) {
