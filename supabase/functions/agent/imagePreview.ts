@@ -10,11 +10,18 @@
 const PREVIEW_MAX_EDGE = 1024;
 const PREVIEW_JPEG_QUALITY = 80;
 
-// `imagescript` is imported dynamically rather than at module top so a load
-// failure on the edge runtime degrades to "no preview thumbnail" (the caller
-// falls back to the full-res URL) instead of crashing the whole agent worker
-// at boot. It also keeps the wasm decoder off the cold-start path of runs that
-// never generate an image.
+// `imagescript` must be the Deno-native distribution (deno.land/x, pure WASM
+// codecs), not `npm:imagescript`: the npm build's `codecs/node/index.js` does a
+// `process.arch`/platform check and throws "unsupported arch/platform" on the
+// Supabase Edge Runtime. The import map pins the deno.land URL; don't switch it
+// back to npm:. (deno check passes either way locally — the host is real Node —
+// so this only surfaces at runtime on edge.)
+//
+// Imported dynamically rather than at module top so a load failure on the edge
+// runtime degrades to "no preview thumbnail" (the caller falls back to the
+// full-res URL) instead of crashing the whole agent worker at boot. It also
+// keeps the wasm decoder off the cold-start path of runs that never generate
+// an image.
 export const encodeJpegPreview = async (bytes: Uint8Array): Promise<Uint8Array> => {
   const { Image } = await import('imagescript');
   const image = await Image.decode(bytes);
