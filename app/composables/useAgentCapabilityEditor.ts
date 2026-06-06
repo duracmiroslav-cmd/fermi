@@ -19,7 +19,7 @@ export interface AgentCapabilityEditorContext {
   statusHeadline:    ComputedRef<string>;
   breadcrumbItems:   ComputedRef<BreadcrumbItem[]>;
   effectiveTools:    ComputedRef<Set<string>>;
-  effectiveSettings: ComputedRef<Record<string, number>>;
+  effectiveSettings: ComputedRef<Record<string, number | string>>;
   isToolEnabled:     (tool: string) => boolean;
   isDirty:           ComputedRef<boolean>;
   saving:            Ref<boolean>;
@@ -27,7 +27,7 @@ export interface AgentCapabilityEditorContext {
   onToolToggle:      (tool: string, enabled: boolean | 'indeterminate') => void;
   onGroupSelectAll:  (groupTools: string[]) => void;
   onGroupClearAll:   (groupTools: string[]) => void;
-  onSettingChange:   (key: string, value: number) => void;
+  onSettingChange:   (key: string, value: number | string) => void;
   onAttachToggle:    (next: boolean) => Promise<void>;
   onSave:            () => Promise<void>;
   getDefaultTools:   (cap: AgentCapabilityRow) => string[];
@@ -121,7 +121,7 @@ export const useAgentCapabilityEditor = (
   };
 
   const localTools = ref<string[] | null>(null);
-  const localSettings = ref<Record<string, number> | null>(null);
+  const localSettings = ref<Record<string, number | string> | null>(null);
 
   const savedTools = computed((): string[] => {
     const cap = capability.value;
@@ -132,18 +132,19 @@ export const useAgentCapabilityEditor = (
 
   const effectiveTools = computed((): Set<string> => new Set(localTools.value ?? savedTools.value));
 
-  const savedSettings = computed((): Record<string, number> => {
+  const savedSettings = computed((): Record<string, number | string> => {
     const cap = capability.value;
     if (!cap?.settings) return {};
     return Object.fromEntries(
       cap.settings.map((f) => {
         const v = cap.agentConfig?.[f.key];
+        if (f.type === 'select') return [f.key, typeof v === 'string' ? v : f.default];
         return [f.key, typeof v === 'number' ? v : f.default];
       }),
     );
   });
 
-  const effectiveSettings = computed((): Record<string, number> => localSettings.value ?? savedSettings.value);
+  const effectiveSettings = computed((): Record<string, number | string> => localSettings.value ?? savedSettings.value);
 
   const isToolEnabled = (tool: string) => effectiveTools.value.has(tool);
 
@@ -193,7 +194,7 @@ export const useAgentCapabilityEditor = (
     localSettings.value = null;
   };
 
-  const onSettingChange = (key: string, value: number) => {
+  const onSettingChange = (key: string, value: number | string) => {
     localSettings.value = { ...effectiveSettings.value, [key]: value };
   };
 

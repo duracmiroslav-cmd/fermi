@@ -5,6 +5,8 @@
 // capabilities (`owner_id IS NOT NULL`) keep their config in the DB row since
 // the user supplies it at creation time.
 
+import { DEFAULT_IMAGE_MODEL, IMAGE_MODELS } from './imageModels.ts';
+
 // Config attached to a capability. An MCP capability is identified by `url`
 // (its tools come from a remote MCP server); in-process capabilities leave
 // this empty and have their tool defined under `supabase/functions/agent/tools/`.
@@ -50,17 +52,36 @@ export interface ToolGroup {
 // config-panel shape, alongside per-tool checkboxes and per-group toggles.
 // Drives a generic settings form in the dashboard; the worker reads the saved
 // value from `agent_capabilities.config[key]`. `key` names the CapabilityConfig
-// field it writes. Slider is the only control so far.
-export interface CapabilitySettingField {
-  key:      string;
+// field it writes. Discriminated on `type` (slider | select).
+export interface SettingCondition {
+  // Render the field only while another setting's current value equals this —
+  // e.g. a model-specific knob shown only when its model is the selected one.
+  key:   string;
+  value: string;
+}
+
+interface BaseSettingField {
+  key:       string;
+  label:     string;
+  showWhen?: SettingCondition;
+}
+
+export interface SliderSettingField extends BaseSettingField {
   type:     'slider';
-  label:    string;
   min:      number;
   max:      number;
   default:  number;
   minLabel: string;
   maxLabel: string;
 }
+
+export interface SelectSettingField extends BaseSettingField {
+  type:    'select';
+  default: string;
+  options: { value: string; label: string }[];
+}
+
+export type CapabilitySettingField = SliderSettingField | SelectSettingField;
 
 export type CredentialType = 'none' | 'providers' | 'coming_soon';
 
@@ -90,6 +111,23 @@ export interface BuiltInCapability {
   // capabilities with nothing to configure beyond attach/detach.
   settings?:      CapabilitySettingField[];
 }
+
+// image-gen's settings panel: a model picker, then each model's own knobs
+// shown only while that model is selected. Generated from the catalog so the
+// dashboard form and the worker's per-model adapters can't drift. The spread
+// onto each field can't preserve the discriminated-union member, so the added
+// `showWhen` is asserted back to the field type.
+const imageGenSettings: CapabilitySettingField[] = [
+  {
+    key:     'imageModel',
+    type:    'select',
+    label:   'Model',
+    default: DEFAULT_IMAGE_MODEL,
+    options: IMAGE_MODELS.map(m => ({ value: m.id, label: m.displayName })),
+  },
+  ...IMAGE_MODELS.flatMap(m =>
+    m.fields.map(f => ({ ...f, showWhen: { key: 'imageModel', value: m.id } }) as CapabilitySettingField)),
+];
 
 export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
   'time': {
@@ -130,18 +168,7 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     providers:      [
       { slug: 'fal', displayName: 'fal', keyType: 'fal', status: 'live', platformBacked: true },
     ],
-    settings: [
-      {
-        key:      'safetyTolerance',
-        type:     'slider',
-        label:    'Safety filter',
-        min:      1,
-        max:      6,
-        default:  4,
-        minLabel: 'Strict',
-        maxLabel: 'Permissive',
-      },
-    ],
+    settings: imageGenSettings,
   },
   // GitHub's MCP server exposes ~42 tools including destructive writes. The
   // read-only safety boundary lives in `shared/capabilityTools.ts`'s

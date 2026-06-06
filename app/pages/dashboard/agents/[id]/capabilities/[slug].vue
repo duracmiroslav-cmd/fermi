@@ -28,6 +28,23 @@ const {
 const hasGroupedTools = (cap: NonNullable<typeof capability['value']>) => !!cap.toolGroups;
 const hasSettings = (cap: NonNullable<typeof capability['value']>) => !!cap.settings?.length;
 
+// A field with `showWhen` renders only while the named setting holds the given
+// value — e.g. a model's own knob appears only when that model is selected.
+const visibleSettings = computed(() => (capability.value?.settings ?? []).filter(
+  f => !f.showWhen || effectiveSettings.value[f.showWhen.key] === f.showWhen.value,
+));
+
+// effectiveSettings values are number | string (slider vs select); read each
+// with the type its control expects, falling back to the field default.
+const numSetting = (key: string, fallback: number): number => {
+  const v = effectiveSettings.value[key];
+  return typeof v === 'number' ? v : fallback;
+};
+const strSetting = (key: string, fallback: string): string => {
+  const v = effectiveSettings.value[key];
+  return typeof v === 'string' ? v : fallback;
+};
+
 // Null when the capability has neither tool selection nor settings —
 // editor then skips the section entirely instead of rendering an empty
 // "Tools" header (web-fetch / web-search / time).
@@ -100,24 +117,34 @@ const sectionLabel = computed((): string | null => {
     <template v-else-if="capability && hasSettings(capability)">
       <div class="rounded-md border border-muted bg-muted/50 divide-y divide-default overflow-hidden">
         <div
-          v-for="field in (capability.settings ?? [])"
+          v-for="field in visibleSettings"
           :key="field.key"
           class="flex flex-col gap-3 p-4"
         >
           <p class="text-sm font-medium">
             {{ field.label }}
           </p>
-          <USlider
-            :model-value="effectiveSettings[field.key] ?? field.default"
-            :min="field.min"
-            :max="field.max"
-            :step="1"
-            @update:model-value="(v: number | undefined) => onSettingChange(field.key, v ?? field.default)"
+          <template v-if="field.type === 'slider'">
+            <USlider
+              :model-value="numSetting(field.key, field.default)"
+              :min="field.min"
+              :max="field.max"
+              :step="1"
+              @update:model-value="(v: number | undefined) => onSettingChange(field.key, v ?? field.default)"
+            />
+            <div class="flex items-center justify-between text-xs text-toned">
+              <span>{{ field.minLabel }}</span>
+              <span>{{ field.maxLabel }}</span>
+            </div>
+          </template>
+          <USelectMenu
+            v-else-if="field.type === 'select'"
+            :model-value="strSetting(field.key, field.default)"
+            :items="field.options"
+            value-key="value"
+            :ui="{ itemTrailingIcon: 'hidden' }"
+            @update:model-value="(v: string) => onSettingChange(field.key, v)"
           />
-          <div class="flex items-center justify-between text-xs text-toned">
-            <span>{{ field.minLabel }}</span>
-            <span>{{ field.maxLabel }}</span>
-          </div>
         </div>
       </div>
     </template>
