@@ -66,10 +66,10 @@ export interface ProviderMeta {
   keyType:        string;
   status:         'live' | 'coming_soon';
   // Whether fermi backs this provider with its own platform key, so a Pro
-  // owner is covered without connecting their own (e.g. Tavily). OAuth
-  // providers (github, twinkle) are false — they always use the owner's token.
-  // Asserts the worker's resolveKey wiring (whether its tool passes a platform
-  // key for this purpose); keep the two in step.
+  // owner is covered without connecting their own (e.g. Tavily, Twinkle Hub).
+  // github is false — its token is the owner's OAuth credential, never the
+  // platform's. Asserts the worker's resolveKey wiring (whether its tool /
+  // MCP auth passes a platform key for this purpose); keep the two in step.
   platformBacked: boolean;
 }
 
@@ -263,7 +263,7 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     },
     credentialType: 'providers',
     providers:      [
-      { slug: 'twinkle-hub', displayName: 'Twinkle Hub', keyType: 'twinkle', status: 'live', platformBacked: false },
+      { slug: 'twinkle-hub', displayName: 'Twinkle Hub', keyType: 'twinkle', status: 'live', platformBacked: true },
     ],
   },
   // Retrieval over the owner's own documents (RAG). No external credential —

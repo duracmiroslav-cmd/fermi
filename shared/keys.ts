@@ -11,7 +11,10 @@ import { loadCredential } from './credentials.ts';
 // because `shared/` files are imported by both the Deno worker and
 // the Node Nuxt server; env-access shape differs.
 
-export type KeyPurpose = 'openrouter' | 'openai' | 'tavily' | 'fal';
+// `twinkle` is an MCP bearer token rather than a REST key, but it follows the
+// same Free→BYOK / Pro→platform rule, so it resolves through here too (see
+// agent/tools/index.ts). github / byo_mcp stay BYOK-only and are not purposes.
+export type KeyPurpose = 'openrouter' | 'openai' | 'tavily' | 'fal' | 'twinkle';
 
 export type KeySource = 'byok' | 'platform';
 export interface KeyResult {

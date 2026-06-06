@@ -7,6 +7,12 @@ import { fetchWeb } from './web-fetch.ts';
 import { searchKnowledge } from './knowledge-search.ts';
 import { forgetMemory, listMemories, saveMemory } from './memory.ts';
 import { loadCredential, type KeyType } from '../../../../shared/credentials.ts';
+import {
+  FreeBYOKRequiredError,
+  type KeyPurpose,
+  PlatformKeyNotConfiguredError,
+  resolveKey,
+} from '../../../../shared/keys.ts';
 import type { AttachedCapability, CapabilityConfig } from '../../../../shared/agentCapabilities.ts';
 import { DEFAULT_TOOLS } from '../../../../shared/capabilityTools.ts';
 import { McpClient, type McpTool } from './mcp/client.ts';
@@ -117,18 +123,45 @@ const mcpToolCache = new Map<string, CachedTools>();
 // 5 min keeps tool lists fresh across rapid successive runs without re-handshaking.
 const TOOL_CACHE_TTL_MS = 5 * 60 * 1000;
 
+// Platform fallback tokens for built-in MCP providers, by authKeyType. A
+// provider listed here is platform-backed: it resolves through resolveKey's
+// Free→BYOK / Pro→platform rule (keep its `platformBacked` flag in
+// shared/capabilities.ts in step). github is absent on purpose — its token is
+// the owner's OAuth credential, never the platform's; byo_mcp is per-user URLs.
+const PLATFORM_MCP_KEYS: Record<string, string | undefined> = {
+  twinkle: Deno.env.get('TWINKLE_API_KEY') ?? undefined,
+};
+
 const loadToken = async (
   base: { admin: SupabaseClient; kek: CryptoKey; ownerId: string },
   authKeyType: string,
   capabilityId: string,
 ): Promise<string | undefined> => {
+  // Platform-backed provider (twinkle): same tier policy as the paid in-process
+  // tools. A Free owner without their own token, or Pro with no platform key
+  // configured, yields undefined so the capability is skipped (badge shows it)
+  // rather than failing the run.
+  if (authKeyType in PLATFORM_MCP_KEYS) {
+    try {
+      const { key } = await resolveKey(base.admin, base.kek, {
+        ownerId:     base.ownerId,
+        purpose:     authKeyType as KeyPurpose,
+        platformKey: PLATFORM_MCP_KEYS[authKeyType] ?? null,
+      });
+      return key;
+    } catch (err) {
+      if (err instanceof FreeBYOKRequiredError || err instanceof PlatformKeyNotConfiguredError) return undefined;
+      throw err;
+    }
+  }
+
   try {
     const cred = await loadCredential(base.admin, base.kek, {
       userId: base.ownerId,
       botId: null,
       keyType: authKeyType as KeyType,
-      // byo_mcp tokens are scoped per capability; built-in MCP keys
-      // (github / twinkle) stay account-level (capability_id null).
+      // byo_mcp tokens are scoped per capability; the owner's github token
+      // stays account-level (capability_id null).
       capabilityId: authKeyType === 'byo_mcp' ? capabilityId : null,
     });
     return cred.plaintext;
