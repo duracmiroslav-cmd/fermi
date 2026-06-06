@@ -87,6 +87,17 @@ export default defineEventHandler(async (event) => {
   });
   if (!res.ok) {
     const detail = await res.text();
+    // The Edge Function resolves the OpenRouter key via shared resolveKey: a
+    // Free owner without their own key is refused there (BYOK-or-Pro). It's
+    // the authoritative gate; the UI hides fermion on the same rule, so this
+    // surfaces only on a direct call or a key disconnected mid-session.
+    if (res.status === 403) {
+      throw createError({
+        statusCode:    403,
+        statusMessage: 'fermion needs Pro or a connected OpenRouter key',
+        data:          { code: '__errorFermionRequiresOpenrouter' },
+      });
+    }
     console.error('fermion returned error', { status: res.status, detail: detail.slice(0, 200) });
     throw createError({ statusCode: 502, statusMessage: 'Fermion failed' });
   }

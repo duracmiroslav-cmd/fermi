@@ -1,12 +1,18 @@
 // fermion: one owner-scoped assistant. The owner talks to it and it
 // connects bots, configures agents, and sets up providers via tools —
 // each tool takes a resource id and scopes by the owner. Reuses the
-// shared agent loop; same trust model + platform key as agent-invoke;
-// stateless (the browser holds the chat history). Ownership is enforced
-// inside each tool (see tool.ts), since the LLM may pass any id.
+// shared agent loop; same trust model as agent-invoke; stateless (the
+// browser holds the chat history). Ownership is enforced inside each
+// tool (see tool.ts), since the LLM may pass any id.
+//
+// The LLM key follows shared/keys.ts resolveKey: a Free owner runs on their
+// own OpenRouter (BYOK) — fermion costs them, not the platform — and is
+// refused if they haven't connected one; a Pro owner runs on the platform
+// key (or their BYOK if present). The route gates the UI on the same rule.
 
 import { createClient } from '@supabase/supabase-js';
 import { getKek } from '../../../shared/kek.ts';
+import { FreeBYOKRequiredError, PlatformKeyNotConfiguredError, resolveKey } from '../../../shared/keys.ts';
 import { DEFAULT_TEXT_MODEL } from '../../../shared/constants/models.ts';
 import type { ChatMessage } from '../agent/openrouter.ts';
 import { MAX_AGENT_STEPS, runAgentConversation } from '../agent/loop.ts';
@@ -42,10 +48,6 @@ Deno.serve(async (req) => {
   if (!auth.ok) {
     return json({ error: 'unauthorized', diag: { hasHeader: auth.hasHeader, hasSecret: auth.hasSecret } }, 401);
   }
-  if (!PLATFORM_OPENROUTER_KEY) {
-    console.error('fermion: OPENROUTER_API_KEY not configured');
-    return json({ error: 'platform_key_missing' }, 503);
-  }
 
   let payload: FermionRequest;
   try {
@@ -55,8 +57,25 @@ Deno.serve(async (req) => {
   }
   if (!payload.ownerId) return json({ error: 'missing_owner' }, 400);
 
-  const state = await loadAccountState(admin, payload.ownerId);
   const kek = await getKek(fermiKek);
+
+  // BYOK-first, platform fallback (Pro only). Resolve before any work so a
+  // Free owner without OpenRouter is refused without spending anything.
+  let openrouterKey: string;
+  try {
+    const resolved = await resolveKey(admin, kek, {
+      ownerId:     payload.ownerId,
+      purpose:     'openrouter',
+      platformKey: PLATFORM_OPENROUTER_KEY,
+    });
+    openrouterKey = resolved.key;
+  } catch (err) {
+    if (err instanceof FreeBYOKRequiredError) return json({ error: 'free_byok_required' }, 403);
+    if (err instanceof PlatformKeyNotConfiguredError) return json({ error: 'platform_key_missing' }, 503);
+    throw err;
+  }
+
+  const state = await loadAccountState(admin, payload.ownerId);
 
   const messages: ChatMessage[] = [
     { role: 'system', content: fermionSystemPrompt(state, payload.context) },
@@ -67,7 +86,7 @@ Deno.serve(async (req) => {
     const result = await runAgentConversation({
       // fermion reasons on the platform default model regardless of which
       // (possibly cheap) model the owner's agents are configured to run.
-      apiKey:        PLATFORM_OPENROUTER_KEY,
+      apiKey:        openrouterKey,
       model:         DEFAULT_TEXT_MODEL,
       fallbackModel: DEFAULT_TEXT_MODEL,
       messages,

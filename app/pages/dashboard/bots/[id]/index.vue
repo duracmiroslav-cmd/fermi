@@ -29,17 +29,40 @@ interface BotDetail {
 
 const route = useRoute();
 
+const profile = useProfile();
+
 const { data: bot, error, refresh, pending } = useApiFetch<BotDetail>(
   () => `/api/bots/${route.params.id}`,
   { key: route.params.id as string },
 );
-const { status } = useBotStatus(bot);
+const {
+  status,
+  isOpenrouterConnected,
+  isWebhookVerified,
+  isSetupComplete,
+  refreshOpenrouter,
+} = useBotStatus(bot);
 
 const { syncingId, sync: syncFromLine } = useBotAvatar(refresh);
 
 const webhookCopied = ref(false);
 
 const syncing = computed(() => syncingId.value !== null);
+
+// fermion replaces the mechanical banner once the owner can run it (Pro, or a
+// Free owner who's connected their own OpenRouter — fermion then runs on their
+// key). Until then the banner walks a Free owner through connecting OpenRouter.
+const canUseFermion = computed(() => canAccessFermion(profile.value?.tier, isOpenrouterConnected.value));
+
+// Poll OpenRouter status while the banner is up and not yet connected: OAuth
+// runs in a separate tab with no callback here, so polling surfaces the
+// connection (which then flips the view to fermion). Stops once connected.
+const openrouterPoll = useIntervalFn(() => refreshOpenrouter(), 4000, { immediate: false });
+watchEffect(() => {
+  const shouldPoll = !canUseFermion.value;
+  if (shouldPoll && !openrouterPoll.isActive.value) openrouterPoll.resume();
+  if (!shouldPoll && openrouterPoll.isActive.value) openrouterPoll.pause();
+});
 
 const copyWebhook = async () => {
   if (!bot.value) return;
@@ -141,8 +164,17 @@ const copyWebhook = async () => {
 
         <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
           <FermionChat
+            v-if="canUseFermion"
             :context-bot-id="bot.id"
             @updated="refresh"
+          />
+          <LineBotSetupBanner
+            v-else
+            :bot="bot"
+            :is-openrouter-connected="isOpenrouterConnected"
+            :is-webhook-verified="isWebhookVerified"
+            :is-setup-complete="isSetupComplete"
+            @refresh="refresh"
           />
 
           <div class="flex flex-col gap-3">
