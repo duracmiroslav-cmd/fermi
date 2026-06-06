@@ -74,6 +74,30 @@ export const uploadGeneratedImage = async (
   return { storagePath };
 };
 
+// Uploads the downscaled JPEG preview that backs a generated image's LINE
+// `previewImageUrl`. Stored beside the original (`out/<id>.preview.jpg`) so it
+// shares the original's path prefix and audit handle; a retry of the same tool
+// call upserts to the same key (idempotent). See `imagePreview.ts` for why the
+// full-res original can't double as the preview.
+export const uploadGeneratedImagePreview = async (
+  admin: SupabaseClient,
+  params: {
+    ownerId:  string;
+    threadId: string;
+    imageId:  string;
+    bytes:    Uint8Array;
+  },
+): Promise<{ storagePath: string }> => {
+  const { ownerId, threadId, imageId, bytes } = params;
+  const storagePath = `${ownerId}/${threadId}/out/${imageId}.preview.jpg`;
+  const { error: uploadErr } = await admin.storage.from(BUCKET).upload(storagePath, bytes, {
+    contentType: 'image/jpeg',
+    upsert:      true,
+  });
+  if (uploadErr) throw uploadErr;
+  return { storagePath };
+};
+
 export const signMessageImageUrl = async (
   admin: SupabaseClient,
   storagePath: string,

@@ -3,13 +3,18 @@ import {
   PlatformKeyNotConfiguredError,
   resolveKey,
 } from '../../../../shared/keys.ts';
-import { signMessageImageUrl, uploadGeneratedImage } from '../../../../shared/messageImages.ts';
+import {
+  signMessageImageUrl,
+  uploadGeneratedImage,
+  uploadGeneratedImagePreview,
+} from '../../../../shared/messageImages.ts';
 import {
   ImageGenError,
   // Both the client and the tool object want the name `generateImage`;
   // alias the client so the tool keeps the export.
   generateImage as runImageGen,
 } from '../imagegen.ts';
+import { encodeJpegPreview } from '../imagePreview.ts';
 import type { ImageSize } from '../../../../shared/imageModels.ts';
 import { COUNTER_ENV, consumeQuota } from '../quota.ts';
 import type { Tool } from './index.ts';
@@ -111,15 +116,36 @@ export const generateImage: Tool = {
         mime: generated.mime,
         bytes: generated.bytes,
       });
-      const signedUrl = await signMessageImageUrl(ctx.admin, storagePath);
+      const originalUrl = await signMessageImageUrl(ctx.admin, storagePath);
+
+      // LINE caps an image message's previewImageUrl at 1MB, but our generated
+      // PNGs run well over that, so handing LINE the full-res image as the
+      // preview makes the in-chat thumbnail fail to render. Ship a downscaled
+      // JPEG as the preview while originalContentUrl stays the untouched
+      // full-res PNG the user gets on tap. Best-effort: if the thumbnail can't
+      // be produced, fall back to the full-res URL so a preview hiccup never
+      // costs the user the image they asked for.
+      let previewUrl = originalUrl;
+      try {
+        const previewBytes = await encodeJpegPreview(generated.bytes);
+        const { storagePath: previewPath } = await uploadGeneratedImagePreview(ctx.admin, {
+          ownerId: ctx.ownerId,
+          threadId: ctx.threadId,
+          imageId: ctx.toolCallId,
+          bytes: previewBytes,
+        });
+        previewUrl = await signMessageImageUrl(ctx.admin, previewPath);
+      } catch (previewErr) {
+        console.error('image preview generation failed; using full-res as preview', previewErr);
+      }
 
       // Staged for the worker to drain into LINE messages after the loop.
       ctx.attachments.push({
         type: 'image',
         mime: generated.mime,
         sizeBytes: generated.bytes.byteLength,
-        originalContentUrl: signedUrl,
-        previewImageUrl: signedUrl,
+        originalContentUrl: originalUrl,
+        previewImageUrl: previewUrl,
         storagePath,
       });
 
