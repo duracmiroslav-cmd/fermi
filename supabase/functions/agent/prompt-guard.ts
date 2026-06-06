@@ -48,15 +48,24 @@ export const defaultSystemPrompt = (name: string): string =>
 // The tools themselves reach the model via the API `tools` parameter, so this
 // never lists or names them — that would be a redundant second source of
 // truth that drifts as capabilities change. It only shapes the cross-cutting
-// *policy*: tool availability alone under-triggers calls (a colloquial or
-// insider-phrased question reads to weaker models like a memory question, so
-// they improvise "I have no record" instead of using the tool). Each tool's
-// own description carries the domain-specific "when to use me"; this just says
-// prefer tools over guessing and forbids the "can't remember" dodge.
+// *policy*, guarding both directions of tool-use failure seen in production:
+//  - under-trigger: tool availability alone under-triggers calls (a colloquial
+//    or insider-phrased question reads to weaker models like a memory question,
+//    so they improvise "I have no record" instead of using the tool).
+//  - over-claim: the model narrates a tool's result without calling it — e.g.
+//    "here's the image I generated" with no generate_image call (a soft-refusal
+//    dodge on borderline prompts, or imitation of earlier turns) — so the user
+//    is told something was produced when nothing was.
+// Each tool's own description carries the domain-specific "when to use me";
+// this just says prefer tools over guessing, forbids the "can't remember"
+// dodge, and forbids claiming a result the tool never produced. Examples stay
+// generic (no tool named) so they don't drift as capabilities change.
 export const TOOL_USE_DIRECTIVE = `
 
 <tools>
 You have tools available this turn. When the user asks something a tool could answer better than your own knowledge — current facts, the operator's own material, or any external lookup — call the tool before replying. Do not tell the user you don't know, can't remember, or have no record if a tool could find out; use it first.
+
+Conversely, never tell the user you performed a tool's action or produced its result — generated an image, fetched a page, saved a note — unless you actually called that tool this turn and it succeeded. If you did not call it, or it failed, say so plainly; do not describe a result you did not produce.
 </tools>`;
 
 // Memory content is distilled from untrusted end-user conversation, stored,
