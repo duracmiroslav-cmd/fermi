@@ -134,7 +134,11 @@ export const generateImage: Tool = {
     } catch (err) {
       if (err instanceof ImageGenError) {
         return {
-          error: `Image generation failed (${err.status}). Tell the user briefly that the image service errored; suggest they try again or rephrase the prompt.`,
+          // Pass fal's own reason through so the model can explain what went
+          // wrong in the user's language and react to it — if the prompt was
+          // rejected (e.g. safety filter), suggest a rephrase; otherwise a
+          // retry. The reason is from fal, not user input, so it's safe to relay.
+          error: `Image generation failed (${err.status}): ${err.detail}. Briefly tell the user what went wrong in their language; if the prompt looks rejected, suggest rephrasing, otherwise suggest trying again.`,
         };
       }
       throw err;

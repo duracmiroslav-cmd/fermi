@@ -6,8 +6,13 @@ import type { CapabilityConfig } from '../../../shared/capabilities.ts';
 import { type ImageSize, resolveImageModel } from '../../../shared/imageModels.ts';
 
 export class ImageGenError extends Error {
-  constructor(public readonly status: number, message: string) {
-    super(message);
+  // `detail` is the upstream reason (fal's response body, truncated). It's
+  // surfaced to the LLM in the tool result so the model can explain the
+  // failure and self-correct — e.g. rephrase a prompt fal's safety filter
+  // rejected — instead of emitting a generic "try again". It also lands in the
+  // persisted `tool_responded` step, so a 422 stays diagnosable after the fact.
+  constructor(public readonly status: number, public readonly detail: string) {
+    super(`fal.ai ${status}: ${detail}`);
   }
 }
 
@@ -61,13 +66,13 @@ export const generateImage = async (params: {
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new ImageGenError(res.status, `fal.ai ${res.status}: ${body.slice(0, 400)}`);
+    throw new ImageGenError(res.status, body.slice(0, 400) || res.statusText);
   }
 
   const data: FalResponse = await res.json();
   const first = data.images?.[0];
   if (!first?.url) {
-    throw new ImageGenError(502, 'fal.ai returned no image URL');
+    throw new ImageGenError(502, 'returned no image URL');
   }
 
   // fal hosts the result; download once into the worker so we can
@@ -75,7 +80,7 @@ export const generateImage = async (params: {
   // expose the user to fal-side URL expiry / outages.
   const imgRes = await fetch(first.url);
   if (!imgRes.ok) {
-    throw new ImageGenError(imgRes.status, `fetching fal result ${imgRes.status}`);
+    throw new ImageGenError(imgRes.status, 'could not download the generated image');
   }
   const bytes = new Uint8Array(await imgRes.arrayBuffer());
   return {
