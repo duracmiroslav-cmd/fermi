@@ -61,8 +61,8 @@ const { data: agent, error, pending, refresh } = useApiFetch<AgentDetail>(
 );
 const { data: models } = useApiFetch<ProviderModel[]>('/api/providers/openrouter/models');
 
-// AgentCapabilitiesReadonly fetches its own capabilities; hold a ref so the
-// panel can be refetched when the builder changes the agent's capabilities.
+// AgentCapabilities fetches its own capabilities; hold a ref so the panel can
+// be refetched when the builder changes the agent's capabilities.
 const capabilitiesPanel = ref<{ refresh: () => Promise<void> } | null>(null);
 
 // OpenRouter names come as "Provider: Model"; the provider logo already
@@ -330,9 +330,10 @@ const onBuilderUpdated = () => {
             </UCard>
           </div>
 
-          <AgentCapabilitiesReadonly
+          <AgentCapabilities
             ref="capabilitiesPanel"
             :agent-id="agent.id"
+            readonly
           />
 
           <div
