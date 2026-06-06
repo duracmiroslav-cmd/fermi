@@ -82,6 +82,7 @@ const makeAction = (endpoint: string, label: string, bodyKey: string) => {
 const tavily = makeAction('/api/connectors/tavily', 'Tavily', 'apiKey');
 const github = makeAction('/api/connectors/github', 'GitHub', 'token');
 const twinkleHub = makeAction('/api/connectors/twinkle-hub', 'Twinkle Hub', 'token');
+const fal = makeAction('/api/connectors/fal', 'fal', 'apiKey');
 </script>
 
 <template>
@@ -279,6 +280,40 @@ const twinkleHub = makeAction('/api/connectors/twinkle-hub', 'Twinkle Hub', 'tok
                             rel="noopener"
                             class="underline"
                           >app.tavily.com</a>
+                        </template>
+                      </I18nT>
+                    </template>
+                  </ConnectorCredentialCard>
+                </template>
+
+                <template v-else-if="provider.slug === 'fal'">
+                  <p class="text-sm text-toned">
+                    {{ $t('__descriptionFalConnector') }}
+                  </p>
+                  <ConnectorCredentialCard
+                    v-if="provider.status !== 'coming_soon'"
+                    :label="$t('__labelApiKey')"
+                    mode="key"
+                    :status="provider.status"
+                    :masked-key="provider.maskedKey"
+                    :placeholder="provider.status === 'connected' ? $t('__placeholderReconnectToViewKey') : 'key_id:key_secret'"
+                    :connecting="fal.connecting.value"
+                    :disconnecting="fal.disconnecting.value"
+                    @connect="fal.connect"
+                    @disconnect="fal.disconnect"
+                  >
+                    <template #help>
+                      <I18nT
+                        keypath="__hintFalHelp"
+                        tag="span"
+                      >
+                        <template #link>
+                          <a
+                            href="https://fal.ai/dashboard/keys"
+                            target="_blank"
+                            rel="noopener"
+                            class="underline"
+                          >fal.ai/dashboard/keys</a>
                         </template>
                       </I18nT>
                     </template>

@@ -119,8 +119,14 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     displayName:    'Image generation',
     description:    'Generate an image from a natural-language prompt. Use when the user explicitly asks to "draw", "generate an image", "make a picture", or similar; do NOT use to fetch existing images from the web.',
     config:         {},
-    credentialType: 'none',
-    settings:       [
+    // fal renders the image. platformBacked: a Pro owner uses fermi's platform
+    // fal key, a Free owner must connect their own — mirrors image-gen.ts's
+    // resolveKey('fal') wiring, so the badge matches what the tool resolves.
+    credentialType: 'providers',
+    providers:      [
+      { slug: 'fal', displayName: 'fal', keyType: 'fal', status: 'live', platformBacked: true },
+    ],
+    settings: [
       {
         key:      'safetyTolerance',
         type:     'slider',
