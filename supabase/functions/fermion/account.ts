@@ -8,11 +8,12 @@ import type { FermionTool } from './tool.ts';
 // `keyType` matches the stored credential so "connected?" is a presence
 // check (see state.ts). Reused by the system prompt.
 export const CONNECTORS: ReadonlyArray<{ keyType: string; name: string; purpose: string; required: boolean }> = [
-  { keyType: 'openrouter', name: 'OpenRouter', purpose: 'the AI provider that powers text replies', required: true },
-  { keyType: 'openai',     name: 'OpenAI',     purpose: 'your own key for voice (text-to-speech / speech-to-text)', required: false },
-  { keyType: 'fal',        name: 'fal',        purpose: 'your own key for image generation', required: false },
-  { keyType: 'tavily',     name: 'Tavily',     purpose: 'your own key for the web-search capability', required: false },
-  { keyType: 'github',     name: 'GitHub',     purpose: 'authorizes the GitHub capability', required: false },
+  { keyType: 'openrouter', name: 'OpenRouter',  purpose: 'the AI provider that powers text replies', required: true },
+  { keyType: 'openai',     name: 'OpenAI',      purpose: 'your own key for voice (text-to-speech / speech-to-text)', required: false },
+  { keyType: 'fal',        name: 'fal',         purpose: 'your own key for image generation', required: false },
+  { keyType: 'tavily',     name: 'Tavily',      purpose: 'your own key for the web-search capability', required: false },
+  { keyType: 'github',     name: 'GitHub',      purpose: 'authorizes the GitHub capability', required: false },
+  { keyType: 'twinkle',    name: 'Twinkle Hub', purpose: 'your own key for the Twinkle Hub (Taiwan lookups) capability', required: false },
 ];
 
 const widget = (kind: string): unknown => ({ ok: true, widget: kind });
