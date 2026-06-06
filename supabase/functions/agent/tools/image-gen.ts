@@ -1,5 +1,6 @@
 import {
   FreeBYOKRequiredError,
+  type KeySource,
   PlatformKeyNotConfiguredError,
   resolveKey,
 } from '../../../../shared/keys.ts';
@@ -66,6 +67,7 @@ export const generateImage: Tool = {
     // Errors round-trip back to the LLM as tool-result JSON so the model
     // can relay a sensible message in the user's language.
     let apiKey: string;
+    let keySource: KeySource;
     try {
       const resolved = await resolveKey(ctx.admin, ctx.kek, {
         ownerId: ctx.ownerId,
@@ -73,6 +75,7 @@ export const generateImage: Tool = {
         platformKey: Deno.env.get('FAL_API_KEY') ?? null,
       });
       apiKey = resolved.key;
+      keySource = resolved.source;
     } catch (err) {
       if (err instanceof FreeBYOKRequiredError) {
         return {
@@ -87,16 +90,21 @@ export const generateImage: Tool = {
       throw err;
     }
 
-    // Quota after the key resolves: a fast-fail before the paid fal.ai call
-    // that doesn't charge an owner who couldn't have generated anyway.
-    const quota = await consumeQuota(ctx.admin, COUNTER_ENV, {
-      ownerId: ctx.ownerId,
-      purpose: 'image_gen',
-    });
-    if (!quota.allowed) {
-      return {
-        error: `Image generation quota exceeded: ${quota.count}/${quota.cap} this month. Tell the user the bot owner's free image quota is used up; they can either upgrade to Pro at https://fermi.tw/dashboard/billing ($19/mo, 200 images/mo) or connect their own fal.ai key at https://fermi.tw/dashboard/connectors for unlimited usage.`,
-      };
+    // Quota caps only platform-key usage — the spend fermi actually pays for.
+    // A BYOK owner draws on their own fal account, so it's uncapped (this is
+    // the "connect your own key for unlimited usage" promise). Charged before
+    // the paid fal call so a platform-key owner over cap fails fast without
+    // burning an upstream call.
+    if (keySource === 'platform') {
+      const quota = await consumeQuota(ctx.admin, COUNTER_ENV, {
+        ownerId: ctx.ownerId,
+        purpose: 'image_gen',
+      });
+      if (!quota.allowed) {
+        return {
+          error: `Image generation quota exceeded: ${quota.count}/${quota.cap} this month. Tell the user the bot owner's free image quota is used up; they can either upgrade to Pro at https://fermi.tw/dashboard/billing ($19/mo, 200 images/mo) or connect their own fal.ai key at https://fermi.tw/dashboard/connectors for unlimited usage.`,
+        };
+      }
     }
 
     try {

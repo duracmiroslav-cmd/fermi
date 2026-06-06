@@ -15,6 +15,7 @@ import { loadOwnerContext } from '../../../shared/users.ts';
 import { loadRecentMemories, MEMORY_INJECT_LIMIT } from '../../../shared/memories.ts';
 import {
   FreeBYOKRequiredError,
+  type KeySource,
   PlatformKeyNotConfiguredError,
   resolveKey,
 } from '../../../shared/keys.ts';
@@ -393,6 +394,7 @@ const transcribeGroupAudio = async (params: {
   }
 
   let openaiKey: string;
+  let keySource: KeySource;
   try {
     const resolved = await resolveKey(admin, kek, {
       ownerId:     bot.ownerId,
@@ -400,6 +402,7 @@ const transcribeGroupAudio = async (params: {
       platformKey: PLATFORM_OPENAI_KEY,
     });
     openaiKey = resolved.key;
+    keySource = resolved.source;
   } catch (err) {
     if (err instanceof FreeBYOKRequiredError) {
       await safeReply(lineAccessToken, replyToken, t('__noticeFreeByokOpenai', ownerLocale));
@@ -413,8 +416,12 @@ const transcribeGroupAudio = async (params: {
     throw err;
   }
 
-  const quota = await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' });
-  if (!quota.allowed) {
+  // Quota caps only platform-key usage (the spend fermi pays for); BYOK draws
+  // on the owner's own OpenAI account and is uncapped.
+  const quota = keySource === 'platform'
+    ? await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' })
+    : null;
+  if (quota && !quota.allowed) {
     await safeReply(lineAccessToken, replyToken, t('__noticeQuotaSttExhausted', ownerLocale));
     return;
   }
@@ -572,6 +579,9 @@ const runAgentLoop = async (params: {
   ownerLocale: Locale;
   ownerTimezone: string;
   openrouterKey: string;
+  // 'platform' → fermi's OpenRouter key (metered); 'byok' → the owner's own
+  // (uncapped, so extended_run isn't charged).
+  openrouterSource: KeySource;
   lineAccessToken: string;
   kek: CryptoKey;
   externalUserId: string;
@@ -585,7 +595,7 @@ const runAgentLoop = async (params: {
   // to the group. `externalUserId` is then the mentioner.
   group?: { groupId: string };
 }): Promise<void> => {
-  const { bot, agent, ownerLocale, ownerTimezone, openrouterKey, lineAccessToken, kek, externalUserId, replyToken, userInput, eventTimestamp, group } = params;
+  const { bot, agent, ownerLocale, ownerTimezone, openrouterKey, openrouterSource, lineAccessToken, kek, externalUserId, replyToken, userInput, eventTimestamp, group } = params;
 
   const subjectExternalId = group ? group.groupId : externalUserId;
   const subjectType: ThreadSubjectType = group ? 'group' : 'user';
@@ -778,9 +788,12 @@ const runAgentLoop = async (params: {
       }),
       // extended_run quota: INCR at most once per run, the first time
       // wall time crosses the reply-token budget. Aborting ends the loop
-      // with a CTA; already-paid LLM cost up to that point is sunk.
+      // with a CTA; already-paid LLM cost up to that point is sunk. Only
+      // platform-key runs are metered — a BYOK owner pays their own OpenRouter
+      // tokens, so a long conversation costs fermi nothing and stays uncapped
+      // (the technical MAX_AGENT_STEPS / wall-clock limits still bound it).
       beforeIteration: async () => {
-        if (extendedRunConsumed || (Date.now() - eventTimestamp) < REPLY_BUDGET_MS) return null;
+        if (openrouterSource !== 'platform' || extendedRunConsumed || (Date.now() - eventTimestamp) < REPLY_BUDGET_MS) return null;
         const exQuota = await consumeQuota(admin, COUNTER_ENV, {
           ownerId: bot.ownerId,
           purpose: 'extended_run',
@@ -845,11 +858,12 @@ const runAgentLoop = async (params: {
           purpose: 'openai',
           platformKey: PLATFORM_OPENAI_KEY,
         });
-        const ttsQuota = await consumeQuota(admin, COUNTER_ENV, {
-          ownerId: bot.ownerId,
-          purpose: 'tts',
-        });
-        if (!ttsQuota.allowed) {
+        // Quota caps only platform-key usage; a BYOK owner's OpenAI account
+        // covers their own TTS, so it's uncapped.
+        const ttsQuota = resolved.source === 'platform'
+          ? await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'tts' })
+          : null;
+        if (ttsQuota && !ttsQuota.allowed) {
           ttsQuotaExhausted = true;
         } else {
           const speech = await synthesizeSpeech({
@@ -1120,6 +1134,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
   }
 
   let openrouterKey: string;
+  let openrouterSource: KeySource;
   try {
     const resolved = await resolveKey(admin, kek, {
       ownerId: bot.ownerId,
@@ -1127,6 +1142,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       platformKey: PLATFORM_OPENROUTER_KEY,
     });
     openrouterKey = resolved.key;
+    openrouterSource = resolved.source;
   } catch (err) {
     // FreeBYOKRequiredError = owner is on Free + hasn't connected.
     // PlatformKeyNotConfiguredError = Pro user but fermi's env is
@@ -1172,6 +1188,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
+        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1207,6 +1224,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
+        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1244,6 +1262,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       // the pipeline only knows text + image; a failed transcription starts
       // no agent_run.
       let openaiKey: string;
+      let keySource: KeySource;
       try {
         const resolved = await resolveKey(admin, kek, {
           ownerId: bot.ownerId,
@@ -1251,6 +1270,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
           platformKey: PLATFORM_OPENAI_KEY,
         });
         openaiKey = resolved.key;
+        keySource = resolved.source;
       } catch (err) {
         if (err instanceof FreeBYOKRequiredError) {
           await safeReply(lineAccessToken, event.replyToken, t('__noticeFreeByokOpenai', ownerLocale));
@@ -1264,11 +1284,12 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         throw err;
       }
 
-      const sttQuota = await consumeQuota(admin, COUNTER_ENV, {
-        ownerId: bot.ownerId,
-        purpose: 'stt',
-      });
-      if (!sttQuota.allowed) {
+      // Quota caps only platform-key usage; BYOK is on the owner's own OpenAI
+      // account and uncapped.
+      const sttQuota = keySource === 'platform'
+        ? await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' })
+        : null;
+      if (sttQuota && !sttQuota.allowed) {
         await safeReply(lineAccessToken, event.replyToken, t('__noticeQuotaSttExhausted', ownerLocale));
         continue;
       }
@@ -1299,6 +1320,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
+        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1369,6 +1391,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
+        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1390,6 +1413,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
+        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1411,6 +1435,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
+        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1452,6 +1477,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       ownerLocale,
       ownerTimezone,
       openrouterKey,
+      openrouterSource,
       lineAccessToken,
       kek,
       externalUserId: gm.senderId,
