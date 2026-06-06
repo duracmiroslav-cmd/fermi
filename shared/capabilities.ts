@@ -119,9 +119,11 @@ export interface BuiltInCapability {
 // `showWhen` is asserted back to the field type.
 const imageGenSettings: CapabilitySettingField[] = [
   {
+    // `label` is an i18n key the dashboard $t's; option labels are model
+    // display names (brand names, not localized).
     key:     'imageModel',
     type:    'select',
-    label:   'Model',
+    label:   '__labelModel',
     default: DEFAULT_IMAGE_MODEL,
     options: IMAGE_MODELS.map(m => ({ value: m.id, label: m.displayName })),
   },

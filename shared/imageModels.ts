@@ -22,15 +22,17 @@ export const parseSafetyTolerance = (raw: unknown): number | undefined =>
     ? raw
     : undefined;
 
+// `label` / `minLabel` / `maxLabel` are i18n keys (the dashboard $t's them);
+// the worker ignores them.
 const SAFETY_TOLERANCE_FIELD: CapabilitySettingField = {
   key:      'safetyTolerance',
   type:     'slider',
-  label:    'Safety filter',
+  label:    '__labelSafetyFilter',
   min:      1,
   max:      6,
   default:  4,
-  minLabel: 'Strict',
-  maxLabel: 'Permissive',
+  minLabel: '__labelStrict',
+  maxLabel: '__labelPermissive',
 };
 
 // fal's image_size presets, shared by the models that use that schema.

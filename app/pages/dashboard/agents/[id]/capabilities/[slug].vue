@@ -115,14 +115,14 @@ const sectionLabel = computed((): string | null => {
     </template>
 
     <template v-else-if="capability && hasSettings(capability)">
-      <div class="rounded-md border border-muted bg-muted/50 divide-y divide-default overflow-hidden">
+      <div class="rounded-md border border-muted bg-muted/50 overflow-hidden">
         <div
           v-for="field in visibleSettings"
           :key="field.key"
           class="flex flex-col gap-3 p-4"
         >
           <p class="text-sm font-medium">
-            {{ field.label }}
+            {{ $t(field.label) }}
           </p>
           <template v-if="field.type === 'slider'">
             <USlider
@@ -133,8 +133,8 @@ const sectionLabel = computed((): string | null => {
               @update:model-value="(v: number | undefined) => onSettingChange(field.key, v ?? field.default)"
             />
             <div class="flex items-center justify-between text-xs text-toned">
-              <span>{{ field.minLabel }}</span>
-              <span>{{ field.maxLabel }}</span>
+              <span>{{ $t(field.minLabel) }}</span>
+              <span>{{ $t(field.maxLabel) }}</span>
             </div>
           </template>
           <USelectMenu
