@@ -286,7 +286,7 @@ onMounted(() => {
     <UCard :ui="{ body: 'flex flex-col gap-0 p-0 sm:p-0' }">
       <div
         ref="listEl"
-        class="h-80 overflow-y-auto p-4 sm:p-6"
+        class="h-120 overflow-y-auto p-4 sm:p-6"
       >
         <div
           v-if="!messages.length && !isSending"
