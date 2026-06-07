@@ -105,7 +105,7 @@ const onBuilderUpdated = () => {
       <template #title>
         <DashboardBreadcrumb
           :items="[
-            { label: $t('__labelAgent', 2), to: '/dashboard/agents' },
+            { label: $t('__labelAgent', 2), to: '/dashboard' },
             { label: agent?.name ?? '' },
           ]"
           :loading="!agent"
@@ -120,7 +120,7 @@ const onBuilderUpdated = () => {
           icon="i-lucide-search-x"
           :title="$t('__titleAgentNotFound')"
           :description="$t('__descriptionAgentNotFound')"
-          :actions="[{ label: $t('__actionBackToAgents'), icon: 'i-lucide-arrow-left', to: '/dashboard/agents' }]"
+          :actions="[{ label: $t('__actionBackToAgents'), icon: 'i-lucide-arrow-left', to: '/dashboard' }]"
         />
       </DashboardContainer>
 
@@ -164,10 +164,14 @@ const onBuilderUpdated = () => {
           <FermionChat
             v-if="canUseFermion"
             :agent-id="agent.id"
+            class="lg:col-span-2"
             @updated="onBuilderUpdated"
           />
 
-          <AgentTestChat :agent-id="agent.id" />
+          <AgentTestChat
+            :agent-id="agent.id"
+            class="lg:col-span-2"
+          />
 
           <div class="flex flex-col gap-3">
             <h2 class="font-semibold flex items-center gap-2">

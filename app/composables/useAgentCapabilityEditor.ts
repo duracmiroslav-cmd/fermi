@@ -262,7 +262,7 @@ export const useAgentCapabilityEditor = (
   };
 
   const breadcrumbItems = computed((): BreadcrumbItem[] => [
-    { label: t('__labelAgent', 2), to: '/dashboard/agents' },
+    { label: t('__labelAgent', 2), to: '/dashboard' },
     { label: agent.value?.name ?? '', to: `/dashboard/agents/${agentId.value}` },
     { label: t('__actionEdit'), to: `/dashboard/agents/${agentId.value}/edit` },
     { label: capability.value?.displayName ?? '' },

@@ -1,5 +1,12 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  // The agent roster is the dashboard home; the standalone agent/bot list
+  // pages were removed (bots live under their agent). Redirect the old list
+  // routes so bookmarks and stray links still land somewhere sensible.
+  routeRules: {
+    '/dashboard/agents': { redirect: '/dashboard' },
+    '/dashboard/bots':   { redirect: '/dashboard' },
+  },
   modules: [
     '@nuxt/eslint',
     '@nuxt/fonts',

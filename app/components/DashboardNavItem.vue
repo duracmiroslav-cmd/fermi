@@ -4,10 +4,14 @@ const props = defineProps<{
   to:    string;
   icon:  string;
   label: string;
+  // The home item points at `/dashboard`, a prefix of every dashboard route;
+  // `exact` keeps it from lighting up on every subpage.
+  exact?: boolean;
 }>();
 
 const isActive = computed(() => {
   if (route.path === props.to) return true;
+  if (props.exact) return false;
   return route.path.startsWith(`${props.to}/`);
 });
 </script>

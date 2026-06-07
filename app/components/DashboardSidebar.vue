@@ -9,14 +9,10 @@
 
     <nav class="flex-1 px-2 space-y-1">
       <DashboardNavItem
-        to="/dashboard/bots"
-        icon="i-lucide-bot"
-        :label="$t('__labelBot', 2)"
-      />
-      <DashboardNavItem
-        to="/dashboard/agents"
+        to="/dashboard"
         icon="i-lucide-cpu"
         :label="$t('__labelAgent', 2)"
+        exact
       />
       <DashboardNavItem
         to="/dashboard/connectors"

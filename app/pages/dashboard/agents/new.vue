@@ -23,7 +23,7 @@ const onSubmit = async (value: {
       <template #title>
         <DashboardBreadcrumb
           :items="[
-            { label: $t('__labelAgent', 2), to: '/dashboard/agents' },
+            { label: $t('__labelAgent', 2), to: '/dashboard' },
             { label: $t('__titleNewAgent') },
           ]"
         />
