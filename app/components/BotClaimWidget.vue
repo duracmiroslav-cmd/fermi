@@ -20,9 +20,32 @@ const celebrate = async () => {
   });
 };
 
-// Poll until the worker imprints a master (the owner DM'd the code). Starts
-// immediately so a re-mount onto an already-claimed bot resolves at once.
+// Arms (or re-arms) a fresh imprint code. The code carries a short TTL on the
+// server; the widget refreshes it before it lapses so what's on screen is
+// always live — otherwise an owner who opens this and DMs the code minutes
+// later sends a dead code that silently fails to bind.
+let expiresAtMs = 0;
+let rearming = false;
+const arm = async () => {
+  if (rearming) return;
+  rearming = true;
+  try {
+    const armed = await $fetch<{ code: string; expiresAt: string }>(`/api/bots/${props.botId}/imprint`, { method: 'POST' });
+    code.value = armed.code;
+    expiresAtMs = new Date(armed.expiresAt).getTime();
+  } catch {
+    // Already bound, or a transient error — the poll below still resolves the
+    // bound case, so leave the code as-is rather than blocking the widget.
+  } finally {
+    rearming = false;
+  }
+};
+
+// Poll until the worker imprints a master (the owner DM'd the code), re-arming
+// the code shortly before it expires. Starts immediately so a re-mount onto an
+// already-claimed bot resolves at once.
 const { pause } = useIntervalFn(async () => {
+  if (expiresAtMs && Date.now() > expiresAtMs - 20_000) await arm();
   const status = await $fetch<{ bound: boolean }>(`/api/bots/${props.botId}/imprint`);
   if (!status.bound) return;
   bound.value = true;
@@ -31,16 +54,8 @@ const { pause } = useIntervalFn(async () => {
   emit('replied');
 }, 4000, { immediate: true });
 
-// Arming when the widget appears is the owner opening the claim window.
-onMounted(async () => {
-  try {
-    const armed = await $fetch<{ code: string }>(`/api/bots/${props.botId}/imprint`, { method: 'POST' });
-    code.value = armed.code;
-  } catch {
-    // Already bound, or a transient error — the poll above still resolves the
-    // bound case, so leave the code blank rather than blocking the widget.
-  }
-});
+// Arm the first code when the widget appears.
+onMounted(arm);
 </script>
 
 <template>
