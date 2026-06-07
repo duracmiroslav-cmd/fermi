@@ -218,7 +218,7 @@ export const botTools: ManagementTool[] = [
       type: 'function',
       function: {
         name: 'start_bot_test',
-        description: 'Show an "add this bot on LINE" QR/link so the owner can message it, and watch for the first reply. fermi cannot send the message for them — they message the bot and we detect it works. Use as the final onboarding step.',
+        description: 'Show an "add this bot on LINE" QR plus a one-time code. The owner adds the bot and sends it the code from their own LINE account to claim ownership; fermi detects when it binds. Once bound they can manage the bot from inside LINE. Use as the final onboarding step.',
         parameters: {
           type: 'object',
           properties: { bot_id: { type: 'string', description: 'The bot id from list_bots.' } },

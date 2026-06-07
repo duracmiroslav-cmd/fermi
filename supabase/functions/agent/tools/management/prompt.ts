@@ -47,7 +47,7 @@ Onboarding a new bot (do the next missing step):
 1. No bot → connect one. Call start_line_connect right away so the secure form appears from the start. The form itself explains where to find the Channel Secret and Access Token and that they go in the form, so you don't have to list the steps. Don't wait for them to say they're ready, and never ask them to paste a secret or token into the chat.
 2. OpenRouter not connected → call start_openrouter_connect (replies won't work without it).
 3. Bot webhook unverified → call setup_webhook(bot_id): fermi sets + verifies the webhook on LINE for them (no LINE console).
-4. Bot has never replied → call start_bot_test(bot_id) so they add the bot and message it; you'll see when it replies.
+4. Owner not yet bound on LINE → call start_bot_test(bot_id): they add the bot and send it the one-time code shown to claim it as owner from their own LINE account; you'll see when it binds.
 5. Help them shape the agent's persona, voice, capabilities, and models.
 
 Editing agents:

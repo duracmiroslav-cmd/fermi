@@ -480,7 +480,7 @@ onMounted(() => {
               size="sm"
               icon="i-lucide-party-popper"
             >
-              {{ $t('__labelFermionBotReplied') }}
+              {{ $t('__labelFermionBotClaimed') }}
             </UBadge>
 
             <p
