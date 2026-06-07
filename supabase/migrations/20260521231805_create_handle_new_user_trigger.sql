@@ -2,7 +2,9 @@
 -- inserts into `public.users` on signup, pulling `display_name` and
 -- `avatar_url` from OAuth provider metadata. Also seeds the user's
 -- Default agent (bound to OpenRouter) so the "every user has one
--- default agent" invariant holds from signup onward.
+-- default agent" invariant holds from signup onward. The agent is
+-- seeded in maintenance mode so a new user's very first chat with it
+-- can surface the onboarding tools (connect a bot / OpenRouter).
 --
 -- The function runs as `SECURITY DEFINER` with a locked `search_path`
 -- so it can write to `public.users` from the auth schema context
@@ -32,8 +34,12 @@ begin
 
   select id into openrouter_id from public.model_providers where slug = 'openrouter';
 
-  insert into public.agents (owner_id, name, is_default, model_provider_id)
-  values (new.id, 'Default', true, openrouter_id);
+  -- Maintenance window mirrors MODE_DURATIONS.maintenance in
+  -- supabase/functions/agent/tools/management/mode.ts (30 min); the agent
+  -- auto-reverts to 'normal' after it via effectiveAgentMode. Keep the two
+  -- in step.
+  insert into public.agents (owner_id, name, is_default, model_provider_id, mode, mode_until)
+  values (new.id, 'Default', true, openrouter_id, 'maintenance', now() + interval '30 minutes');
 
   return new;
 end;
