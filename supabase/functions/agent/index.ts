@@ -47,7 +47,7 @@ import {
 } from './channels/line.ts';
 import { OpenRouterError, type ChatMessage } from './openrouter.ts';
 import { MAX_AGENT_STEPS, runAgentConversation } from './loop.ts';
-import { COUNTER_ENV, consumeQuota } from './quota.ts';
+import { COUNTER_ENV, consumeQuota, peekQuota } from './quota.ts';
 import { checkGroupMemberRateLimit } from './groupRateLimit.ts';
 import { deriveErrorCode, finishRun, logStep, startRun } from './runs.ts';
 import { STTError, transcribeAudio } from './stt.ts';
@@ -417,11 +417,12 @@ const transcribeGroupAudio = async (params: {
   }
 
   // Quota caps only platform-key usage (the spend fermi pays for); BYOK draws
-  // on the owner's own OpenAI account and is uncapped.
+  // on the owner's own OpenAI account and is uncapped. Peek to fast-fail over
+  // cap; the unit is spent only after Whisper actually runs (below).
   const quota = keySource === 'platform'
-    ? await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' })
+    ? await peekQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' })
     : null;
-  if (quota && !quota.allowed) {
+  if (quota && quota.remaining <= 0) {
     await safeReply(lineAccessToken, replyToken, t('__noticeQuotaSttExhausted', ownerLocale));
     return;
   }
@@ -444,6 +445,12 @@ const transcribeGroupAudio = async (params: {
       return;
     }
     throw err;
+  }
+  // Whisper billed for the audio it processed; charge now that it succeeded
+  // (an empty transcript still consumed Whisper time). A failed call returned
+  // above and never reaches here.
+  if (keySource === 'platform') {
+    await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' });
   }
   if (transcript.length === 0) {
     await safeReply(lineAccessToken, replyToken, t('__noticeAudioEmpty', ownerLocale));
@@ -859,11 +866,13 @@ const runAgentLoop = async (params: {
           platformKey: PLATFORM_OPENAI_KEY,
         });
         // Quota caps only platform-key usage; a BYOK owner's OpenAI account
-        // covers their own TTS, so it's uncapped.
+        // covers their own TTS, so it's uncapped. Peek to fast-fail over cap;
+        // the unit is spent only after synthesis succeeds (a failed call costs
+        // nothing upstream, so it must not cost a quota unit).
         const ttsQuota = resolved.source === 'platform'
-          ? await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'tts' })
+          ? await peekQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'tts' })
           : null;
-        if (ttsQuota && !ttsQuota.allowed) {
+        if (ttsQuota && ttsQuota.remaining <= 0) {
           ttsQuotaExhausted = true;
         } else {
           const speech = await synthesizeSpeech({
@@ -873,6 +882,9 @@ const runAgentLoop = async (params: {
             voice:        agent.defaultTtsVoice,
             instructions: agent.ttsInstructions,
           });
+          if (resolved.source === 'platform') {
+            await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'tts' });
+          }
           const { storagePath } = await uploadGeneratedAudio(admin, {
             ownerId: bot.ownerId,
             threadId,
@@ -1285,11 +1297,12 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       }
 
       // Quota caps only platform-key usage; BYOK is on the owner's own OpenAI
-      // account and uncapped.
+      // account and uncapped. Peek to fast-fail over cap; the unit is spent
+      // only after Whisper actually runs (below).
       const sttQuota = keySource === 'platform'
-        ? await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' })
+        ? await peekQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' })
         : null;
-      if (sttQuota && !sttQuota.allowed) {
+      if (sttQuota && sttQuota.remaining <= 0) {
         await safeReply(lineAccessToken, event.replyToken, t('__noticeQuotaSttExhausted', ownerLocale));
         continue;
       }
@@ -1304,6 +1317,11 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
           continue;
         }
         throw err;
+      }
+      // Charge now that Whisper succeeded (an empty transcript still consumed
+      // Whisper time); a failed call continued above without spending a unit.
+      if (keySource === 'platform') {
+        await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' });
       }
       if (transcript.length === 0) {
         await safeReply(lineAccessToken, event.replyToken, t('__noticeAudioEmpty', ownerLocale));
