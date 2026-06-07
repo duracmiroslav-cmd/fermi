@@ -65,7 +65,7 @@ export default {
   __hintWaitingClaim:                     'Waiting for the code…',
   __seedAgentPersona:                     'Edit its persona',
   __seedAgentVoice:                       'Change its voice',
-  __seedAgentModel:                       'Change the AI model',
+  __seedAgentModel:                       'Change the text model',
   __descriptionCapabilitiesPage:          'Tools your agents can reach for beyond chat. Attach per agent on each agent\'s page.',
   __descriptionCapabilityNotFound:        'This capability does not exist for this agent, or the link is wrong.',
   __descriptionConnectOpenrouter:         'Bots reply through OpenRouter. One signup unlocks Claude, GPT, Gemini, and 200+ other LLMs.',
