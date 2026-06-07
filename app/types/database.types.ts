@@ -957,24 +957,6 @@ export type Database = {
           },
         ]
       }
-      usage_counters: {
-        Row: {
-          count: number
-          key: string
-          updated_at: string
-        }
-        Insert: {
-          count?: number
-          key: string
-          updated_at?: string
-        }
-        Update: {
-          count?: number
-          key?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       users: {
         Row: {
           avatar_url: string | null
@@ -986,7 +968,6 @@ export type Database = {
           is_admin: boolean
           locale: string | null
           onboarded_at: string | null
-          tier: string
           timezone: string | null
           updated_at: string
         }
@@ -1000,7 +981,6 @@ export type Database = {
           is_admin?: boolean
           locale?: string | null
           onboarded_at?: string | null
-          tier?: string
           timezone?: string | null
           updated_at?: string
         }
@@ -1014,7 +994,6 @@ export type Database = {
           is_admin?: boolean
           locale?: string | null
           onboarded_at?: string | null
-          tier?: string
           timezone?: string | null
           updated_at?: string
         }
@@ -1035,7 +1014,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      consume_usage_quota: { Args: { quota_key: string }; Returns: number }
       create_byo_capability: {
         Args: {
           p_auth_key_type?: string
@@ -1100,40 +1078,6 @@ export type Database = {
       incr_rate_limit_bucket: {
         Args: { bucket_key: string; ttl_sec: number }
         Returns: number
-      }
-      insert_agent_if_under_limit: {
-        Args: {
-          p_avatar_url: string
-          p_default_text_model: string
-          p_default_tts_model: string
-          p_default_tts_voice: string
-          p_default_vision_model: string
-          p_limit: number
-          p_model_provider_id: string
-          p_name: string
-          p_normalize_traditional: boolean
-          p_owner_id: string
-          p_system_prompt: string
-          p_tts_instructions: string
-          p_voice_reply_mode: string
-        }
-        Returns: {
-          id: string
-        }[]
-      }
-      insert_bot_if_under_limit: {
-        Args: {
-          p_agent_id: string
-          p_display_name: string
-          p_external_id: string
-          p_limit: number
-          p_owner_id: string
-          p_platform: string
-        }
-        Returns: {
-          display_name: string
-          id: string
-        }[]
       }
       match_knowledge_chunks: {
         Args: {
