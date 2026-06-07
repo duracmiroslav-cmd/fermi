@@ -1,4 +1,4 @@
-// Lightweight account snapshot injected into the system prompt so fermion
+// Lightweight account snapshot injected into the system prompt so the assistant
 // has a map of the owner's resources up front (it still calls get_agent /
 // get_bot for full detail before editing). Loaded once per request.
 

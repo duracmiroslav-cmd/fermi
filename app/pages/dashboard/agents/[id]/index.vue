@@ -62,7 +62,7 @@ const { data: agent, error, pending, refresh } = useApiFetch<AgentDetail>(
 const { data: models } = useApiFetch<ProviderModel[]>('/api/providers/openrouter/models');
 
 // AgentCapabilities fetches its own capabilities; hold a ref so the panel can
-// be refetched when the builder changes the agent's capabilities.
+// be refetched when the agent chat changes the agent's capabilities.
 const capabilitiesPanel = ref<{ refresh: () => Promise<void> } | null>(null);
 
 // OpenRouter names come as "Provider: Model"; the provider logo already
@@ -89,9 +89,9 @@ const visionModel = computed<ProviderModel & { isDefault: boolean }>(() => {
   return { ...found, name: stripProviderPrefix(found.name), isDefault };
 });
 
-// The builder mutates the prompt *and* capabilities. The page-level refresh
+// The agent chat mutates the prompt *and* capabilities. The page-level refresh
 // covers the agent (prompt + details); also refetch the capabilities panel.
-const onBuilderUpdated = () => {
+const onChatUpdated = () => {
   refresh();
   capabilitiesPanel.value?.refresh();
 };
@@ -162,7 +162,7 @@ const onBuilderUpdated = () => {
           <AgentChat
             :agent-id="agent.id"
             class="lg:col-span-2"
-            @updated="onBuilderUpdated"
+            @updated="onChatUpdated"
           />
 
           <div class="flex flex-col gap-3">

@@ -31,7 +31,7 @@ import type { ManagementTool, ManagementToolContext } from './tool.ts';
 
 const BUILTIN_SLUGS = Object.keys(BUILT_IN_CAPABILITIES);
 
-// Lists the capabilities fermion may enable, flagging ones that need a
+// Lists the capabilities the assistant may enable, flagging ones that need a
 // credential connected first. Reused by the system prompt.
 export const capabilityCatalog = (): string =>
   BUILTIN_SLUGS.map((slug) => {
@@ -40,7 +40,7 @@ export const capabilityCatalog = (): string =>
     return `- ${slug}: ${c.description}${needsKey}`;
   }).join('\n');
 
-// Voices grouped by perceived gender, so fermion recommends one without
+// Voices grouped by perceived gender, so the assistant recommends one without
 // any audio sample. Reused by the system prompt.
 export const voiceCatalog = (): string => {
   const byGender = (g: VoiceGender): string =>

@@ -9,8 +9,8 @@ import type { Purpose } from './tiers.ts';
 // Mirrored by `purge_expired_group_messages` in SQL — keep both in sync.
 export const GROUP_MESSAGE_RETENTION_DAYS = 90;
 
-// Baseline rate-limit windows — the default caps (TEST_CHAT_RATE_WINDOWS
-// below overrides them for the costlier test chat). 3 concentric fixed
+// Baseline rate-limit windows — the default caps (CHAT_RATE_WINDOWS
+// below overrides them for the costlier agent chat). 3 concentric fixed
 // windows: 1min catches bursts, 1day catches absolute volume, 1hour is
 // the redundant-middle layer kept for industry symmetry (Cloudflare /
 // Vercel / GitHub pattern); drop later if 1hour never independently
@@ -28,13 +28,13 @@ export const RATE_WINDOWS: readonly RateWindow[] = [
   { scope: 'day', ttlSec: 86400, cap: 1000 },
 ] as const;
 
-// Tighter owner caps for the dashboard test chat. Unlike a TTS preview
+// Tighter owner caps for the dashboard agent chat. Unlike a TTS preview
 // (~$0.000025/call), each test turn is a full LLM loop on the platform key
 // and can run on whatever model the owner picked (possibly an expensive
 // one), so the generic RATE_WINDOWS day cap of 1000 would expose real
 // platform spend to abuse. ~200/day still covers heavy legitimate tuning;
 // minute is a burst guard (each turn waits for a reply, so 15 is plenty).
-export const TEST_CHAT_RATE_WINDOWS: readonly RateWindow[] = [
+export const CHAT_RATE_WINDOWS: readonly RateWindow[] = [
   { scope: 'minute', ttlSec: 60, cap: 15 },
   { scope: 'hour', ttlSec: 3600, cap: 60 },
   { scope: 'day', ttlSec: 86400, cap: 200 },
@@ -84,8 +84,8 @@ export const buildGroupRateLimitKey = (input: {
 // owner. Reuses RATE_WINDOWS unchanged (30/min, 200/hr, 1000/day): a
 // preview is TTS-only (no LLM) at ~$0.000025/call, so even the loose
 // generic cap is a harmless ceiling. Don't copy this onto a pricier
-// op — the test chat runs a full LLM loop and gets its own tighter
-// TEST_CHAT_RATE_WINDOWS.
+// op — the agent chat runs a full LLM loop and gets its own tighter
+// CHAT_RATE_WINDOWS.
 export const buildPreviewRateLimitKey = (input: {
   ownerId: string;
   window:  RateWindow;
@@ -96,10 +96,10 @@ export const buildPreviewRateLimitKey = (input: {
   return `rl:owner:${input.ownerId}:tts_preview:${input.window.scope}:${bucket}`;
 };
 
-// Owner-scoped key for the dashboard test chat. Distinct namespace from
+// Owner-scoped key for the dashboard agent chat. Distinct namespace from
 // tts_preview so the two try-outs don't share one budget and the chat's
-// tighter caps (TEST_CHAT_RATE_WINDOWS) tune independently.
-export const buildTestChatRateLimitKey = (input: {
+// tighter caps (CHAT_RATE_WINDOWS) tune independently.
+export const buildChatRateLimitKey = (input: {
   ownerId: string;
   window:  RateWindow;
   now?:    Date;

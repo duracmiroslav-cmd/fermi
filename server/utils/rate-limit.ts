@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { RATE_WINDOWS, type RateWindow, TEST_CHAT_RATE_WINDOWS, buildPreviewRateLimitKey, buildRateLimitKey, buildTestChatRateLimitKey } from '~~/shared/constants/limits';
+import { CHAT_RATE_WINDOWS, RATE_WINDOWS, type RateWindow, buildChatRateLimitKey, buildPreviewRateLimitKey, buildRateLimitKey } from '~~/shared/constants/limits';
 import { type CounterEnv, createRateLimiter } from '~~/shared/counters/factory';
 
 export interface RateLimitOutcome {
@@ -60,19 +60,19 @@ export const checkOwnerPreviewRateLimit = async (
   return { allowed: false, blockingScope, counts: result.counts };
 };
 
-// Owner-scoped variant for the dashboard test chat. Tighter caps
-// (TEST_CHAT_RATE_WINDOWS) and its own key namespace, since each call is a
+// Owner-scoped variant for the dashboard agent chat. Tighter caps
+// (CHAT_RATE_WINDOWS) and its own key namespace, since each call is a
 // full LLM loop on the platform key — far costlier than a TTS preview.
-export const checkTestChatRateLimit = async (
+export const checkChatRateLimit = async (
   admin: SupabaseClient,
   env:   CounterEnv,
   input: { ownerId: string },
 ): Promise<RateLimitOutcome> => {
   const limiter = createRateLimiter(admin, env);
 
-  const windowsWithScope = TEST_CHAT_RATE_WINDOWS.map(w => ({
+  const windowsWithScope = CHAT_RATE_WINDOWS.map(w => ({
     scope:  w.scope,
-    key:    buildTestChatRateLimitKey({ ownerId: input.ownerId, window: w }),
+    key:    buildChatRateLimitKey({ ownerId: input.ownerId, window: w }),
     ttlSec: w.ttlSec,
     cap:    w.cap,
   }));

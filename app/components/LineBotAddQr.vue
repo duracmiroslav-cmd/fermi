@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // The LINE add-friend QR + link for a bot, derived from its handle
-// (@basicId). Shared by the bot detail page and fermion's test widget.
+// (@basicId). Shared by the bot detail page and the bot-claim widget.
 const props = defineProps<{ handle: string | null }>();
 
 const friendAddUrl = computed(() =>

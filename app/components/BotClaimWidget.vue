@@ -53,14 +53,14 @@ onMounted(async () => {
         name="i-lucide-party-popper"
         class="size-5 text-primary"
       />
-      {{ $t('__labelFermionBotClaimed') }}
+      {{ $t('__labelBotClaimed') }}
     </div>
     <div
       v-else
       class="flex flex-col items-center gap-3 text-center"
     >
       <p class="text-sm text-toned">
-        {{ $t('__descriptionFermionBotClaim') }}
+        {{ $t('__descriptionBotClaim') }}
       </p>
       <LineBotAddQr :handle="bot?.handle ?? null" />
       <UButton
@@ -77,7 +77,7 @@ onMounted(async () => {
           name="i-lucide-loader-circle"
           class="size-3.5 animate-spin"
         />
-        {{ $t('__hintFermionWaitingClaim') }}
+        {{ $t('__hintWaitingClaim') }}
       </p>
     </div>
   </UCard>

@@ -1,5 +1,5 @@
 // Synchronous, stateless agent invocation: messages in → reply + step
-// trace out. The dashboard test chat is its first caller; the same
+// trace out. The dashboard agent chat is its first caller; the same
 // primitive is what a future developer API would expose (behind a
 // different, API-key front door). It deliberately does NOT persist to
 // threads / messages / agent_runs and does NOT touch LINE — the caller
@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
       // path to write under; nothing links back to a real thread/run.
       // Tools that persist against a real bot/thread/user (e.g.
       // reminders) hit their not-null FK and fail gracefully here —
-      // correct, since the test chat has no live transport to fire on.
+      // correct, since the agent chat has no live transport to fire on.
       toolContextBase: {
         admin,
         kek,
@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
       maxSteps: MAX_AGENT_STEPS,
     });
     // Run the reply through the same pass the LINE worker uses so the
-    // test chat previews exactly what an end user would receive.
+    // agent chat previews exactly what an end user would receive.
     const text = normalizeReplyText(result.text, { traditional: agent.normalizeTraditional });
     // Signals the dashboard to refetch: a mutating management tool or a mode
     // switch changed server state the UI mirrors (config, connectors, mode).

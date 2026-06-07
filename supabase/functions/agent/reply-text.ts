@@ -2,7 +2,7 @@ import { stripMarkdown } from './markdown.ts';
 import { normalizeTraditional } from './opencc.ts';
 
 // The exact text every channel delivers. The LINE worker (agent) and the
-// dashboard test chat (agent-invoke) both run replies through here, so
+// dashboard agent chat (agent-invoke) both run replies through here, so
 // what an owner sees while testing matches what their users get: markdown
 // flattened to LINE-safe plain text (LINE renders none), then optionally
 // Simplified → Taiwan Traditional. One shared pass is what keeps the two

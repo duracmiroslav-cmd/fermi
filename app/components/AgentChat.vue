@@ -1,13 +1,13 @@
 <script setup lang="ts">
-interface BuildStep {
+interface InvokeStep {
   type:    'llm_requested' | 'llm_responded' | 'tool_called' | 'tool_responded';
   payload: Record<string, unknown>;
 }
 
-interface BuildResponse {
+interface InvokeResponse {
   text:       string;
   hitStepCap: boolean;
-  steps:      BuildStep[];
+  steps:      InvokeStep[];
   changed:    boolean;
 }
 
@@ -40,9 +40,9 @@ const { create, isSubmitting } = useBots();
 
 // Config-mutating management tools → the chip shown under the reply.
 const CHANGE_LABEL_KEY: Record<string, string> = {
-  update_agent:     '__labelBuilderUpdatedAgent',
-  set_capabilities: '__labelBuilderSetCapabilities',
-  update_bot:       '__labelBuilderUpdatedBot',
+  update_agent:     '__labelUpdatedAgent',
+  set_capabilities: '__labelSetCapabilities',
+  update_bot:       '__labelUpdatedBot',
 };
 
 // tool name → the widget rendered under the reply.
@@ -69,7 +69,7 @@ const MANAGEMENT_TOOLS = new Set([
 const toolLabel = (name: string): string => name.replace(/^.*__/, '');
 
 // Seed prompts offered in the empty state — config shortcuts for this agent.
-const SEEDS = ['__seedFermionAgentPersona', '__seedFermionAgentVoice', '__seedFermionAgentModel'];
+const SEEDS = ['__seedAgentPersona', '__seedAgentVoice', '__seedAgentModel'];
 
 const messages = ref<ChatMessage[]>([]);
 const draft = ref('');
@@ -126,7 +126,7 @@ const onSend = async (override?: string) => {
   isSending.value = true;
 
   try {
-    const res = await $fetch<BuildResponse>(`/api/agents/${props.agentId}/invoke`, {
+    const res = await $fetch<InvokeResponse>(`/api/agents/${props.agentId}/invoke`, {
       method: 'POST',
       body:   {
         // A widget-only reply has empty content (kept locally to render the
@@ -172,7 +172,7 @@ const onSend = async (override?: string) => {
     if (res.changed) emit('updated');
   } catch (err) {
     const status = (err as { statusCode?: number }).statusCode;
-    errorKey.value = status === 429 ? '__errorTestChatRateLimited' : '__errorTestChatFailed';
+    errorKey.value = status === 429 ? '__errorChatRateLimited' : '__errorChatFailed';
   } finally {
     isSending.value = false;
   }
@@ -194,7 +194,7 @@ const onConnect = async (index: number, value: { channelSecret: string; channelA
   emit('updated');
   // The agent re-resolves account state each turn, so the freshly connected
   // bot is visible and it carries on to the next step.
-  await onSend(t('__fermionConnectedBotMessage'));
+  await onSend(t('__chatConnectedBotMessage'));
 };
 
 // OpenRouter is OAuth, not an in-page form: open sign-in in a new tab and
@@ -209,7 +209,7 @@ const { pause: pauseOpenrouterPoll, resume: resumeOpenrouterPoll } = useInterval
   const message = messages.value[index];
   if (message) message.widgetDone = true;
   emit('updated');
-  await onSend(t('__fermionConnectedOpenrouterMessage'));
+  await onSend(t('__chatConnectedOpenrouterMessage'));
 }, 3500, { immediate: false });
 
 const onConnectOpenrouter = (index: number) => {
@@ -234,7 +234,7 @@ const onSetupWebhook = async (index: number, botId: string) => {
     const message = messages.value[index];
     if (message) message.widgetDone = true;
     emit('updated');
-    await onSend(t('__fermionWebhookConnectedMessage'));
+    await onSend(t('__chatWebhookConnectedMessage'));
   } catch (e) {
     notify.error(t('__toastWebhookSetupFailed'), e);
   } finally {
@@ -247,7 +247,7 @@ const onBotReplied = async (index: number) => {
   if (!message || message.widgetDone) return;
   message.widgetDone = true;
   emit('updated');
-  await onSend(t('__fermionBotRepliedMessage'));
+  await onSend(t('__chatBotClaimedMessage'));
 };
 
 const onReset = () => {
@@ -269,7 +269,7 @@ onMounted(() => {
           name="i-lucide-messages-square"
           class="size-4 text-toned"
         />
-        {{ $t('__titleBuilderChat') }}
+        {{ $t('__titleChat') }}
       </h2>
       <UButton
         v-if="messages.length"
@@ -297,7 +297,7 @@ onMounted(() => {
             class="size-8 text-muted"
           />
           <p class="text-sm text-toned max-w-xs">
-            {{ $t('__descriptionFermionAccountChat') }}
+            {{ $t('__descriptionAgentChatEmpty') }}
           </p>
           <div class="flex flex-wrap justify-center gap-2">
             <UButton
@@ -391,7 +391,7 @@ onMounted(() => {
               size="sm"
               icon="i-lucide-check"
             >
-              {{ $t('__labelFermionBotConnected') }}
+              {{ $t('__labelBotConnected') }}
             </UBadge>
 
             <UCard
@@ -400,7 +400,7 @@ onMounted(() => {
             >
               <div class="flex flex-col gap-3">
                 <p class="text-sm text-toned">
-                  {{ $t('__descriptionFermionOpenrouterConnect') }}
+                  {{ $t('__descriptionOpenrouterConnect') }}
                 </p>
                 <UButton
                   icon="i-simple-icons-openrouter"
@@ -419,7 +419,7 @@ onMounted(() => {
                     name="i-lucide-loader-circle"
                     class="size-3.5 animate-spin"
                   />
-                  {{ $t('__hintFermionWaitingOpenrouter') }}
+                  {{ $t('__hintWaitingOpenrouter') }}
                 </p>
               </div>
             </UCard>
@@ -431,7 +431,7 @@ onMounted(() => {
               size="sm"
               icon="i-lucide-check"
             >
-              {{ $t('__labelFermionOpenrouterConnected') }}
+              {{ $t('__labelOpenrouterConnected') }}
             </UBadge>
 
             <UCard
@@ -461,7 +461,7 @@ onMounted(() => {
               size="sm"
               icon="i-lucide-check"
             >
-              {{ $t('__labelFermionWebhookConnected') }}
+              {{ $t('__labelWebhookConnected') }}
             </UBadge>
 
             <BotClaimWidget
@@ -477,14 +477,14 @@ onMounted(() => {
               size="sm"
               icon="i-lucide-party-popper"
             >
-              {{ $t('__labelFermionBotClaimed') }}
+              {{ $t('__labelBotClaimed') }}
             </UBadge>
 
             <p
               v-if="message.hitStepCap"
               class="text-xs text-toned"
             >
-              {{ $t('__descriptionTestChatStepCap') }}
+              {{ $t('__descriptionChatStepCap') }}
             </p>
           </li>
 
@@ -496,7 +496,7 @@ onMounted(() => {
               name="i-lucide-loader-circle"
               class="size-4 animate-spin"
             />
-            <span class="text-sm">{{ $t('__labelTestChatThinking') }}</span>
+            <span class="text-sm">{{ $t('__labelChatThinking') }}</span>
           </li>
         </ul>
       </div>
@@ -517,7 +517,7 @@ onMounted(() => {
             :rows="1"
             autoresize
             :maxrows="5"
-            :placeholder="$t('__placeholderBuilderMessage')"
+            :placeholder="$t('__placeholderChatMessage')"
             class="w-full"
             :ui="{ base: 'pe-10' }"
             @keydown.enter.exact="onEnter"

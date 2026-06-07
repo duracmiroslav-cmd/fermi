@@ -808,7 +808,7 @@ const runAgentLoop = async (params: {
     // and the outbound LINE text all derive from finalText, so converting
     // here keeps every channel consistent — and before the fermi-authored
     // suffix (already plain Traditional) is appended below. The same pass
-    // runs in agent-invoke so the dashboard test chat previews this text.
+    // runs in agent-invoke so the dashboard agent chat previews this text.
     finalText = normalizeReplyText(finalText, { traditional: agent.normalizeTraditional });
 
     // Voice-reply mode resolves to a yes/no per-turn:

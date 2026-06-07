@@ -1,4 +1,4 @@
-// Dashboard test chat. The owner talks to their agent from the agent
+// Dashboard agent chat. The owner talks to their agent from the agent
 // editor to see how it actually behaves before pointing a LINE bot at
 // it. Stateless: the browser holds the conversation and posts the full
 // message list each turn; nothing is persisted.
@@ -10,7 +10,7 @@
 
 import { z } from 'zod';
 import { getCurrentUser } from '~~/server/utils/auth';
-import { checkTestChatRateLimit } from '~~/server/utils/rate-limit';
+import { checkChatRateLimit } from '~~/server/utils/rate-limit';
 import { isTrustedTriggerHost } from '~~/server/utils/trigger';
 
 // Caps keep a single test turn bounded: LINE tops out at 5000 chars per
@@ -54,7 +54,7 @@ export default defineEventHandler(async (event) => {
 
   const { upstashUrl, upstashToken, supabaseUrl, fermiInternalSecret } = useRuntimeConfig(event);
 
-  const outcome = await checkTestChatRateLimit(
+  const outcome = await checkChatRateLimit(
     admin,
     { upstashUrl: upstashUrl || null, upstashToken: upstashToken || null },
     { ownerId: user.id },
@@ -62,7 +62,7 @@ export default defineEventHandler(async (event) => {
   if (!outcome.allowed) {
     throw createError({
       statusCode:    429,
-      statusMessage: `Test chat rate limit exceeded (${outcome.blockingScope ?? 'unknown'})`,
+      statusMessage: `Agent chat rate limit exceeded (${outcome.blockingScope ?? 'unknown'})`,
     });
   }
 

@@ -1,5 +1,5 @@
 // Shared catalog filter over OpenRouter's /models response. Used by the
-// Nuxt picker endpoint (adds provider icons on top) and by fermion's
+// Nuxt picker endpoint (adds provider icons on top) and by the management
 // list_models / model-validation in the agent Edge Function, so both pick
 // from the exact same set — web-standard only, no node:* (Deno imports it).
 
@@ -27,7 +27,7 @@ const MIN_CONTEXT_LENGTH = 32_000;
 const EXCLUDED_TAG_SUFFIXES = [':beta', ':experimental', ':exp', ':preview', ':legacy'];
 
 // Only surface models from these providers, keeps the picker tight and
-// dependable. Exported so fermion can offer/validate a provider filter
+// dependable. Exported so list_models can offer/validate a provider filter
 // (the id prefix is the provider).
 export const MODEL_PROVIDERS = [
   'amazon', 'anthropic', 'cohere', 'deepseek', 'google', 'meta-llama',

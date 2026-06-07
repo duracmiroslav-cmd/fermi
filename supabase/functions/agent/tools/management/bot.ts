@@ -136,7 +136,7 @@ const updateBot = async (args: Record<string, unknown>, { admin, ownerId }: Mana
 
 // Widget directives: no server effect — the chat UI renders the action
 // (webhook setup / add-and-test) against the existing secure endpoints.
-// Validate ownership so fermion gets a clear error for a bad id.
+// Validate ownership so the tool gets a clear error for a bad id.
 const startWidget = (kind: string) =>
   async (args: Record<string, unknown>, { admin, ownerId }: ManagementToolContext): Promise<unknown> => {
     const owned = await ownedBot(admin, ownerId, args.bot_id);

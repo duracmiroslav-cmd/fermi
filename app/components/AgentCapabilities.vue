@@ -42,7 +42,7 @@ const onRefresh = async () => {
   }
 };
 
-// The agent detail page refetches this after the builder changes the agent's
+// The agent detail page refetches this after the agent chat changes the agent's
 // capabilities; its page-level refresh only covers the agent, not this fetch.
 defineExpose({ refresh: refreshCapabilities });
 </script>
