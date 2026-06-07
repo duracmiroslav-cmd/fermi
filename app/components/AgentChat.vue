@@ -13,7 +13,7 @@ interface BuildResponse {
 
 type Widget = 'line_connect' | 'openrouter_connect' | 'setup_webhook' | 'bot_test';
 
-interface FermionMessage {
+interface ChatMessage {
   role:         'user' | 'assistant';
   content:      string;
   changes?:     string[];
@@ -29,18 +29,7 @@ interface FermionMessage {
   widgetDone?:  boolean;
 }
 
-interface AgentOption {
-  id:   string;
-  name: string;
-}
-
-const props = defineProps<{
-  // The agent to talk to (agent/bot page embeds pass it fixed). Ignored when
-  // `home`, which renders its own agent switcher and defaults to the Default.
-  agentId?: string;
-  // The dashboard home renders the chat full-height with an agent switcher.
-  home?:    boolean;
-}>();
+const props = defineProps<{ agentId: string }>();
 // Fires when the agent mutated a resource (or connected something) in
 // maintenance mode, so the host page refetches.
 const emit = defineEmits<{ updated: [] }>();
@@ -49,13 +38,7 @@ const { t } = useI18n();
 const notify = useNotify();
 const { create, isSubmitting } = useBots();
 
-// Only the home needs the roster for its switcher; embeds pass a fixed agent.
-const { data: agents } = useApiFetch<AgentOption[]>('/api/agents', {
-  immediate: props.home,
-  default:   () => [],
-});
-
-// Config-mutating tools → the chip shown under fermion's reply.
+// Config-mutating management tools → the chip shown under the reply.
 const CHANGE_LABEL_KEY: Record<string, string> = {
   update_agent:     '__labelBuilderUpdatedAgent',
   set_capabilities: '__labelBuilderSetCapabilities',
@@ -85,12 +68,10 @@ const MANAGEMENT_TOOLS = new Set([
 // plumbing, so the chip shows just the verb.
 const toolLabel = (name: string): string => name.replace(/^.*__/, '');
 
-// Seed prompts offered in the empty state, by where fermion is embedded:
-// onboarding on the home, config shortcuts on an agent / bot page.
-const HOME_SEEDS = ['__seedFermionStart', '__seedFermionConnectBot'];
-const AGENT_SEEDS = ['__seedFermionAgentPersona', '__seedFermionAgentVoice', '__seedFermionAgentModel'];
+// Seed prompts offered in the empty state — config shortcuts for this agent.
+const SEEDS = ['__seedFermionAgentPersona', '__seedFermionAgentVoice', '__seedFermionAgentModel'];
 
-const messages = ref<FermionMessage[]>([]);
+const messages = ref<ChatMessage[]>([]);
 const draft = ref('');
 const isSending = ref(false);
 const errorKey = ref<string | null>(null);
@@ -99,27 +80,19 @@ const listEl = ref<HTMLElement | null>(null);
 const openrouterWaitingIndex = ref<number | null>(null);
 // Which message's webhook setup is in flight, or null.
 const webhookSettingUpIndex = ref<number | null>(null);
-// The switcher's pick on the home; embeds talk to the fixed `agentId` prop.
-const selectedAgentId = ref<string>();
 
-// The agent this chat is bound to right now: the switcher pick on the home,
-// the fixed prop everywhere else.
-const activeAgentId = computed(() => (props.home ? selectedAgentId.value : props.agentId));
-const agentItems = computed(() => (agents.value ?? []).map(a => ({ label: a.name, value: a.id })));
-const canSend = computed(() => draft.value.trim().length > 0 && !isSending.value && !!activeAgentId.value);
-const seeds = computed(() => (props.home ? HOME_SEEDS : AGENT_SEEDS));
+const canSend = computed(() => draft.value.trim().length > 0 && !isSending.value);
 
 // One conversation per agent, in sessionStorage so it survives in-app nav +
-// reload (no DB). Switching agents on the home swaps the thread. Null until a
-// target is known (home before its roster loads).
-const storageKey = computed(() => (activeAgentId.value ? `agent-chat:${activeAgentId.value}` : null));
+// reload (no DB). Navigating to another agent's page swaps the thread.
+const storageKey = computed(() => `agent-chat:${props.agentId}`);
 
-const loadStored = (): FermionMessage[] => {
-  if (!import.meta.client || !storageKey.value) return [];
+const loadStored = (): ChatMessage[] => {
+  if (!import.meta.client) return [];
   const saved = sessionStorage.getItem(storageKey.value);
   if (!saved) return [];
   try {
-    return JSON.parse(saved) as FermionMessage[];
+    return JSON.parse(saved) as ChatMessage[];
   } catch {
     return [];
   }
@@ -133,17 +106,12 @@ watch(
 );
 
 watch(messages, (v) => {
-  if (import.meta.client && storageKey.value) sessionStorage.setItem(storageKey.value, JSON.stringify(v));
+  if (import.meta.client) sessionStorage.setItem(storageKey.value, JSON.stringify(v));
 }, { deep: true });
 
-// Default the home switcher to the first agent (the Default sorts first).
-watch(agents, (list) => {
-  if (props.home && !selectedAgentId.value && list?.length) selectedAgentId.value = list[0]!.id;
-});
-
-// Load the bound agent's stored conversation whenever the target changes
-// (switcher pick); the initial load is in onMounted to stay client-only.
-watch(activeAgentId, () => {
+// Load this agent's stored conversation whenever the target changes (in-app
+// nav between agent pages); the initial load is in onMounted to stay client-only.
+watch(() => props.agentId, () => {
   errorKey.value = null;
   draft.value = '';
   messages.value = loadStored();
@@ -151,14 +119,14 @@ watch(activeAgentId, () => {
 
 const onSend = async (override?: string) => {
   const text = (override ?? draft.value).trim();
-  if (!text || isSending.value || !activeAgentId.value) return;
+  if (!text || isSending.value) return;
   errorKey.value = null;
   messages.value.push({ role: 'user', content: text });
   if (override === undefined) draft.value = '';
   isSending.value = true;
 
   try {
-    const res = await $fetch<BuildResponse>(`/api/agents/${activeAgentId.value}/invoke`, {
+    const res = await $fetch<BuildResponse>(`/api/agents/${props.agentId}/invoke`, {
       method: 'POST',
       body:   {
         // A widget-only reply has empty content (kept locally to render the
@@ -224,7 +192,7 @@ const onConnect = async (index: number, value: { channelSecret: string; channelA
   const message = messages.value[index];
   if (message) message.widgetDone = true;
   emit('updated');
-  // fermion re-resolves account state each turn, so the freshly connected
+  // The agent re-resolves account state each turn, so the freshly connected
   // bot is visible and it carries on to the next step.
   await onSend(t('__fermionConnectedBotMessage'));
 };
@@ -294,21 +262,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div :class="['flex flex-col gap-3', home && 'h-full']">
+  <div class="flex flex-col gap-3">
     <div class="flex items-center justify-between gap-4">
-      <USelectMenu
-        v-if="home"
-        v-model="selectedAgentId"
-        :items="agentItems"
-        value-key="value"
-        icon="i-lucide-bot"
-        :placeholder="$t('__placeholderSelectAgent')"
-        class="min-w-48"
-      />
-      <h2
-        v-else
-        class="font-semibold flex items-center gap-2"
-      >
+      <h2 class="font-semibold flex items-center gap-2">
         <UIcon
           name="i-lucide-messages-square"
           class="size-4 text-toned"
@@ -327,13 +283,10 @@ onMounted(() => {
       </UButton>
     </div>
 
-    <UCard
-      :class="home && 'flex-1 min-h-0'"
-      :ui="{ root: home ? 'flex flex-col' : '', body: 'flex flex-col gap-0 p-0 sm:p-0 min-h-0 flex-1' }"
-    >
+    <UCard :ui="{ body: 'flex flex-col gap-0 p-0 sm:p-0' }">
       <div
         ref="listEl"
-        :class="['overflow-y-auto p-4 sm:p-6', home ? 'flex-1 min-h-0' : 'h-80']"
+        class="h-80 overflow-y-auto p-4 sm:p-6"
       >
         <div
           v-if="!messages.length && !isSending"
@@ -348,7 +301,7 @@ onMounted(() => {
           </p>
           <div class="flex flex-wrap justify-center gap-2">
             <UButton
-              v-for="seed in seeds"
+              v-for="seed in SEEDS"
               :key="seed"
               color="neutral"
               variant="soft"
@@ -416,13 +369,13 @@ onMounted(() => {
               class="w-full max-w-md"
             >
               <LineBotConnectForm
-                :form-id="`fermion-connect-${i}`"
+                :form-id="`agent-connect-${i}`"
                 @submit="(value) => onConnect(i, value)"
               />
               <div class="mt-4 flex justify-end">
                 <UButton
                   type="submit"
-                  :form="`fermion-connect-${i}`"
+                  :form="`agent-connect-${i}`"
                   :loading="isSubmitting"
                   size="sm"
                 >
