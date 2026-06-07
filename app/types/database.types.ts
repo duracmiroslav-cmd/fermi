@@ -219,6 +219,8 @@ export type Database = {
           deleted_at: string | null
           id: string
           is_default: boolean
+          mode: string
+          mode_until: string | null
           model_provider_id: string
           name: string
           normalize_traditional: boolean
@@ -238,6 +240,8 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_default?: boolean
+          mode?: string
+          mode_until?: string | null
           model_provider_id: string
           name: string
           normalize_traditional?: boolean
@@ -257,6 +261,8 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_default?: boolean
+          mode?: string
+          mode_until?: string | null
           model_provider_id?: string
           name?: string
           normalize_traditional?: boolean
@@ -296,6 +302,9 @@ export type Database = {
           group_transcribe_enabled: boolean
           handle: string | null
           id: string
+          imprint_code: string | null
+          imprint_code_expires_at: string | null
+          master_external_id: string | null
           owner_id: string
           platform: string
           updated_at: string
@@ -313,6 +322,9 @@ export type Database = {
           group_transcribe_enabled?: boolean
           handle?: string | null
           id?: string
+          imprint_code?: string | null
+          imprint_code_expires_at?: string | null
+          master_external_id?: string | null
           owner_id: string
           platform?: string
           updated_at?: string
@@ -330,6 +342,9 @@ export type Database = {
           group_transcribe_enabled?: boolean
           handle?: string | null
           id?: string
+          imprint_code?: string | null
+          imprint_code_expires_at?: string | null
+          master_external_id?: string | null
           owner_id?: string
           platform?: string
           updated_at?: string

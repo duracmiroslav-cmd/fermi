@@ -21,6 +21,19 @@ create table public.bots (
   -- relay feature). @mention replies have no toggle — they're always on,
   -- gated only by a per-(group, member) rate limit.
   group_transcribe_enabled boolean not null default true,
+  -- The LINE userId imprinted as this bot's master — the one end-user the
+  -- worker grants in-LINE management to (everyone else gets the normal
+  -- toolset). Bound once via the imprint flow below; per-bot, since each
+  -- LINE OA imprints independently. master ≡ the account owner; this is
+  -- only the LINE-side bridge that says "this opaque userId is the owner."
+  master_external_id  text,
+  -- One-time binding code the owner arms from the dashboard. The worker
+  -- imprints the master when an incoming 1:1 text equals a live code, then
+  -- clears it. Broadcast into a chat, so not enveloped; single-use + TTL is
+  -- the guard. A non-matching message is handled as normal conversation
+  -- (silent), so an outsider can't probe whether a bot is awaiting binding.
+  imprint_code        text,
+  imprint_code_expires_at timestamptz,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
   disabled_at         timestamptz,

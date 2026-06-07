@@ -44,6 +44,18 @@ create table public.agents (
   normalize_traditional boolean not null default true,
   avatar_url            text,
   is_default            boolean not null default false,
+  -- The privileged-toolset gate for the agent's master (the owner, on web
+  -- by session, on LINE by `bots.master_external_id`). 'maintenance' arms
+  -- write-type management tools, 'debug' arms read-only run introspection;
+  -- 'normal' is the only toolset an end-user ever sees. Effective only while
+  -- `mode_until` is still in the future — an expired window reads as 'normal',
+  -- so a forgotten session can't leave management tools live. A state of
+  -- being, not an event, so plain values (the `running` exception to
+  -- past-verb enums). End-users are gated out by master identity regardless
+  -- of mode, so the mode being on an agent (shared across its bots) is safe.
+  mode                  text not null default 'normal'
+                          check (mode in ('normal', 'maintenance', 'debug')),
+  mode_until            timestamptz,
   created_at            timestamptz not null default now(),
   updated_at            timestamptz not null default now(),
   deleted_at            timestamptz
