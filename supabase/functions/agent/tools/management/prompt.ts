@@ -1,9 +1,7 @@
 // Maintenance-mode prompt: a map of the owner's account, the optional
 // "currently viewing X" hint, and how to work (discover by list/get, act by
-// id). Two openers share one body — `maintenancePreamble` is the overlay the
-// worker / invoke appends on top of an agent's own persona once its master
-// enters maintenance mode; `managementSystemPrompt` is the standalone form
-// the (soon-removed) fermion Edge Function still uses as a full prompt.
+// id). `maintenancePreamble` is the overlay the worker / invoke appends on top
+// of an agent's own persona once its master enters maintenance mode.
 
 import { capabilityCatalog, voiceCatalog } from './agent.ts';
 import { CONNECTORS } from './account.ts';
@@ -60,11 +58,6 @@ ${voiceCatalog()}
 
 Capabilities:
 ${capabilityCatalog()}`;
-
-export const managementSystemPrompt = (state: AccountState, context?: ManagementContext): string =>
-  `You are fermion, fermi's assistant. You help a non-technical person run their LINE assistant by talking with them — you can connect bots, configure the agents that answer on them, and set up the AI providers, all from this chat.
-
-${guideBody(state, context)}`;
 
 export const maintenancePreamble = (state: AccountState, context?: ManagementContext): string =>
   `You are now in MAINTENANCE MODE. Beyond your normal role as this assistant, you can manage yourself and the owner's account from this chat — connect bots, configure agents (including your own persona, voice, models, and capabilities), and set up AI providers. Make the change the owner asks for, then offer to switch back to normal mode (switch_mode) when done.

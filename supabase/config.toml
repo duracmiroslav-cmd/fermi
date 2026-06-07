@@ -371,9 +371,6 @@ allow_dynamic_registration = false
 [functions.agent-invoke]
 verify_jwt = false
 
-[functions.fermion]
-verify_jwt = false
-
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

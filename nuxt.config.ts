@@ -37,8 +37,8 @@ export default defineNuxtConfig({
     fermiKek:            process.env.FERMI_KEK ?? '',
     supabaseUrl:         process.env.SUPABASE_URL ?? '',
     supabaseSecretKey:   process.env.SUPABASE_SECRET_KEY ?? '',
-    // Shared secret authenticating the server → agent-invoke / fermion
-    // Edge calls. Must match FERMI_INTERNAL_SECRET in the functions' env.
+    // Shared secret authenticating the server → agent-invoke Edge call.
+    // Must match FERMI_INTERNAL_SECRET in the function's env.
     fermiInternalSecret: process.env.FERMI_INTERNAL_SECRET ?? '',
     // Counter backend. Both blank → Postgres fallback; both set →
     // Upstash REST. Read in webhook handler / quota call sites and
