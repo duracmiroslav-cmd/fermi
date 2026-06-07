@@ -285,7 +285,6 @@ export default {
   __labelWrite:                           'Write',
   __placeholderAgentName:                 'my agent',
   __placeholderBuilderMessage:            'Tell me about your assistant…',
-  __placeholderSelectAgent:               'Select an agent',
   __placeholderNotConnected:              'Not connected',
   __placeholderPlatform:                  'Pick a platform',
   __placeholderReconnectToViewKey:        'Reconnect to view key',
