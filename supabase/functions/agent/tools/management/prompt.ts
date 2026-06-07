@@ -1,9 +1,9 @@
-// The maintenance-mode system prompt: who the assistant is while managing,
-// a map of the owner's account, the optional "currently viewing X" hint, and
-// how to work (discover by list/get, act by id). Injected as an overlay by
-// the worker / invoke when an agent's master enters maintenance mode.
-// NOTE: still phrased as the standalone "fermion" persona; reworked into a
-// true overlay on top of the agent's own persona in P4.
+// Maintenance-mode prompt: a map of the owner's account, the optional
+// "currently viewing X" hint, and how to work (discover by list/get, act by
+// id). Two openers share one body — `maintenancePreamble` is the overlay the
+// worker / invoke appends on top of an agent's own persona once its master
+// enters maintenance mode; `managementSystemPrompt` is the standalone form
+// the (soon-removed) fermion Edge Function still uses as a full prompt.
 
 import { capabilityCatalog, voiceCatalog } from './agent.ts';
 import { CONNECTORS } from './account.ts';
@@ -27,10 +27,9 @@ const contextLine = (state: AccountState, context: ManagementContext | undefined
   return '';
 };
 
-export const managementSystemPrompt = (state: AccountState, context?: ManagementContext): string =>
-  `You are fermion, fermi's assistant. You help a non-technical person run their LINE assistant by talking with them — you can connect bots, configure the agents that answer on them, and set up the AI providers, all from this chat.
-
-A LINE "bot" is a connected LINE Official Account; an "agent" is the persona that answers on it.
+// Shared body: everything after the identity opener. Both prompts append it.
+const guideBody = (state: AccountState, context?: ManagementContext): string =>
+  `A LINE "bot" is a connected LINE Official Account; an "agent" is the persona that answers on it.
 ${contextLine(state, context)}
 The owner's account right now:
 - Agents: ${state.agents.length ? state.agents.map(a => `${a.name} (${a.id})`).join(', ') : '(none)'}
@@ -61,3 +60,13 @@ ${voiceCatalog()}
 
 Capabilities:
 ${capabilityCatalog()}`;
+
+export const managementSystemPrompt = (state: AccountState, context?: ManagementContext): string =>
+  `You are fermion, fermi's assistant. You help a non-technical person run their LINE assistant by talking with them — you can connect bots, configure the agents that answer on them, and set up the AI providers, all from this chat.
+
+${guideBody(state, context)}`;
+
+export const maintenancePreamble = (state: AccountState, context?: ManagementContext): string =>
+  `You are now in MAINTENANCE MODE. Beyond your normal role as this assistant, you can manage yourself and the owner's account from this chat — connect bots, configure agents (including your own persona, voice, models, and capabilities), and set up AI providers. Make the change the owner asks for, then offer to switch back to normal mode (switch_mode) when done.
+
+${guideBody(state, context)}`;

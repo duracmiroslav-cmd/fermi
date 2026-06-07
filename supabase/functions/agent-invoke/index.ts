@@ -13,13 +13,18 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { loadActiveCapabilities } from '../../../shared/agentCapabilities.ts';
-import { findAgentById } from '../../../shared/agents.ts';
+import { effectiveAgentMode, findAgentById } from '../../../shared/agents.ts';
 import { getKek } from '../../../shared/kek.ts';
 import { DEFAULT_TEXT_MODEL } from '../../../shared/constants/models.ts';
 import type { ChatMessage } from '../agent/openrouter.ts';
 import { MAX_AGENT_STEPS, runAgentConversation } from '../agent/loop.ts';
 import { normalizeReplyText } from '../agent/reply-text.ts';
-import { buildToolset } from '../agent/tools/index.ts';
+import { buildToolset, mergeToolsets } from '../agent/tools/index.ts';
+import { buildModeToolset } from '../agent/tools/management/mode.ts';
+import { MANAGEMENT_MUTATING_TOOLS, buildManagementToolset } from '../agent/tools/management/toolset.ts';
+import { buildDebugToolset, debugPreamble } from '../agent/tools/management/debug.ts';
+import { maintenancePreamble } from '../agent/tools/management/prompt.ts';
+import { loadAccountState } from '../agent/tools/management/state.ts';
 import { defaultSystemPrompt, wrapSystemPrompt } from '../agent/prompt-guard.ts';
 import { inspectInternalAuth } from '../agent/internal-auth.ts';
 
@@ -67,11 +72,40 @@ Deno.serve(async (req) => {
 
   const kek = await getKek(fermiKek);
   const capabilities = await loadActiveCapabilities(admin, agent.id);
-  const toolset = await buildToolset(capabilities, { admin, kek, ownerId: agent.ownerId });
+  const capabilityToolset = await buildToolset(capabilities, { admin, kek, ownerId: agent.ownerId });
+
+  // The Nitro route verified the caller owns this agent, so on this endpoint
+  // the owner is provably the master: switch_mode is always available, and the
+  // heavier management / debug overlays follow the agent's current mode. An
+  // end-user never reaches this path — only the LINE worker serves them, where
+  // master identity is the imprinted LINE id (P5).
+  const mode = effectiveAgentMode(agent);
+  const overlays = [buildModeToolset({ admin, ownerId: agent.ownerId, agentId: agent.id })];
+  let preamble = '';
+  if (mode === 'maintenance') {
+    const state = await loadAccountState(admin, agent.ownerId);
+    overlays.push(buildManagementToolset(admin, agent.ownerId, { channel: 'web' }));
+    preamble = `\n\n${maintenancePreamble(state, { agentId: agent.id })}`;
+  } else if (mode === 'debug') {
+    // Default debug scope is the agent's bound bot; a fresh agent may have
+    // none, and the debug tools fall back to filtering by agent id.
+    const { data: botRow, error: botErr } = await admin
+      .from('bots')
+      .select('id')
+      .eq('agent_id', agent.id)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (botErr) console.warn('agent-invoke: bound-bot lookup failed; debugging by agent', botErr);
+    overlays.push(buildDebugToolset({ admin, ownerId: agent.ownerId, botId: botRow?.id ?? null, agentId: agent.id }));
+    preamble = `\n\n${debugPreamble()}`;
+  }
+  const toolset = mergeToolsets(capabilityToolset, ...overlays);
 
   const systemPrompt = wrapSystemPrompt(
-    agent.systemPrompt ?? defaultSystemPrompt(agent.name),
-    { hasTools: capabilities.length > 0 },
+    `${agent.systemPrompt ?? defaultSystemPrompt(agent.name)}${preamble}`,
+    { hasTools: toolset.schemas.length > 0 },
   );
   const messages: ChatMessage[] = [
     { role: 'system', content: systemPrompt },
@@ -108,7 +142,13 @@ Deno.serve(async (req) => {
     // Run the reply through the same pass the LINE worker uses so the
     // test chat previews exactly what an end user would receive.
     const text = normalizeReplyText(result.text, { traditional: agent.normalizeTraditional });
-    return json({ text, hitStepCap: result.hitStepCap, steps: result.steps });
+    // Signals the dashboard to refetch: a mutating management tool or a mode
+    // switch changed server state the UI mirrors (config, connectors, mode).
+    const changed = result.steps.some(
+      s => s.type === 'tool_called'
+        && (String(s.payload.name) === 'switch_mode' || MANAGEMENT_MUTATING_TOOLS.includes(String(s.payload.name))),
+    );
+    return json({ text, hitStepCap: result.hitStepCap, steps: result.steps, changed });
   } catch (err) {
     console.error('agent-invoke failed', err);
     // detail rides back to the Nitro server log (not the browser) so the

@@ -13,6 +13,27 @@ const parseVoiceReplyMode = (raw: string): VoiceReplyMode => (
     : 'off'
 );
 
+// Matches `agents.mode` CHECK constraint. Gates the master's privileged
+// toolset (maintenance = write management, debug = read-only introspection);
+// 'normal' is all an end-user ever sees. Effective only while `modeUntil` is
+// in the future — see `effectiveAgentMode`.
+export const AGENT_MODES = ['normal', 'maintenance', 'debug'] as const;
+export type AgentMode = (typeof AGENT_MODES)[number];
+
+const parseAgentMode = (raw: string): AgentMode => (
+  (AGENT_MODES as readonly string[]).includes(raw)
+    ? raw as AgentMode
+    : 'normal'
+);
+
+// A mode is live only until its TTL passes; an expired window reads as
+// 'normal' so a forgotten session can't leave management tools armed.
+export const effectiveAgentMode = (agent: { mode: AgentMode; modeUntil: string | null }): AgentMode => {
+  if (agent.mode === 'normal') return 'normal';
+  if (!agent.modeUntil || new Date(agent.modeUntil).getTime() <= Date.now()) return 'normal';
+  return agent.mode;
+};
+
 export interface AgentConfig {
   id:                   string;
   ownerId:              string;
@@ -26,6 +47,8 @@ export interface AgentConfig {
   avatarUrl:            string | null;
   voiceReplyMode:       VoiceReplyMode;
   normalizeTraditional: boolean;
+  mode:                 AgentMode;
+  modeUntil:            string | null;
 }
 
 const mapRow = (data: {
@@ -41,6 +64,8 @@ const mapRow = (data: {
   avatar_url:            string | null;
   voice_reply_mode:      string;
   normalize_traditional: boolean;
+  mode:                  string;
+  mode_until:            string | null;
 }): AgentConfig => ({
   id:                   data.id,
   ownerId:              data.owner_id,
@@ -54,6 +79,8 @@ const mapRow = (data: {
   avatarUrl:            data.avatar_url,
   voiceReplyMode:       parseVoiceReplyMode(data.voice_reply_mode),
   normalizeTraditional: data.normalize_traditional,
+  mode:                 parseAgentMode(data.mode),
+  modeUntil:            data.mode_until,
 });
 
 // Filters trashed agents so a non-null return is safe to load as
@@ -64,7 +91,7 @@ export const findAgentById = async (
 ): Promise<AgentConfig | null> => {
   const { data, error } = await admin
     .from('agents')
-    .select('id, owner_id, name, system_prompt, default_text_model, default_vision_model, default_tts_model, default_tts_voice, tts_instructions, avatar_url, voice_reply_mode, normalize_traditional')
+    .select('id, owner_id, name, system_prompt, default_text_model, default_vision_model, default_tts_model, default_tts_voice, tts_instructions, avatar_url, voice_reply_mode, normalize_traditional, mode, mode_until')
     .eq('id', agentId)
     .is('deleted_at', null)
     .maybeSingle();

@@ -199,6 +199,10 @@ const SCHEMAS = [
   },
 ];
 
+// Overlay appended to the agent's persona while in debug mode.
+export const debugPreamble = (): string =>
+  `You are now in DEBUG MODE. Beyond your normal role, you can inspect this assistant's recent runs to diagnose problems: list_recent_runs shows which replies failed, get_run gives a run's step-by-step timeline, get_last_failure jumps to the latest failure. Explain what went wrong in plain language — a failed step, an error category, a slow tool. You see diagnostics only (models, tokens, timings, error categories), never the conversation text. If a fix is needed, offer to switch to maintenance mode (switch_mode) to make it. Write plain text, no Markdown.`;
+
 export const buildDebugToolset = (ctx: DebugContext): Toolset => ({
   schemas: SCHEMAS,
   execute: async (name: string, argumentsJson: string): Promise<string> => {

@@ -110,6 +110,30 @@ export interface Toolset {
   execute: (name: string, argumentsJson: string, ctx: ToolContext) => Promise<string>;
 }
 
+// Combines several toolsets (capabilities + the master's mode / management /
+// debug overlays) into one the loop can drive, routing each tool name to the
+// toolset that declares it. Last toolset wins a name collision; overlay tools
+// (management / mode / debug) take fixed names that never clash with
+// capability tools.
+export const mergeToolsets = (...toolsets: Toolset[]): Toolset => {
+  const schemaByName = new Map<string, ToolSchema>();
+  const ownerByName = new Map<string, Toolset>();
+  for (const ts of toolsets) {
+    for (const s of ts.schemas) {
+      schemaByName.set(s.function.name, s);
+      ownerByName.set(s.function.name, ts);
+    }
+  }
+  return {
+    schemas: [...schemaByName.values()],
+    execute: (name, argumentsJson, ctx) => {
+      const ts = ownerByName.get(name);
+      if (!ts) return Promise.resolve(JSON.stringify({ error: `Unknown tool: ${name}` }));
+      return ts.execute(name, argumentsJson, ctx);
+    },
+  };
+};
+
 // Cached across warm invocations of the same isolate, keyed by capability
 // id. Built-in capabilities are a single shared row → one shared entry
 // (their tool list is server-side static). BYO capabilities are per-owner
