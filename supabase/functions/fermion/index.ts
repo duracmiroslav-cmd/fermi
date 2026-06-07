@@ -12,7 +12,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { getKek } from '../../../shared/kek.ts';
-import { FreeBYOKRequiredError, PlatformKeyNotConfiguredError, resolveKey } from '../../../shared/keys.ts';
+import { FreeByokRequiredError, PlatformKeyNotConfiguredError, resolveKey } from '../../../shared/keys.ts';
 import { DEFAULT_TEXT_MODEL } from '../../../shared/constants/models.ts';
 import type { ChatMessage } from '../agent/openrouter.ts';
 import { MAX_AGENT_STEPS, runAgentConversation } from '../agent/loop.ts';
@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     });
     openrouterKey = resolved.key;
   } catch (err) {
-    if (err instanceof FreeBYOKRequiredError) return json({ error: 'free_byok_required' }, 403);
+    if (err instanceof FreeByokRequiredError) return json({ error: 'free_byok_required' }, 403);
     if (err instanceof PlatformKeyNotConfiguredError) return json({ error: 'platform_key_missing' }, 503);
     throw err;
   }

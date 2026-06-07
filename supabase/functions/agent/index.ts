@@ -14,7 +14,7 @@ import { type Locale } from '../../../shared/locale.ts';
 import { loadOwnerContext } from '../../../shared/users.ts';
 import { loadRecentMemories, MEMORY_INJECT_LIMIT } from '../../../shared/memories.ts';
 import {
-  FreeBYOKRequiredError,
+  FreeByokRequiredError,
   type KeySource,
   PlatformKeyNotConfiguredError,
   resolveKey,
@@ -404,7 +404,7 @@ const transcribeGroupAudio = async (params: {
     openaiKey = resolved.key;
     keySource = resolved.source;
   } catch (err) {
-    if (err instanceof FreeBYOKRequiredError) {
+    if (err instanceof FreeByokRequiredError) {
       await safeReply(lineAccessToken, replyToken, t('__noticeFreeByokOpenai', ownerLocale));
       return;
     }
@@ -1156,12 +1156,12 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     openrouterKey = resolved.key;
     openrouterSource = resolved.source;
   } catch (err) {
-    // FreeBYOKRequiredError = owner is on Free + hasn't connected.
+    // FreeByokRequiredError = owner is on Free + hasn't connected.
     // PlatformKeyNotConfiguredError = Pro user but fermi's env is
     // missing (operational issue on the fermi side; user-facing
     // message must not blame the user). Any other throw is a real
     // DB/decryption error → bubble so pgmq retries.
-    const noticeKey = err instanceof FreeBYOKRequiredError
+    const noticeKey = err instanceof FreeByokRequiredError
       ? '__noticeFreeByokOpenrouter'
       : err instanceof PlatformKeyNotConfiguredError
         ? '__noticePlatformKeyOps'
@@ -1284,7 +1284,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         openaiKey = resolved.key;
         keySource = resolved.source;
       } catch (err) {
-        if (err instanceof FreeBYOKRequiredError) {
+        if (err instanceof FreeByokRequiredError) {
           await safeReply(lineAccessToken, event.replyToken, t('__noticeFreeByokOpenai', ownerLocale));
           continue;
         }

@@ -22,7 +22,7 @@ export interface KeyResult {
   source: KeySource;
 }
 
-export class FreeBYOKRequiredError extends Error {
+export class FreeByokRequiredError extends Error {
   constructor(public readonly purpose: KeyPurpose) {
     super(`free_byok_required:${purpose}`);
   }
@@ -66,7 +66,7 @@ export const resolveKey = async (
   if (tierErr) throw tierErr;
 
   if (user.tier !== 'pro') {
-    throw new FreeBYOKRequiredError(params.purpose);
+    throw new FreeByokRequiredError(params.purpose);
   }
   if (!params.platformKey) {
     throw new PlatformKeyNotConfiguredError(params.purpose);

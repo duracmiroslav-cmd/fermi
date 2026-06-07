@@ -1,5 +1,5 @@
 import {
-  FreeBYOKRequiredError,
+  FreeByokRequiredError,
   type KeySource,
   PlatformKeyNotConfiguredError,
   resolveKey,
@@ -77,7 +77,7 @@ export const generateImage: Tool = {
       apiKey = resolved.key;
       keySource = resolved.source;
     } catch (err) {
-      if (err instanceof FreeBYOKRequiredError) {
+      if (err instanceof FreeByokRequiredError) {
         return {
           error: 'generate_image requires a fal.ai API key. Tell the user the bot owner needs to either connect fal.ai at https://fermi.tw/dashboard/connectors (~$0.04 per image, sign up at https://fal.ai) or upgrade to Pro so fermi handles it.',
         };

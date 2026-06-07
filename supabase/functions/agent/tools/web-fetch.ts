@@ -1,5 +1,5 @@
 import {
-  FreeBYOKRequiredError,
+  FreeByokRequiredError,
   PlatformKeyNotConfiguredError,
   resolveKey,
 } from '../../../../shared/keys.ts';
@@ -38,7 +38,7 @@ const tavilyProvider: FetchProvider = {
     } catch (err) {
       // No Tavily for this tier (Free without BYOK, or Pro with no platform
       // key): fall through to the direct provider rather than failing.
-      if (err instanceof FreeBYOKRequiredError || err instanceof PlatformKeyNotConfiguredError) {
+      if (err instanceof FreeByokRequiredError || err instanceof PlatformKeyNotConfiguredError) {
         return null;
       }
       throw err;

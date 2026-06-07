@@ -1,5 +1,5 @@
 import {
-  FreeBYOKRequiredError,
+  FreeByokRequiredError,
   PlatformKeyNotConfiguredError,
   resolveKey,
 } from '../../../../shared/keys.ts';
@@ -65,7 +65,7 @@ export const searchWeb: Tool = {
       });
       apiKey = resolved.key;
     } catch (err) {
-      if (err instanceof FreeBYOKRequiredError) {
+      if (err instanceof FreeByokRequiredError) {
         return {
           error: 'search_web requires a Tavily API key. Tell the user the bot owner needs to either connect Tavily at https://fermi.tw/dashboard/connectors (Tavily free tier gives 1000 queries/month, ~30 seconds at https://tavily.com) or upgrade to Pro so fermi handles it.',
         };
