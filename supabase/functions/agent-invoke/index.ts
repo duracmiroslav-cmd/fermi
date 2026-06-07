@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
       .from('bots')
       .select('id')
       .eq('agent_id', agent.id)
+      .eq('owner_id', agent.ownerId)
       .is('deleted_at', null)
       .order('created_at', { ascending: true })
       .limit(1)
