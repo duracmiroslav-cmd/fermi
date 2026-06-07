@@ -1,16 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: false });
 
-// fermion is the home only for owners who can run it (Pro, or Free with their
-// own OpenRouter). The home carries nothing else, so send everyone else
-// straight to their bot list rather than render an empty shell. Awaited so
-// the openrouter status is resolved before the SSR redirect decides.
-const profile = useProfile();
-const { data: openrouter } = await useApiFetch<{ connected: boolean }>('/api/oauth/openrouter');
-const canUseFermion = computed(() => canAccessFermion(profile.value?.tier, !!openrouter.value?.connected));
-if (!canUseFermion.value) {
-  await navigateTo('/dashboard/bots');
-}
+// The home is the owner's chat with their agents — the Default selected, others
+// a switch away. It runs on the platform key (a config try-out), so there's no
+// connect-a-key gate before you can talk: a brand-new owner lands here and the
+// agent walks them through connecting LINE once they enter maintenance mode.
 </script>
 
 <template>
@@ -21,10 +15,7 @@ if (!canUseFermion.value) {
       </template>
 
       <div class="h-full px-6 sm:px-8 py-6 w-full">
-        <FermionChat
-          v-if="canUseFermion"
-          home
-        />
+        <FermionChat home />
       </div>
     </NuxtLayout>
   </div>

@@ -18,28 +18,38 @@ interface FermionMessage {
   content:      string;
   changes?:     string[];
   hitStepCap?:  boolean;
-  // fermion summoned a connect/setup UI under this reply (credentials /
+  // The agent summoned a connect/setup UI under this reply (credentials /
   // OAuth never flow through the chat). `widgetDone` flips once finished.
   widget?:      Widget;
   widgetBotId?: string;
   widgetDone?:  boolean;
 }
 
+interface AgentOption {
+  id:   string;
+  name: string;
+}
+
 const props = defineProps<{
-  // When embedded on an agent/bot page, the resource the user is viewing →
-  // a "currently viewing X" hint so they needn't restate which one.
-  contextAgentId?: string;
-  contextBotId?:   string;
-  // The dashboard home renders fermion full-height rather than as a panel.
-  home?:           boolean;
+  // The agent to talk to (agent/bot page embeds pass it fixed). Ignored when
+  // `home`, which renders its own agent switcher and defaults to the Default.
+  agentId?: string;
+  // The dashboard home renders the chat full-height with an agent switcher.
+  home?:    boolean;
 }>();
-// Fires when fermion mutated a resource (or connected something), so the
-// host page refetches.
+// Fires when the agent mutated a resource (or connected something) in
+// maintenance mode, so the host page refetches.
 const emit = defineEmits<{ updated: [] }>();
 
 const { t } = useI18n();
 const notify = useNotify();
 const { create, isSubmitting } = useBots();
+
+// Only the home needs the roster for its switcher; embeds pass a fixed agent.
+const { data: agents } = useApiFetch<AgentOption[]>('/api/agents', {
+  immediate: props.home,
+  default:   () => [],
+});
 
 // Config-mutating tools → the chip shown under fermion's reply.
 const CHANGE_LABEL_KEY: Record<string, string> = {
@@ -60,7 +70,6 @@ const WIDGET_BY_TOOL: Record<string, Widget> = {
 // onboarding on the home, config shortcuts on an agent / bot page.
 const HOME_SEEDS = ['__seedFermionStart', '__seedFermionConnectBot'];
 const AGENT_SEEDS = ['__seedFermionAgentPersona', '__seedFermionAgentVoice', '__seedFermionAgentModel'];
-const BOT_SEEDS = ['__seedFermionBotAgent', '__seedFermionBotGroup', '__seedFermionBotPause'];
 
 const messages = ref<FermionMessage[]>([]);
 const draft = ref('');
@@ -71,24 +80,31 @@ const listEl = ref<HTMLElement | null>(null);
 const openrouterWaitingIndex = ref<number | null>(null);
 // Which message's webhook setup is in flight, or null.
 const webhookSettingUpIndex = ref<number | null>(null);
+// The switcher's pick on the home; embeds talk to the fixed `agentId` prop.
+const selectedAgentId = ref<string>();
 
-const canSend = computed(() => draft.value.trim().length > 0 && !isSending.value);
+// The agent this chat is bound to right now: the switcher pick on the home,
+// the fixed prop everywhere else.
+const activeAgentId = computed(() => (props.home ? selectedAgentId.value : props.agentId));
+const agentItems = computed(() => (agents.value ?? []).map(a => ({ label: a.name, value: a.id })));
+const canSend = computed(() => draft.value.trim().length > 0 && !isSending.value && !!activeAgentId.value);
+const seeds = computed(() => (props.home ? HOME_SEEDS : AGENT_SEEDS));
 
-const contextBody = computed(() => {
-  if (props.contextAgentId) return { agentId: props.contextAgentId };
-  if (props.contextBotId) return { botId: props.contextBotId };
-  return undefined;
-});
+// One conversation per agent, in sessionStorage so it survives in-app nav +
+// reload (no DB). Switching agents on the home swaps the thread. Null until a
+// target is known (home before its roster loads).
+const storageKey = computed(() => (activeAgentId.value ? `agent-chat:${activeAgentId.value}` : null));
 
-const seeds = computed(() => {
-  if (props.contextAgentId) return AGENT_SEEDS;
-  if (props.contextBotId) return BOT_SEEDS;
-  return HOME_SEEDS;
-});
-
-// One shared conversation across the home + page embeds, so it reads as a
-// single assistant that follows you. Survives in-app nav + reload (no DB).
-const storageKey = 'fermion-chat:me';
+const loadStored = (): FermionMessage[] => {
+  if (!import.meta.client || !storageKey.value) return [];
+  const saved = sessionStorage.getItem(storageKey.value);
+  if (!saved) return [];
+  try {
+    return JSON.parse(saved) as FermionMessage[];
+  } catch {
+    return [];
+  }
+};
 
 watch(
   () => messages.value.length + (isSending.value ? 1 : 0),
@@ -98,22 +114,34 @@ watch(
 );
 
 watch(messages, (v) => {
-  if (import.meta.client) sessionStorage.setItem(storageKey, JSON.stringify(v));
+  if (import.meta.client && storageKey.value) sessionStorage.setItem(storageKey.value, JSON.stringify(v));
 }, { deep: true });
+
+// Default the home switcher to the first agent (the Default sorts first).
+watch(agents, (list) => {
+  if (props.home && !selectedAgentId.value && list?.length) selectedAgentId.value = list[0]!.id;
+});
+
+// Load the bound agent's stored conversation whenever the target changes
+// (switcher pick); the initial load is in onMounted to stay client-only.
+watch(activeAgentId, () => {
+  errorKey.value = null;
+  draft.value = '';
+  messages.value = loadStored();
+});
 
 const onSend = async (override?: string) => {
   const text = (override ?? draft.value).trim();
-  if (!text || isSending.value) return;
+  if (!text || isSending.value || !activeAgentId.value) return;
   errorKey.value = null;
   messages.value.push({ role: 'user', content: text });
   if (override === undefined) draft.value = '';
   isSending.value = true;
 
   try {
-    const res = await $fetch<BuildResponse>('/api/fermion', {
+    const res = await $fetch<BuildResponse>(`/api/agents/${activeAgentId.value}/invoke`, {
       method: 'POST',
       body:   {
-        ...(contextBody.value ? { context: contextBody.value } : {}),
         // A widget-only reply has empty content (kept locally to render the
         // widget); drop it from the request so it doesn't trip the API's
         // non-empty content rule.
@@ -234,20 +262,26 @@ const onReset = () => {
 };
 
 onMounted(() => {
-  const saved = sessionStorage.getItem(storageKey);
-  if (!saved) return;
-  try {
-    messages.value = JSON.parse(saved) as FermionMessage[];
-  } catch {
-    sessionStorage.removeItem(storageKey);
-  }
+  messages.value = loadStored();
 });
 </script>
 
 <template>
   <div :class="['flex flex-col gap-3', home && 'h-full']">
     <div class="flex items-center justify-between gap-4">
-      <h2 class="font-semibold flex items-center gap-2">
+      <USelectMenu
+        v-if="home"
+        v-model="selectedAgentId"
+        :items="agentItems"
+        value-key="value"
+        icon="i-lucide-bot"
+        :placeholder="$t('__placeholderSelectAgent')"
+        class="min-w-48"
+      />
+      <h2
+        v-else
+        class="font-semibold flex items-center gap-2"
+      >
         <UIcon
           name="i-lucide-atom"
           class="size-4 text-toned"

@@ -284,6 +284,7 @@ export default {
   __labelWrite:                           '寫入',
   __placeholderAgentName:                 '我的 Agent',
   __placeholderBuilderMessage:            '跟我說說你的助理…',
+  __placeholderSelectAgent:               '選擇一個 agent',
   __placeholderNotConnected:              '尚未連接',
   __placeholderPlatform:                  '選擇平台',
   __placeholderReconnectToViewKey:        '重新連接以查看 key',
