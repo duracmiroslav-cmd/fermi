@@ -1,9 +1,9 @@
 <script setup lang="ts">
 const route = useRoute();
 const props = defineProps<{
-  to:    string;
-  icon:  string;
-  label: string;
+  to:     string;
+  icon:   string;
+  label:  string;
   // The home item points at `/dashboard`, a prefix of every dashboard route;
   // `exact` keeps it from lighting up on every subpage.
   exact?: boolean;

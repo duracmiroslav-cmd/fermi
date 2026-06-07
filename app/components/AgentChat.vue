@@ -17,6 +17,10 @@ interface FermionMessage {
   role:         'user' | 'assistant';
   content:      string;
   changes?:     string[];
+  // Capability tools the agent called this turn (e.g. web-search), shown as
+  // subtle "used X" chips. Management / mode / debug tools are excluded —
+  // their effect surfaces as `changes` chips or widgets instead.
+  tools?:       string[];
   hitStepCap?:  boolean;
   // The agent summoned a connect/setup UI under this reply (credentials /
   // OAuth never flow through the chat). `widgetDone` flips once finished.
@@ -58,13 +62,28 @@ const CHANGE_LABEL_KEY: Record<string, string> = {
   update_bot:       '__labelBuilderUpdatedBot',
 };
 
-// tool name → the widget rendered under fermion's reply.
+// tool name → the widget rendered under the reply.
 const WIDGET_BY_TOOL: Record<string, Widget> = {
   start_line_connect:       'line_connect',
   start_openrouter_connect: 'openrouter_connect',
   setup_webhook:            'setup_webhook',
   start_bot_test:           'bot_test',
 };
+
+// Management / mode / debug tools surface as `changes` chips or widgets, not
+// as "used X" capability chips — exclude them so the chips show only the
+// agent's real capability calls (web-search, image-gen, …).
+const MANAGEMENT_TOOLS = new Set([
+  'switch_mode',
+  'update_agent', 'set_capabilities', 'update_bot',
+  'list_agents', 'get_agent', 'list_bots', 'get_bot', 'list_models',
+  'start_line_connect', 'start_openrouter_connect', 'setup_webhook', 'start_bot_test',
+  'list_recent_runs', 'get_run', 'get_last_failure',
+]);
+
+// MCP capability tools reach the LLM namespaced `slug__name`; the prefix is
+// plumbing, so the chip shows just the verb.
+const toolLabel = (name: string): string => name.replace(/^.*__/, '');
 
 // Seed prompts offered in the empty state, by where fermion is embedded:
 // onboarding on the home, config shortcuts on an agent / bot page.
@@ -156,6 +175,13 @@ const onSend = async (override?: string) => {
         .map(s => CHANGE_LABEL_KEY[String(s.payload.name ?? '')])
         .filter((k): k is string => !!k),
     )];
+    const tools = [...new Set(
+      res.steps
+        .filter(s => s.type === 'tool_called')
+        .map(s => String(s.payload.name ?? ''))
+        .filter(n => n && !MANAGEMENT_TOOLS.has(n))
+        .map(toolLabel),
+    )];
     const widgetCall = res.steps.find(
       s => s.type === 'tool_called' && WIDGET_BY_TOOL[String(s.payload.name ?? '')],
     );
@@ -170,6 +196,7 @@ const onSend = async (override?: string) => {
       role:       'assistant',
       content:    res.text,
       changes,
+      tools,
       hitStepCap: res.hitStepCap,
       widget,
       widgetBotId,
@@ -283,7 +310,7 @@ onMounted(() => {
         class="font-semibold flex items-center gap-2"
       >
         <UIcon
-          name="i-lucide-atom"
+          name="i-lucide-messages-square"
           class="size-4 text-toned"
         />
         {{ $t('__titleBuilderChat') }}
@@ -313,7 +340,7 @@ onMounted(() => {
           class="flex flex-col items-center justify-center gap-3 min-h-full text-center"
         >
           <UIcon
-            name="i-lucide-atom"
+            name="i-lucide-messages-square"
             class="size-8 text-muted"
           />
           <p class="text-sm text-toned max-w-xs">
@@ -364,6 +391,23 @@ onMounted(() => {
                 icon="i-lucide-check"
               >
                 {{ $t(changeKey) }}
+              </UBadge>
+            </div>
+
+            <div
+              v-if="message.tools?.length"
+              class="flex flex-wrap gap-1"
+            >
+              <UBadge
+                v-for="(tool, ti) in message.tools"
+                :key="ti"
+                color="primary"
+                variant="subtle"
+                size="sm"
+                icon="i-lucide-wrench"
+                class="font-mono"
+              >
+                {{ $t('__labelToolUsed', { tool }) }}
               </UBadge>
             </div>
 
@@ -467,7 +511,7 @@ onMounted(() => {
               {{ $t('__labelFermionWebhookConnected') }}
             </UBadge>
 
-            <FermionBotTestWidget
+            <BotClaimWidget
               v-if="message.widget === 'bot_test' && message.widgetBotId && !message.widgetDone"
               :bot-id="message.widgetBotId"
               @replied="onBotReplied(i)"

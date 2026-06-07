@@ -55,8 +55,6 @@ interface ProviderModel {
 const route = useRoute();
 const { t } = useI18n();
 
-const { canUseFermion } = useFermionAccess();
-
 const { data: agent, error, pending, refresh } = useApiFetch<AgentDetail>(
   () => `/api/agents/${route.params.id}`,
   { key: route.params.id as string },
@@ -161,16 +159,10 @@ const onBuilderUpdated = () => {
         </div>
 
         <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
-          <FermionChat
-            v-if="canUseFermion"
+          <AgentChat
             :agent-id="agent.id"
             class="lg:col-span-2"
             @updated="onBuilderUpdated"
-          />
-
-          <AgentTestChat
-            :agent-id="agent.id"
-            class="lg:col-span-2"
           />
 
           <div class="flex flex-col gap-3">
