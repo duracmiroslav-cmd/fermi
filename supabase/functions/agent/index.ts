@@ -1150,21 +1150,26 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     // the call on Reply, and a 400 still falls back to Push internally.
     const eventTimestamp = typeof event.timestamp === 'number' ? event.timestamp : Date.now();
 
-    // Prime "..." as the worker's first act for any 1:1 message — before
-    // image download / audio STT — so the indicator shows reliably (the Deno
-    // worker isn't frozen mid-run like the webhook handler) without waiting on
-    // those. runAgentLoop re-primes and keeps it alive under LINE's 60s cap.
+    // A live imprint code binds this sender as master and sends its own notice;
+    // handle it BEFORE priming "..." so a primed indicator doesn't linger the
+    // full 60s with no agent loop to dismiss it. Anything else flows through as
+    // normal conversation.
+    if (isTextMessageFromUser(event)
+      && await tryImprintMaster(bot, event.source.userId, event.message.text, lineAccessToken, event.replyToken, ownerLocale)) {
+      continue;
+    }
+
+    // Prime "..." as the worker's first act for any 1:1 message that will do
+    // real work — before image download / audio STT — so the indicator shows
+    // reliably (the Deno worker isn't frozen mid-run like the webhook handler)
+    // without waiting on those. runAgentLoop re-primes and keeps it alive under
+    // LINE's 60s cap.
     if (isReplyableUserMessage(event)) {
       void showLoadingAnimation(lineAccessToken, event.source.userId)
         .catch(err => console.error('loading animation prime failed', err));
     }
 
     if (isTextMessageFromUser(event)) {
-      // A live imprint code matched → bind this sender as master and stop;
-      // anything else flows through as normal conversation.
-      if (await tryImprintMaster(bot, event.source.userId, event.message.text, lineAccessToken, event.replyToken, ownerLocale)) {
-        continue;
-      }
       await runAgentLoop({
         bot,
         agent,
