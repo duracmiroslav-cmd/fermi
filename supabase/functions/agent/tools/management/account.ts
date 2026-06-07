@@ -1,8 +1,9 @@
-// Owner-level connect tools for the unified fermion: summon the secure
-// LINE form / OpenRouter sign-in widgets. No server effect, no id — the
-// credentials / OAuth go through the dedicated secure paths, never the LLM.
+// Owner-level connect tools: summon the secure LINE form / OpenRouter
+// sign-in widgets. No server effect, no id — the credentials / OAuth go
+// through the dedicated secure paths, never the LLM. webOnly: both need a
+// browser surface, so on LINE the toolset returns a dashboard pointer.
 
-import type { FermionTool } from './tool.ts';
+import type { ManagementTool } from './tool.ts';
 
 // Account-level connectors the owner manages on the Connectors page.
 // `keyType` matches the stored credential so "connected?" is a presence
@@ -18,7 +19,7 @@ export const CONNECTORS: ReadonlyArray<{ keyType: string; name: string; purpose:
 
 const widget = (kind: string): unknown => ({ ok: true, widget: kind });
 
-export const connectTools: FermionTool[] = [
+export const connectTools: ManagementTool[] = [
   {
     schema: {
       type: 'function',
@@ -28,7 +29,9 @@ export const connectTools: FermionTool[] = [
         parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
       },
     },
-    run: () => Promise.resolve(widget('line_connect')),
+    webOnly:  true,
+    linkPath: () => '/dashboard/bots/new',
+    run:      () => Promise.resolve(widget('line_connect')),
   },
   {
     schema: {
@@ -39,6 +42,8 @@ export const connectTools: FermionTool[] = [
         parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
       },
     },
-    run: () => Promise.resolve(widget('openrouter_connect')),
+    webOnly:  true,
+    linkPath: () => '/dashboard/connectors/openrouter',
+    run:      () => Promise.resolve(widget('openrouter_connect')),
   },
 ];

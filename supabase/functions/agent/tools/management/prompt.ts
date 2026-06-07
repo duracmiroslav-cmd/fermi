@@ -1,17 +1,20 @@
-// The single fermion system prompt: who it is, a map of the owner's
-// account, the optional "currently viewing X" hint from the page it's
-// embedded on, and how to work (discover by list/get, act by id).
+// The maintenance-mode system prompt: who the assistant is while managing,
+// a map of the owner's account, the optional "currently viewing X" hint, and
+// how to work (discover by list/get, act by id). Injected as an overlay by
+// the worker / invoke when an agent's master enters maintenance mode.
+// NOTE: still phrased as the standalone "fermion" persona; reworked into a
+// true overlay on top of the agent's own persona in P4.
 
 import { capabilityCatalog, voiceCatalog } from './agent.ts';
 import { CONNECTORS } from './account.ts';
 import type { AccountState } from './state.ts';
 
-export interface FermionContext {
+export interface ManagementContext {
   agentId?: string;
   botId?:   string;
 }
 
-const contextLine = (state: AccountState, context: FermionContext | undefined): string => {
+const contextLine = (state: AccountState, context: ManagementContext | undefined): string => {
   if (!context) return '';
   if (context.agentId) {
     const agent = state.agents.find(a => a.id === context.agentId);
@@ -24,7 +27,7 @@ const contextLine = (state: AccountState, context: FermionContext | undefined): 
   return '';
 };
 
-export const fermionSystemPrompt = (state: AccountState, context?: FermionContext): string =>
+export const managementSystemPrompt = (state: AccountState, context?: ManagementContext): string =>
   `You are fermion, fermi's assistant. You help a non-technical person run their LINE assistant by talking with them — you can connect bots, configure the agents that answer on them, and set up the AI providers, all from this chat.
 
 A LINE "bot" is a connected LINE Official Account; an "agent" is the persona that answers on it.

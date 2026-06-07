@@ -1,11 +1,11 @@
-// Agent-domain tools for the unified fermion: discover (list/get) and
-// edit any of the owner's agents by id. Every tool scopes by ownerId.
+// Agent-domain management tools: discover (list/get) and edit any of the
+// owner's agents by id. Every tool scopes by ownerId.
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { BUILT_IN_CAPABILITIES } from '../../../shared/capabilities.ts';
-import { VOICE_REPLY_MODES, findAgentById } from '../../../shared/agents.ts';
-import { loadActiveCapabilities } from '../../../shared/agentCapabilities.ts';
-import { DEFAULT_VISION_MODEL, resolveTextModel } from '../../../shared/constants/models.ts';
+import { BUILT_IN_CAPABILITIES } from '../../../../../shared/capabilities.ts';
+import { VOICE_REPLY_MODES, findAgentById } from '../../../../../shared/agents.ts';
+import { loadActiveCapabilities } from '../../../../../shared/agentCapabilities.ts';
+import { DEFAULT_VISION_MODEL, resolveTextModel } from '../../../../../shared/constants/models.ts';
 import {
   DEFAULT_TTS_MODEL,
   TTS_MODEL_IDS,
@@ -18,7 +18,7 @@ import {
   getTtsVoiceName,
   parseTtsModel,
   supportsTtsVoice,
-} from '../../../shared/tts.ts';
+} from '../../../../../shared/tts.ts';
 import {
   MODEL_PROVIDERS,
   OPENROUTER_MODELS_URL,
@@ -26,8 +26,8 @@ import {
   type RawOpenRouterModel,
   filterOpenRouterModels,
   modelProvider,
-} from '../../../shared/openrouterModels.ts';
-import type { FermionTool, FermionToolContext } from './tool.ts';
+} from '../../../../../shared/openrouterModels.ts';
+import type { ManagementTool, ManagementToolContext } from './tool.ts';
 
 const BUILTIN_SLUGS = Object.keys(BUILT_IN_CAPABILITIES);
 
@@ -96,7 +96,7 @@ const effectiveTtsModel = async (
   return parseTtsModel(agent?.default_tts_model ?? null) ?? DEFAULT_TTS_MODEL;
 };
 
-const listAgents = async (_args: Record<string, unknown>, { admin, ownerId }: FermionToolContext): Promise<unknown> => {
+const listAgents = async (_args: Record<string, unknown>, { admin, ownerId }: ManagementToolContext): Promise<unknown> => {
   const { data: agents, error: agentErr } = await admin
     .from('agents')
     .select('id, name, is_default')
@@ -110,7 +110,7 @@ const listAgents = async (_args: Record<string, unknown>, { admin, ownerId }: Fe
   };
 };
 
-const getAgent = async (args: Record<string, unknown>, { admin, ownerId }: FermionToolContext): Promise<unknown> => {
+const getAgent = async (args: Record<string, unknown>, { admin, ownerId }: ManagementToolContext): Promise<unknown> => {
   if (typeof args.agent_id !== 'string') return { error: 'Pass agent_id (from list_agents).' };
   const agent = await findAgentById(admin, args.agent_id);
   if (!agent || agent.ownerId !== ownerId) return { error: 'No agent with that id (or it isn\'t yours).' };
@@ -132,7 +132,7 @@ const getAgent = async (args: Record<string, unknown>, { admin, ownerId }: Fermi
   };
 };
 
-const updateAgent = async (args: Record<string, unknown>, { admin, ownerId }: FermionToolContext): Promise<unknown> => {
+const updateAgent = async (args: Record<string, unknown>, { admin, ownerId }: ManagementToolContext): Promise<unknown> => {
   const owned = await ownedAgent(admin, ownerId, args.agent_id);
   if (!owned) return { error: 'No agent with that id (or it isn\'t yours). Use list_agents.' };
   const agentId = owned.id;
@@ -199,7 +199,7 @@ const updateAgent = async (args: Record<string, unknown>, { admin, ownerId }: Fe
   return { ok: true, agent_id: agentId, updated: Object.keys(patch) };
 };
 
-const setCapabilities = async (args: Record<string, unknown>, { admin, ownerId }: FermionToolContext): Promise<unknown> => {
+const setCapabilities = async (args: Record<string, unknown>, { admin, ownerId }: ManagementToolContext): Promise<unknown> => {
   const owned = await ownedAgent(admin, ownerId, args.agent_id);
   if (!owned) return { error: 'No agent with that id (or it isn\'t yours). Use list_agents.' };
   const agentId = owned.id;
@@ -243,7 +243,7 @@ const setCapabilities = async (args: Record<string, unknown>, { admin, ownerId }
   return { ok: true, agent_id: agentId, enabled: desired };
 };
 
-const listModels = async (args: Record<string, unknown>, _ctx: FermionToolContext): Promise<unknown> => {
+const listModels = async (args: Record<string, unknown>, _ctx: ManagementToolContext): Promise<unknown> => {
   const provider = typeof args.provider === 'string' ? args.provider : undefined;
   const visionOnly = args.vision_only === true;
   const freeOnly = args.free_only === true;
@@ -260,7 +260,7 @@ const listModels = async (args: Record<string, unknown>, _ctx: FermionToolContex
   return { models: lines.join('\n'), shown: lines.length, total: filtered.length };
 };
 
-export const agentTools: FermionTool[] = [
+export const agentTools: ManagementTool[] = [
   {
     schema: {
       type: 'function',

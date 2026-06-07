@@ -18,9 +18,9 @@ import type { ChatMessage } from '../agent/openrouter.ts';
 import { MAX_AGENT_STEPS, runAgentConversation } from '../agent/loop.ts';
 import { inspectInternalAuth } from '../agent/internal-auth.ts';
 import { stripMarkdown } from '../agent/markdown.ts';
-import { loadAccountState } from './state.ts';
-import { type FermionContext, fermionSystemPrompt } from './prompt.ts';
-import { FERMION_MUTATING_TOOLS, buildFermionToolset } from './toolset.ts';
+import { loadAccountState } from '../agent/tools/management/state.ts';
+import { type ManagementContext, managementSystemPrompt } from '../agent/tools/management/prompt.ts';
+import { MANAGEMENT_MUTATING_TOOLS, buildManagementToolset } from '../agent/tools/management/toolset.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseSecretKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -36,7 +36,7 @@ interface FermionRequest {
   // Edge Function trusts it via the internal secret, as before).
   ownerId:  string;
   // The page the chat is embedded on, if any → "currently viewing X" hint.
-  context?: FermionContext;
+  context?: ManagementContext;
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
   const state = await loadAccountState(admin, payload.ownerId);
 
   const messages: ChatMessage[] = [
-    { role: 'system', content: fermionSystemPrompt(state, payload.context) },
+    { role: 'system', content: managementSystemPrompt(state, payload.context) },
     ...payload.messages.map(m => ({ role: m.role, content: m.content })),
   ];
 
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
       model:         DEFAULT_TEXT_MODEL,
       fallbackModel: DEFAULT_TEXT_MODEL,
       messages,
-      toolset:       buildFermionToolset(admin, payload.ownerId),
+      toolset:       buildManagementToolset(admin, payload.ownerId, { channel: 'web' }),
       // The fermion tools take ids + a bound ownerId; they ignore ctx. A
       // real ToolContext is supplied only to satisfy the loop's shape.
       toolContextBase: {
@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
       maxSteps: MAX_AGENT_STEPS,
     });
     const changed = result.steps.some(
-      s => s.type === 'tool_called' && FERMION_MUTATING_TOOLS.includes(String(s.payload.name)),
+      s => s.type === 'tool_called' && MANAGEMENT_MUTATING_TOOLS.includes(String(s.payload.name)),
     );
     // Flatten markdown to plain text, same as the LINE worker: the chat
     // renders replies as raw text, so the prompt's "no Markdown" rule is

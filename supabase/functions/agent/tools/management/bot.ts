@@ -1,9 +1,9 @@
-// Bot-domain tools for the unified fermion: discover (list/get), edit any
-// of the owner's bots by id, and summon the webhook-setup / add-and-test
-// widgets. Every tool scopes by ownerId.
+// Bot-domain management tools: discover (list/get), edit any of the owner's
+// bots by id, and summon the webhook-setup / add-and-test widgets. Every
+// tool scopes by ownerId.
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { FermionTool, FermionToolContext } from './tool.ts';
+import type { ManagementTool, ManagementToolContext } from './tool.ts';
 import { repliedBotIds } from './state.ts';
 
 // Confirms a bot id belongs to the owner (disabled bots included; deleted
@@ -25,7 +25,7 @@ const ownedBot = async (
   return data;
 };
 
-const listBots = async (_args: Record<string, unknown>, { admin, ownerId }: FermionToolContext): Promise<unknown> => {
+const listBots = async (_args: Record<string, unknown>, { admin, ownerId }: ManagementToolContext): Promise<unknown> => {
   const { data: bots, error: botErr } = await admin
     .from('bots')
     .select('id, display_name, agent_id, disabled_at, webhook_verified_at')
@@ -46,7 +46,7 @@ const listBots = async (_args: Record<string, unknown>, { admin, ownerId }: Ferm
   };
 };
 
-const getBot = async (args: Record<string, unknown>, { admin, ownerId }: FermionToolContext): Promise<unknown> => {
+const getBot = async (args: Record<string, unknown>, { admin, ownerId }: ManagementToolContext): Promise<unknown> => {
   if (typeof args.bot_id !== 'string') return { error: 'Pass bot_id (from list_bots).' };
   const { data: bot, error: botErr } = await admin
     .from('bots')
@@ -73,7 +73,7 @@ const getBot = async (args: Record<string, unknown>, { admin, ownerId }: Fermion
   };
 };
 
-const updateBot = async (args: Record<string, unknown>, { admin, ownerId }: FermionToolContext): Promise<unknown> => {
+const updateBot = async (args: Record<string, unknown>, { admin, ownerId }: ManagementToolContext): Promise<unknown> => {
   const owned = await ownedBot(admin, ownerId, args.bot_id);
   if (!owned) return { error: 'No bot with that id (or it isn\'t yours). Use list_bots.' };
   const botId = owned.id;
@@ -138,13 +138,13 @@ const updateBot = async (args: Record<string, unknown>, { admin, ownerId }: Ferm
 // (webhook setup / add-and-test) against the existing secure endpoints.
 // Validate ownership so fermion gets a clear error for a bad id.
 const startWidget = (kind: string) =>
-  async (args: Record<string, unknown>, { admin, ownerId }: FermionToolContext): Promise<unknown> => {
+  async (args: Record<string, unknown>, { admin, ownerId }: ManagementToolContext): Promise<unknown> => {
     const owned = await ownedBot(admin, ownerId, args.bot_id);
     if (!owned) return { error: 'No bot with that id (or it isn\'t yours). Use list_bots.' };
     return { ok: true, widget: kind, bot_id: owned.id };
   };
 
-export const botTools: FermionTool[] = [
+export const botTools: ManagementTool[] = [
   {
     schema: {
       type: 'function',
@@ -209,7 +209,9 @@ export const botTools: FermionTool[] = [
         },
       },
     },
-    run: startWidget('setup_webhook'),
+    webOnly:  true,
+    linkPath: (args) => `/dashboard/bots/${String(args.bot_id ?? '')}`,
+    run:      startWidget('setup_webhook'),
   },
   {
     schema: {
@@ -225,6 +227,8 @@ export const botTools: FermionTool[] = [
         },
       },
     },
-    run: startWidget('bot_test'),
+    webOnly:  true,
+    linkPath: (args) => `/dashboard/bots/${String(args.bot_id ?? '')}`,
+    run:      startWidget('bot_test'),
   },
 ];
