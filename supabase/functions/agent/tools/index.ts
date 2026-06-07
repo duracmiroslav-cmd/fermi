@@ -8,7 +8,7 @@ import { searchKnowledge } from './knowledge-search.ts';
 import { forgetMemory, listMemories, saveMemory } from './memory.ts';
 import { loadCredential, type KeyType } from '../../../../shared/credentials.ts';
 import {
-  FreeBYOKRequiredError,
+  FreeByokRequiredError,
   type KeyPurpose,
   PlatformKeyNotConfiguredError,
   resolveKey,
@@ -174,7 +174,7 @@ const loadToken = async (
       });
       return key;
     } catch (err) {
-      if (err instanceof FreeBYOKRequiredError || err instanceof PlatformKeyNotConfiguredError) return undefined;
+      if (err instanceof FreeByokRequiredError || err instanceof PlatformKeyNotConfiguredError) return undefined;
       throw err;
     }
   }

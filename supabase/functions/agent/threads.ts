@@ -60,6 +60,27 @@ export const resolveOrCreateLatestThread = async (
   return created.id;
 };
 
+// Soft-deletes a subject's active threads with a bot so the next inbound
+// message resolves a fresh one (the "new conversation" reset). Mirrors the
+// scoping of resolveOrCreateLatestThread. Long-term memories live in their own
+// table and are intentionally left untouched — a reset clears the conversation,
+// not what the user asked the bot to remember.
+export const softDeleteLatestThreads = async (
+  admin: SupabaseClient,
+  botId: string,
+  subjectExternalId: string,
+  subjectType: ThreadSubjectType = 'user',
+): Promise<void> => {
+  const { error: archiveErr } = await admin
+    .from('threads')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('bot_id', botId)
+    .eq('subject_type', subjectType)
+    .eq('subject_external_id', subjectExternalId)
+    .is('deleted_at', null);
+  if (archiveErr) throw archiveErr;
+};
+
 export const appendMessage = async (
   admin: SupabaseClient,
   threadId: string,

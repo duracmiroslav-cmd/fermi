@@ -1,17 +1,23 @@
 import {
-  FreeBYOKRequiredError,
+  FreeByokRequiredError,
+  type KeySource,
   PlatformKeyNotConfiguredError,
   resolveKey,
 } from '../../../../shared/keys.ts';
-import { signMessageImageUrl, uploadGeneratedImage } from '../../../../shared/messageImages.ts';
+import {
+  signMessageImageUrl,
+  uploadGeneratedImage,
+  uploadGeneratedImagePreview,
+} from '../../../../shared/messageImages.ts';
 import {
   ImageGenError,
   // Both the client and the tool object want the name `generateImage`;
   // alias the client so the tool keeps the export.
   generateImage as runImageGen,
 } from '../imagegen.ts';
+import { encodeJpegPreview } from '../imagePreview.ts';
 import type { ImageSize } from '../../../../shared/imageModels.ts';
-import { COUNTER_ENV, consumeQuota } from '../quota.ts';
+import { COUNTER_ENV, consumeQuota, peekQuota } from '../quota.ts';
 import type { Tool } from './index.ts';
 
 interface Args {
@@ -31,7 +37,7 @@ export const generateImage: Tool = {
   name: 'generate_image',
   capabilitySlug: 'image-gen',
   description:
-    'Generate an image from a natural-language prompt and deliver it back to the user. Use ONLY when the user explicitly asks to draw / generate / create / make an image, not for fetching existing images from the web (use web_search for that). The image is delivered automatically alongside your text reply; you should still write a short text response describing what you generated.',
+    'Generate an image from a natural-language prompt and deliver it back to the user. Use ONLY when the user explicitly asks to draw / generate / create / make an image, not for fetching existing images from the web (use web_search for that). Do not pre-judge whether a prompt is acceptable or self-censor a borderline request: always call this tool when the user asks for an image and let the image service\'s own safety filter make that decision. If the service declines the prompt, the tool result carries the reason — relay it to the user plainly (it was declined for policy, and roughly why) and suggest a rephrase. Never tell the user you created, generated, or sent an image unless this tool returned success in the same turn. On success the image is delivered automatically alongside your reply; still write a short text response describing what you generated.',
   parameters: {
     type: 'object',
     properties: {
@@ -61,6 +67,7 @@ export const generateImage: Tool = {
     // Errors round-trip back to the LLM as tool-result JSON so the model
     // can relay a sensible message in the user's language.
     let apiKey: string;
+    let keySource: KeySource;
     try {
       const resolved = await resolveKey(ctx.admin, ctx.kek, {
         ownerId: ctx.ownerId,
@@ -68,8 +75,9 @@ export const generateImage: Tool = {
         platformKey: Deno.env.get('FAL_API_KEY') ?? null,
       });
       apiKey = resolved.key;
+      keySource = resolved.source;
     } catch (err) {
-      if (err instanceof FreeBYOKRequiredError) {
+      if (err instanceof FreeByokRequiredError) {
         return {
           error: 'generate_image requires a fal.ai API key. Tell the user the bot owner needs to either connect fal.ai at https://fermi.tw/dashboard/connectors (~$0.04 per image, sign up at https://fal.ai) or upgrade to Pro so fermi handles it.',
         };
@@ -82,16 +90,24 @@ export const generateImage: Tool = {
       throw err;
     }
 
-    // Quota after the key resolves: a fast-fail before the paid fal.ai call
-    // that doesn't charge an owner who couldn't have generated anyway.
-    const quota = await consumeQuota(ctx.admin, COUNTER_ENV, {
-      ownerId: ctx.ownerId,
-      purpose: 'image_gen',
-    });
-    if (!quota.allowed) {
-      return {
-        error: `Image generation quota exceeded: ${quota.count}/${quota.cap} this month. Tell the user the bot owner's free image quota is used up; they can either upgrade to Pro at https://fermi.tw/dashboard/billing ($19/mo, 200 images/mo) or connect their own fal.ai key at https://fermi.tw/dashboard/connectors for unlimited usage.`,
-      };
+    // Quota caps only platform-key usage — the spend fermi actually pays for.
+    // A BYOK owner draws on their own fal account, so it's uncapped (this is
+    // the "connect your own key for unlimited usage" promise). Peek (read, no
+    // INCR) to fast-fail an over-cap owner before the paid call; the unit is
+    // only spent after fal actually produces an image (below). fal bills solely
+    // for successful outputs — a 422/5xx costs nothing, so it must not cost a
+    // quota unit either. `remaining > 0` (not `allowed`, which is count<=cap)
+    // is the correct pre-check: it leaves room for exactly this call.
+    if (keySource === 'platform') {
+      const quota = await peekQuota(ctx.admin, COUNTER_ENV, {
+        ownerId: ctx.ownerId,
+        purpose: 'image_gen',
+      });
+      if (quota.remaining <= 0) {
+        return {
+          error: `Image generation quota exceeded: ${quota.count}/${quota.cap} this month. Tell the user the bot owner's free image quota is used up; they can either upgrade to Pro at https://fermi.tw/dashboard/billing ($19/mo, 200 images/mo) or connect their own fal.ai key at https://fermi.tw/dashboard/connectors for unlimited usage.`,
+        };
+      }
     }
 
     try {
@@ -102,6 +118,11 @@ export const generateImage: Tool = {
         size: parseSize(size),
         config: ctx.capabilityConfig ?? {},
       });
+      // Charge only now that fal produced an image: a failed call threw above
+      // and never reaches here, so failures never spend a quota unit.
+      if (keySource === 'platform') {
+        await consumeQuota(ctx.admin, COUNTER_ENV, { ownerId: ctx.ownerId, purpose: 'image_gen' });
+      }
       // Path doubles as an audit handle: the tool call ID ties the
       // object back to the `tool_called` / `tool_responded` step rows.
       const { storagePath } = await uploadGeneratedImage(ctx.admin, {
@@ -111,15 +132,36 @@ export const generateImage: Tool = {
         mime: generated.mime,
         bytes: generated.bytes,
       });
-      const signedUrl = await signMessageImageUrl(ctx.admin, storagePath);
+      const originalUrl = await signMessageImageUrl(ctx.admin, storagePath);
+
+      // LINE caps an image message's previewImageUrl at 1MB, but our generated
+      // PNGs run well over that, so handing LINE the full-res image as the
+      // preview makes the in-chat thumbnail fail to render. Ship a downscaled
+      // JPEG as the preview while originalContentUrl stays the untouched
+      // full-res PNG the user gets on tap. Best-effort: if the thumbnail can't
+      // be produced, fall back to the full-res URL so a preview hiccup never
+      // costs the user the image they asked for.
+      let previewUrl = originalUrl;
+      try {
+        const previewBytes = await encodeJpegPreview(generated.bytes);
+        const { storagePath: previewPath } = await uploadGeneratedImagePreview(ctx.admin, {
+          ownerId: ctx.ownerId,
+          threadId: ctx.threadId,
+          imageId: ctx.toolCallId,
+          bytes: previewBytes,
+        });
+        previewUrl = await signMessageImageUrl(ctx.admin, previewPath);
+      } catch (previewErr) {
+        console.error('image preview generation failed; using full-res as preview', previewErr);
+      }
 
       // Staged for the worker to drain into LINE messages after the loop.
       ctx.attachments.push({
         type: 'image',
         mime: generated.mime,
         sizeBytes: generated.bytes.byteLength,
-        originalContentUrl: signedUrl,
-        previewImageUrl: signedUrl,
+        originalContentUrl: originalUrl,
+        previewImageUrl: previewUrl,
         storagePath,
       });
 

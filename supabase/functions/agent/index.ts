@@ -14,7 +14,8 @@ import { type Locale } from '../../../shared/locale.ts';
 import { loadOwnerContext } from '../../../shared/users.ts';
 import { loadRecentMemories, MEMORY_INJECT_LIMIT } from '../../../shared/memories.ts';
 import {
-  FreeBYOKRequiredError,
+  FreeByokRequiredError,
+  type KeySource,
   PlatformKeyNotConfiguredError,
   resolveKey,
 } from '../../../shared/keys.ts';
@@ -42,10 +43,11 @@ import {
   safeReply,
   showLoadingAnimation,
   type LineMessage,
+  type LineQuickReply,
 } from './channels/line.ts';
 import { OpenRouterError, type ChatMessage } from './openrouter.ts';
 import { MAX_AGENT_STEPS, runAgentConversation } from './loop.ts';
-import { COUNTER_ENV, consumeQuota } from './quota.ts';
+import { COUNTER_ENV, consumeQuota, peekQuota } from './quota.ts';
 import { checkGroupMemberRateLimit } from './groupRateLimit.ts';
 import { deriveErrorCode, finishRun, logStep, startRun } from './runs.ts';
 import { STTError, transcribeAudio } from './stt.ts';
@@ -54,6 +56,7 @@ import {
   appendMessage,
   loadRecentMessages,
   resolveOrCreateLatestThread,
+  softDeleteLatestThreads,
   type ThreadSubjectType,
 } from './threads.ts';
 import { type ToolAttachment, type Toolset, buildToolset, mergeToolsets } from './tools/index.ts';
@@ -131,6 +134,7 @@ interface LineEvent {
   replyToken?: string;
   source?: LineSource;
   message?: { type: string; id?: string; text?: string; fileName?: string; fileSize?: number; keywords?: string[]; title?: string; address?: string; latitude?: number; longitude?: number; mention?: { mentionees?: { isSelf?: boolean }[] } };
+  postback?: { data?: string };
   webhookEventId?: string;
 }
 
@@ -243,6 +247,36 @@ const isLocationMessageFromUser = (event: LineEvent): event is LineEvent & {
   && event.source?.type === 'user'
   && typeof event.source.userId === 'string'
 );
+
+// A tap on the "new conversation" quick-reply button arrives as a postback
+// carrying this data; the worker maps it to a thread reset.
+const RESET_POSTBACK_DATA = 'action=new-thread';
+
+const isNewThreadPostbackFromUser = (event: LineEvent): event is LineEvent & {
+  replyToken: string;
+  source: LineSource & { userId: string };
+} => (
+  event.type === 'postback'
+  && event.postback?.data === RESET_POSTBACK_DATA
+  && typeof event.replyToken === 'string'
+  && event.source?.type === 'user'
+  && typeof event.source.userId === 'string'
+);
+
+// The persistent "new conversation" button attached to bot replies so the user
+// can reset the conversation anytime. Postback (not a message action) keeps it
+// from leaving a stray user-text bubble or colliding with real input.
+const newThreadQuickReply = (locale: Locale): LineQuickReply => ({
+  items: [{
+    type: 'action',
+    action: {
+      type:        'postback',
+      label:       t('__quickReplyNewThread', locale),
+      data:        RESET_POSTBACK_DATA,
+      displayText: t('__quickReplyNewThread', locale),
+    },
+  }],
+});
 
 // Lets early-return paths (no agent / no openrouter key) surface a
 // configuration notice regardless of the input modality.
@@ -365,6 +399,7 @@ const transcribeGroupAudio = async (params: {
   }
 
   let openaiKey: string;
+  let keySource: KeySource;
   try {
     const resolved = await resolveKey(admin, kek, {
       ownerId:     bot.ownerId,
@@ -372,8 +407,9 @@ const transcribeGroupAudio = async (params: {
       platformKey: PLATFORM_OPENAI_KEY,
     });
     openaiKey = resolved.key;
+    keySource = resolved.source;
   } catch (err) {
-    if (err instanceof FreeBYOKRequiredError) {
+    if (err instanceof FreeByokRequiredError) {
       await safeReply(lineAccessToken, replyToken, t('__noticeFreeByokOpenai', ownerLocale));
       return;
     }
@@ -385,8 +421,13 @@ const transcribeGroupAudio = async (params: {
     throw err;
   }
 
-  const quota = await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' });
-  if (!quota.allowed) {
+  // Quota caps only platform-key usage (the spend fermi pays for); BYOK draws
+  // on the owner's own OpenAI account and is uncapped. Peek to fast-fail over
+  // cap; the unit is spent only after Whisper actually runs (below).
+  const quota = keySource === 'platform'
+    ? await peekQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' })
+    : null;
+  if (quota && quota.remaining <= 0) {
     await safeReply(lineAccessToken, replyToken, t('__noticeQuotaSttExhausted', ownerLocale));
     return;
   }
@@ -409,6 +450,12 @@ const transcribeGroupAudio = async (params: {
       return;
     }
     throw err;
+  }
+  // Whisper billed for the audio it processed; charge now that it succeeded
+  // (an empty transcript still consumed Whisper time). A failed call returned
+  // above and never reaches here.
+  if (keySource === 'platform') {
+    await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' });
   }
   if (transcript.length === 0) {
     await safeReply(lineAccessToken, replyToken, t('__noticeAudioEmpty', ownerLocale));
@@ -546,6 +593,9 @@ const runAgentLoop = async (params: {
   ownerLocale: Locale;
   ownerTimezone: string;
   openrouterKey: string;
+  // 'platform' → fermi's OpenRouter key (metered); 'byok' → the owner's own
+  // (uncapped, so extended_run isn't charged).
+  openrouterSource: KeySource;
   lineAccessToken: string;
   kek: CryptoKey;
   externalUserId: string;
@@ -559,7 +609,7 @@ const runAgentLoop = async (params: {
   // to the group. `externalUserId` is then the mentioner.
   group?: { groupId: string };
 }): Promise<void> => {
-  const { bot, agent, ownerLocale, ownerTimezone, openrouterKey, lineAccessToken, kek, externalUserId, replyToken, userInput, eventTimestamp, group } = params;
+  const { bot, agent, ownerLocale, ownerTimezone, openrouterKey, openrouterSource, lineAccessToken, kek, externalUserId, replyToken, userInput, eventTimestamp, group } = params;
 
   const subjectExternalId = group ? group.groupId : externalUserId;
   const subjectType: ThreadSubjectType = group ? 'group' : 'user';
@@ -773,9 +823,12 @@ const runAgentLoop = async (params: {
       }),
       // extended_run quota: INCR at most once per run, the first time
       // wall time crosses the reply-token budget. Aborting ends the loop
-      // with a CTA; already-paid LLM cost up to that point is sunk.
+      // with a CTA; already-paid LLM cost up to that point is sunk. Only
+      // platform-key runs are metered — a BYOK owner pays their own OpenRouter
+      // tokens, so a long conversation costs fermi nothing and stays uncapped
+      // (the technical MAX_AGENT_STEPS / wall-clock limits still bound it).
       beforeIteration: async () => {
-        if (extendedRunConsumed || (Date.now() - eventTimestamp) < REPLY_BUDGET_MS) return null;
+        if (openrouterSource !== 'platform' || extendedRunConsumed || (Date.now() - eventTimestamp) < REPLY_BUDGET_MS) return null;
         const exQuota = await consumeQuota(admin, COUNTER_ENV, {
           ownerId: bot.ownerId,
           purpose: 'extended_run',
@@ -840,11 +893,14 @@ const runAgentLoop = async (params: {
           purpose: 'openai',
           platformKey: PLATFORM_OPENAI_KEY,
         });
-        const ttsQuota = await consumeQuota(admin, COUNTER_ENV, {
-          ownerId: bot.ownerId,
-          purpose: 'tts',
-        });
-        if (!ttsQuota.allowed) {
+        // Quota caps only platform-key usage; a BYOK owner's OpenAI account
+        // covers their own TTS, so it's uncapped. Peek to fast-fail over cap;
+        // the unit is spent only after synthesis succeeds (a failed call costs
+        // nothing upstream, so it must not cost a quota unit).
+        const ttsQuota = resolved.source === 'platform'
+          ? await peekQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'tts' })
+          : null;
+        if (ttsQuota && ttsQuota.remaining <= 0) {
           ttsQuotaExhausted = true;
         } else {
           const speech = await synthesizeSpeech({
@@ -854,6 +910,9 @@ const runAgentLoop = async (params: {
             voice:        agent.defaultTtsVoice,
             instructions: agent.ttsInstructions,
           });
+          if (resolved.source === 'platform') {
+            await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'tts' });
+          }
           const { storagePath } = await uploadGeneratedAudio(admin, {
             ownerId: bot.ownerId,
             threadId,
@@ -924,6 +983,13 @@ const runAgentLoop = async (params: {
           previewImageUrl: att.previewImageUrl,
         });
       }
+    }
+
+    // Persistent reset affordance: LINE shows the quick reply of the last
+    // message in the send, so attach it there. 1:1 only — group replies go out
+    // via a different path and don't carry it.
+    if (!group) {
+      outbound[outbound.length - 1].quickReply = newThreadQuickReply(ownerLocale);
     }
 
     const elapsedMs = Date.now() - eventTimestamp;
@@ -1098,6 +1164,26 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
   const { directEvents: events, groupMentions } = await handleGroupEvents(allEvents, bot, kek, lineAccessToken, ownerLocale);
   if (events.length === 0 && groupMentions.length === 0) return;
 
+  // A "new conversation" quick-reply tap arrives as a postback. Handle it before
+  // agent/key gating so a reset works even on a misconfigured bot: soft-delete
+  // the user's active threads (the next message starts fresh) and confirm.
+  // Long-term memory is intentionally preserved.
+  for (const event of events) {
+    if (!isNewThreadPostbackFromUser(event)) continue;
+    await softDeleteLatestThreads(admin, bot.id, event.source.userId);
+    await deliverMessages({
+      accessToken: lineAccessToken,
+      replyToken:  event.replyToken,
+      userId:      event.source.userId,
+      messages:    [{ type: 'text', text: t('__noticeNewThreadStarted', ownerLocale), quickReply: newThreadQuickReply(ownerLocale) }],
+      elapsedMs:   typeof event.timestamp === 'number' ? Date.now() - event.timestamp : 0,
+    }).catch(err => console.error('new-thread confirm delivery failed', err));
+  }
+  // Reset-only payloads need no agent run; skip the rest to avoid pointless
+  // agent/key resolution. Mixed payloads (rare) fall through and the postback
+  // is inert in the dispatch loop below.
+  if (events.every(isNewThreadPostbackFromUser) && groupMentions.length === 0) return;
+
   // Bot has no agent bound, or the binding was cleared (agent soft-
   // deleted). Reply with an actionable message instead of silence.
   if (!bot.agentId) {
@@ -1122,6 +1208,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
   }
 
   let openrouterKey: string;
+  let openrouterSource: KeySource;
   try {
     const resolved = await resolveKey(admin, kek, {
       ownerId: bot.ownerId,
@@ -1129,13 +1216,14 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       platformKey: PLATFORM_OPENROUTER_KEY,
     });
     openrouterKey = resolved.key;
+    openrouterSource = resolved.source;
   } catch (err) {
-    // FreeBYOKRequiredError = owner is on Free + hasn't connected.
+    // FreeByokRequiredError = owner is on Free + hasn't connected.
     // PlatformKeyNotConfiguredError = Pro user but fermi's env is
     // missing (operational issue on the fermi side; user-facing
     // message must not blame the user). Any other throw is a real
     // DB/decryption error → bubble so pgmq retries.
-    const noticeKey = err instanceof FreeBYOKRequiredError
+    const noticeKey = err instanceof FreeByokRequiredError
       ? '__noticeFreeByokOpenrouter'
       : err instanceof PlatformKeyNotConfiguredError
         ? '__noticePlatformKeyOps'
@@ -1179,6 +1267,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
+        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1214,6 +1303,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
+        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1251,6 +1341,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       // the pipeline only knows text + image; a failed transcription starts
       // no agent_run.
       let openaiKey: string;
+      let keySource: KeySource;
       try {
         const resolved = await resolveKey(admin, kek, {
           ownerId: bot.ownerId,
@@ -1258,8 +1349,9 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
           platformKey: PLATFORM_OPENAI_KEY,
         });
         openaiKey = resolved.key;
+        keySource = resolved.source;
       } catch (err) {
-        if (err instanceof FreeBYOKRequiredError) {
+        if (err instanceof FreeByokRequiredError) {
           await safeReply(lineAccessToken, event.replyToken, t('__noticeFreeByokOpenai', ownerLocale));
           continue;
         }
@@ -1271,11 +1363,13 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         throw err;
       }
 
-      const sttQuota = await consumeQuota(admin, COUNTER_ENV, {
-        ownerId: bot.ownerId,
-        purpose: 'stt',
-      });
-      if (!sttQuota.allowed) {
+      // Quota caps only platform-key usage; BYOK is on the owner's own OpenAI
+      // account and uncapped. Peek to fast-fail over cap; the unit is spent
+      // only after Whisper actually runs (below).
+      const sttQuota = keySource === 'platform'
+        ? await peekQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' })
+        : null;
+      if (sttQuota && sttQuota.remaining <= 0) {
         await safeReply(lineAccessToken, event.replyToken, t('__noticeQuotaSttExhausted', ownerLocale));
         continue;
       }
@@ -1290,6 +1384,11 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
           continue;
         }
         throw err;
+      }
+      // Charge now that Whisper succeeded (an empty transcript still consumed
+      // Whisper time); a failed call continued above without spending a unit.
+      if (keySource === 'platform') {
+        await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' });
       }
       if (transcript.length === 0) {
         await safeReply(lineAccessToken, event.replyToken, t('__noticeAudioEmpty', ownerLocale));
@@ -1306,6 +1405,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
+        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1376,6 +1476,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
+        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1397,6 +1498,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
+        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1418,6 +1520,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
+        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1459,6 +1562,7 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       ownerLocale,
       ownerTimezone,
       openrouterKey,
+      openrouterSource,
       lineAccessToken,
       kek,
       externalUserId: gm.senderId,
