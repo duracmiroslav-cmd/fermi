@@ -37,7 +37,7 @@ export const generateImage: Tool = {
   name: 'generate_image',
   capabilitySlug: 'image-gen',
   description:
-    'Generate an image from a natural-language prompt and deliver it back to the user. Use ONLY when the user explicitly asks to draw / generate / create / make an image, not for fetching existing images from the web (use web_search for that). The image is delivered automatically alongside your text reply; you should still write a short text response describing what you generated.',
+    'Generate an image from a natural-language prompt and deliver it back to the user. Use ONLY when the user explicitly asks to draw / generate / create / make an image, not for fetching existing images from the web (use web_search for that). Do not pre-judge whether a prompt is acceptable or self-censor a borderline request: always call this tool when the user asks for an image and let the image service\'s own safety filter make that decision. If the service declines the prompt, the tool result carries the reason — relay it to the user plainly (it was declined for policy, and roughly why) and suggest a rephrase. Never tell the user you created, generated, or sent an image unless this tool returned success in the same turn. On success the image is delivered automatically alongside your reply; still write a short text response describing what you generated.',
   parameters: {
     type: 'object',
     properties: {
