@@ -64,9 +64,8 @@ revoke insert, update, delete on public.reminders from authenticated;
 
 -- Reminders are created by the agent worker (service_role) via a plain
 -- insert from the create_reminder tool — no count-and-check RPC, because
--- there's no per-tier cap on how many a user can hold. The real cost
--- axes are bounded elsewhere: creation velocity by the per-(bot,user)
--- rate limiter, delivery by the owner's monthly `line_push` quota.
+-- there's no cap on how many a user can hold. Creation velocity is
+-- bounded by the per-(bot,user) rate limiter.
 
 -- ---- Fire queue --------------------------------------------------------------
 -- A pgmq queue distinct from `webhook_events`: a reminder fire is not a

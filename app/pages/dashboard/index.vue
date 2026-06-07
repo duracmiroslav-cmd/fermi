@@ -15,7 +15,15 @@ interface AgentRow {
   updatedAt:        string;
 }
 
-const { items: agents, used, atLimit, pending, limitMessage } = useTierLimit<AgentRow>('agents');
+// Explicit 'agents' key so useAgents can invalidate this list via
+// refreshNuxtData('agents') after a mutation, avoiding a stale flash on
+// navigation back.
+const { data: agents, pending } = useFetch<AgentRow[]>('/api/agents', {
+  key:     'agents',
+  headers: useRequestHeaders(['cookie']),
+});
+
+const used = computed(() => agents.value?.length ?? 0);
 
 const search = ref('');
 
@@ -38,19 +46,7 @@ const filteredAgents = computed(() => {
             {{ $t('__labelAgent', 2) }} <span class="text-toned font-normal font-mono">({{ used }})</span>
           </h1>
           <template v-if="agents?.length">
-            <UTooltip
-              v-if="atLimit"
-              :text="limitMessage"
-            >
-              <UButton
-                icon="i-lucide-plus"
-                disabled
-              >
-                {{ $t('__actionNewAgent') }}
-              </UButton>
-            </UTooltip>
             <UButton
-              v-else
               icon="i-lucide-plus"
               to="/dashboard/agents/new"
             >
@@ -95,7 +91,7 @@ const filteredAgents = computed(() => {
             icon="i-lucide-sparkles"
             :title="$t('__titleAgentsEmpty')"
             :description="$t('__descriptionAgentsEmpty')"
-            :actions="atLimit ? [] : [{ label: $t('__actionCreateFirstAgent'), icon: 'i-lucide-plus', to: '/dashboard/agents/new' }]"
+            :actions="[{ label: $t('__actionCreateFirstAgent'), icon: 'i-lucide-plus', to: '/dashboard/agents/new' }]"
           />
 
           <div

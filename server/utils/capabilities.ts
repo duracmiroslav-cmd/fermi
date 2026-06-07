@@ -36,8 +36,7 @@ export interface CapabilityRow {
   description:           string | null;
   credentialType:        CredentialType;
   // True when this capability needs a provider credential the owner hasn't
-  // satisfied (no connected key, and not Pro-covered for a platform-backed
-  // provider) — so an attached-but-unconnected capability reads as "needs
+  // connected — so an attached-but-unconnected capability reads as "needs
   // connection" instead of silently failing at run time. Computed via
   // `capabilityNeedsConnection`; false for capabilities that need no provider.
   needsConnection:       boolean;
@@ -91,15 +90,6 @@ export const listCapabilitiesForUser = async (
   const credByKeyType = new Map((creds ?? []).map(c => [c.key_type, c]));
   const connectedKeyTypes = new Set(credByKeyType.keys());
 
-  // Tier gates the platform fallback: a Pro owner is covered for a
-  // platform-backed provider (Tavily) without connecting their own key.
-  const { data: userRow, error: userErr } = await admin
-    .from('users')
-    .select('tier')
-    .eq('id', userId)
-    .single();
-  if (userErr) throw userErr;
-
   return (capabilities ?? []).map((capability) => {
     const builtIn = capability.owner_id === null
       ? BUILT_IN_CAPABILITIES[capability.slug]
@@ -115,7 +105,6 @@ export const listCapabilitiesForUser = async (
       needsConnection: capabilityNeedsConnection({
         credentialType,
         providers,
-        tier: userRow.tier,
         connectedKeyTypes,
       }),
       isCustom: capability.owner_id !== null,

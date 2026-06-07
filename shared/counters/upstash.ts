@@ -1,10 +1,7 @@
 import type {
-  ConsumeQuotaInput,
-  ConsumeQuotaResult,
   RateLimitCheckInput,
   RateLimitCheckResult,
   RateLimiter,
-  UsageCounter,
 } from './index.ts';
 
 export interface UpstashConfig {
@@ -66,23 +63,5 @@ export const createUpstashRateLimiter = (config: UpstashConfig): RateLimiter => 
       }
     }
     return { blocked: blockingWindow !== undefined, blockingWindow, counts };
-  },
-});
-
-export const createUpstashUsageCounter = (config: UpstashConfig): UsageCounter => ({
-  async consume(input: ConsumeQuotaInput): Promise<ConsumeQuotaResult> {
-    const count = await incrWithTtl(config, input.key, input.ttlSec);
-    return {
-      allowed:   count <= input.cap,
-      count,
-      remaining: Math.max(0, input.cap - count),
-      cap:       input.cap,
-    };
-  },
-
-  async peek({ key }: { key: string }): Promise<number> {
-    const reply = await pipelineFetch(config, [['GET', key]]);
-    const raw = reply[0]?.result;
-    return raw == null ? 0 : Number(raw);
   },
 });

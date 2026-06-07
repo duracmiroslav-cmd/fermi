@@ -86,16 +86,10 @@ export type CapabilitySettingField = SliderSettingField | SelectSettingField;
 export type CredentialType = 'none' | 'providers' | 'coming_soon';
 
 export interface ProviderMeta {
-  slug:           string;
-  displayName:    string;
-  keyType:        string;
-  status:         'live' | 'coming_soon';
-  // Whether fermi backs this provider with its own platform key, so a Pro
-  // owner is covered without connecting their own (e.g. Tavily, Twinkle Hub).
-  // github is false — its token is the owner's OAuth credential, never the
-  // platform's. Asserts the worker's resolveKey wiring (whether its tool /
-  // MCP auth passes a platform key for this purpose); keep the two in step.
-  platformBacked: boolean;
+  slug:        string;
+  displayName: string;
+  keyType:     string;
+  status:      'live' | 'coming_soon';
 }
 
 export interface BuiltInCapability {
@@ -150,7 +144,7 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     config:         {},
     credentialType: 'providers',
     providers:      [
-      { slug: 'tavily', displayName: 'Tavily', keyType: 'tavily', status: 'live', platformBacked: true },
+      { slug: 'tavily', displayName: 'Tavily', keyType: 'tavily', status: 'live' },
     ],
   },
   'web-fetch': {
@@ -163,12 +157,12 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     displayName:    'Image generation',
     description:    'Generate an image from a natural-language prompt. Use when the user explicitly asks to "draw", "generate an image", "make a picture", or similar; do NOT use to fetch existing images from the web.',
     config:         {},
-    // fal renders the image. platformBacked: a Pro owner uses fermi's platform
-    // fal key, a Free owner must connect their own — mirrors image-gen.ts's
+    // fal renders the image. The owner connects their own fal key, or the
+    // deployment supplies FAL_API_KEY — mirrors image-gen.ts's
     // resolveKey('fal') wiring, so the badge matches what the tool resolves.
     credentialType: 'providers',
     providers:      [
-      { slug: 'fal', displayName: 'fal', keyType: 'fal', status: 'live', platformBacked: true },
+      { slug: 'fal', displayName: 'fal', keyType: 'fal', status: 'live' },
     ],
     settings: imageGenSettings,
   },
@@ -191,7 +185,7 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     },
     credentialType: 'providers',
     providers:      [
-      { slug: 'github', displayName: 'GitHub', keyType: 'github', status: 'live', platformBacked: false },
+      { slug: 'github', displayName: 'GitHub', keyType: 'github', status: 'live' },
     ],
   },
   // Twinkle Hub bundles Taiwan-specific lookup tools + data.gov.tw open
@@ -302,7 +296,7 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
     },
     credentialType: 'providers',
     providers:      [
-      { slug: 'twinkle-hub', displayName: 'Twinkle Hub', keyType: 'twinkle', status: 'live', platformBacked: true },
+      { slug: 'twinkle-hub', displayName: 'Twinkle Hub', keyType: 'twinkle', status: 'live' },
     ],
   },
   // Retrieval over the owner's own documents (RAG). No external credential —
@@ -333,24 +327,22 @@ export const BUILT_IN_CAPABILITIES: Record<string, BuiltInCapability> = {
 export const getBuiltInCapability = (slug: string): BuiltInCapability | null =>
   BUILT_IN_CAPABILITIES[slug] ?? null;
 
-// Whether a capability's required provider credential is unmet for an owner,
-// mirroring resolveKey: a connected provider key works for anyone; absent that,
-// only a Pro owner is covered, and only for a provider fermi platform-backs
-// (`platformBacked`). Returns false (nothing to connect) when the capability
-// needs no provider. The dashboard shows a "needs connection" badge when this
-// is true and the capability is attached, so the badge never disagrees with
-// what the worker resolves at run time.
+// Whether a capability's required provider credential is unmet for an owner:
+// it needs connection when it requires a provider and the owner hasn't
+// connected a key for any of its live providers. Returns false (nothing to
+// connect) when the capability needs no provider. The dashboard shows a "needs
+// connection" badge when this is true and the capability is attached. (A
+// deployment may still supply an env key as fallback — invisible to the
+// dashboard — so the badge is conservative: it prompts the owner to connect
+// even when an env key would also work.)
 export const capabilityNeedsConnection = (params: {
   credentialType:    CredentialType;
   providers?:        ProviderMeta[];
-  tier:              string;
   connectedKeyTypes: ReadonlySet<string>;
 }): boolean => {
-  const { credentialType, providers, tier, connectedKeyTypes } = params;
+  const { credentialType, providers, connectedKeyTypes } = params;
   if (credentialType !== 'providers' || !providers) return false;
   const live = providers.filter(p => p.status !== 'coming_soon');
   if (live.length === 0) return false;
-  const hasConnected = live.some(p => connectedKeyTypes.has(p.keyType));
-  const proCovered = tier === 'pro' && live.some(p => p.platformBacked);
-  return !hasConnected && !proCovered;
+  return !live.some(p => connectedKeyTypes.has(p.keyType));
 };

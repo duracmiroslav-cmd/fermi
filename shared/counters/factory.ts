@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { RateLimiter, UsageCounter } from './index.ts';
-import { createPostgresRateLimiter, createPostgresUsageCounter } from './postgres.ts';
-import { createUpstashRateLimiter, createUpstashUsageCounter } from './upstash.ts';
+import type { RateLimiter } from './index.ts';
+import { createPostgresRateLimiter } from './postgres.ts';
+import { createUpstashRateLimiter } from './upstash.ts';
 
 export interface CounterEnv {
   upstashUrl:   string | null;
@@ -18,13 +18,4 @@ export const createRateLimiter = (
   env.upstashUrl && env.upstashToken
     ? createUpstashRateLimiter({ url: env.upstashUrl, token: env.upstashToken })
     : createPostgresRateLimiter(admin)
-);
-
-export const createUsageCounter = (
-  admin: SupabaseClient,
-  env:   CounterEnv,
-): UsageCounter => (
-  env.upstashUrl && env.upstashToken
-    ? createUpstashUsageCounter({ url: env.upstashUrl, token: env.upstashToken })
-    : createPostgresUsageCounter(admin)
 );

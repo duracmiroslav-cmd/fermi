@@ -20,12 +20,12 @@ interface AgentUpdate {
 }
 
 // Write side for agents: each mutation invalidates the caches it dirties before
-// the caller navigates, so the list ('agents' key, see useTierLimit) and the
-// detail page (id key) never flash stale. Co-locating refresh with the $fetch
-// is the whole point — it's the line that's easy to forget when a mutation
-// lives inline in a page (which is how the create/delete staleness bugs crept
-// in). Reads stay in useTierLimit (list, SSR) and useApiFetch (detail); folding
-// the non-lazy list fetch in here would make every new/edit page pay for it.
+// the caller navigates, so the list ('agents' key) and the detail page (id key)
+// never flash stale. Co-locating refresh with the $fetch is the whole point —
+// it's the line that's easy to forget when a mutation lives inline in a page
+// (which is how the create/delete staleness bugs crept in). Reads stay in the
+// list page's useFetch (SSR) and useApiFetch (detail); folding the non-lazy
+// list fetch in here would make every new/edit page pay for it.
 export const useAgents = () => {
   const { t } = useI18n();
   const notify = useNotify();

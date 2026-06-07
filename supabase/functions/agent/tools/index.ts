@@ -8,9 +8,8 @@ import { searchKnowledge } from './knowledge-search.ts';
 import { forgetMemory, listMemories, saveMemory } from './memory.ts';
 import { loadCredential, type KeyType } from '../../../../shared/credentials.ts';
 import {
-  FreeByokRequiredError,
   type KeyPurpose,
-  PlatformKeyNotConfiguredError,
+  KeyNotConfiguredError,
   resolveKey,
 } from '../../../../shared/keys.ts';
 import type { AttachedCapability, CapabilityConfig } from '../../../../shared/agentCapabilities.ts';
@@ -147,11 +146,10 @@ const mcpToolCache = new Map<string, CachedTools>();
 // 5 min keeps tool lists fresh across rapid successive runs without re-handshaking.
 const TOOL_CACHE_TTL_MS = 5 * 60 * 1000;
 
-// Platform fallback tokens for built-in MCP providers, by authKeyType. A
-// provider listed here is platform-backed: it resolves through resolveKey's
-// Free→BYOK / Pro→platform rule (keep its `platformBacked` flag in
-// shared/capabilities.ts in step). github is absent on purpose — its token is
-// the owner's OAuth credential, never the platform's; byo_mcp is per-user URLs.
+// Environment fallback tokens for built-in MCP providers, by authKeyType. A
+// provider listed here resolves through resolveKey: the owner's connected
+// token first, then this env token. github is absent on purpose — its token is
+// the owner's OAuth credential, never an env default; byo_mcp is per-user URLs.
 const PLATFORM_MCP_KEYS: Record<string, string | undefined> = {
   twinkle: Deno.env.get('TWINKLE_API_KEY') ?? undefined,
 };
@@ -161,10 +159,9 @@ const loadToken = async (
   authKeyType: string,
   capabilityId: string,
 ): Promise<string | undefined> => {
-  // Platform-backed provider (twinkle): same tier policy as the paid in-process
-  // tools. A Free owner without their own token, or Pro with no platform key
-  // configured, yields undefined so the capability is skipped (badge shows it)
-  // rather than failing the run.
+  // Env-backed provider (twinkle): resolves the owner's connected token, then
+  // the env token. With neither configured it yields undefined so the
+  // capability is skipped (badge shows it) rather than failing the run.
   if (authKeyType in PLATFORM_MCP_KEYS) {
     try {
       const { key } = await resolveKey(base.admin, base.kek, {
@@ -174,7 +171,7 @@ const loadToken = async (
       });
       return key;
     } catch (err) {
-      if (err instanceof FreeByokRequiredError || err instanceof PlatformKeyNotConfiguredError) return undefined;
+      if (err instanceof KeyNotConfiguredError) return undefined;
       throw err;
     }
   }

@@ -29,15 +29,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Agent not found', data: { code: '__errorAgentNotFound' } });
   }
 
-  // Pro-gate: the knowledge base carries platform embedding cost and is a
-  // paid capability. Free → 403 with an upsell code the client maps to copy.
-  const { data: userRow, error: userErr } = await admin
-    .from('users').select('tier').eq('id', user.id).single();
-  if (userErr) throw userErr;
-  if (userRow.tier !== 'pro') {
-    throw createError({ statusCode: 403, statusMessage: 'Knowledge base is a Pro feature', data: { code: '__errorKnowledgeRequiresPro' } });
-  }
-
   const parts = await readMultipartFormData(event);
   const filePart = parts?.find(p => p.name === 'file' && p.filename);
   if (!filePart?.filename || !filePart.data?.length) {

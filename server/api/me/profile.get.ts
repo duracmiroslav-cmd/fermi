@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const admin = useSupabaseAdmin();
   const { data, error } = await admin
     .from('users')
-    .select('id, email, display_name, avatar_url, locale, timezone, tier')
+    .select('id, email, display_name, avatar_url, locale, timezone')
     .eq('id', user.id)
     .single();
   if (error) throw error;
@@ -18,6 +18,5 @@ export default defineEventHandler(async (event) => {
     avatarUrl:   data.avatar_url,
     locale:      data.locale,
     timezone:    data.timezone,
-    tier:        data.tier,
   };
 });

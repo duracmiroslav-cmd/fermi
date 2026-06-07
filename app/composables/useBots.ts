@@ -12,8 +12,8 @@ interface BotUpdate {
 }
 
 // Write side for bots — the sibling of useAgents. Each mutation invalidates the
-// list ('bots' key, see useTierLimit) and, on update, the detail page (id key)
-// before the caller navigates, so neither flashes stale.
+// list ('bots' key) and, on update, the detail page (id key) before the caller
+// navigates, so neither flashes stale.
 export const useBots = () => {
   const { t } = useI18n();
   const notify = useNotify();

@@ -25,11 +25,6 @@ describe('updateProfileInputSchema', () => {
   });
 
   describe('rejects self-promotion vectors', () => {
-    it('tier', () => {
-      const result = updateProfileInputSchema.safeParse({ tier: 'pro' });
-      expect(result.success).toBe(false);
-    });
-
     it('is_admin', () => {
       const result = updateProfileInputSchema.safeParse({ is_admin: true });
       expect(result.success).toBe(false);

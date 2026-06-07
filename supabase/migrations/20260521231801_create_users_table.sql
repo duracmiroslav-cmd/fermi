@@ -11,7 +11,6 @@ create table public.users (
   -- would mask "never set" from "deliberately picked the default".
   locale        text,
   timezone      text,
-  tier          text not null default 'free' check (tier in ('free', 'pro')),
   is_admin      boolean not null default false,
   onboarded_at  timestamptz,
   created_at    timestamptz not null default now(),

@@ -66,44 +66,6 @@ create policy "Users can view their own bots." on public.bots
     and deleted_at is null
   );
 
--- Writes flow through service_role-only RPCs. Explicit revoke makes
--- this hold even if RLS were ever disabled on the table.
+-- Writes flow through the server's service_role client only. Explicit revoke
+-- makes this hold even if RLS were ever disabled on the table.
 revoke insert, update, delete on public.bots from authenticated;
-
--- Locks the owner's users row before counting + inserting so two
--- concurrent connects from the same user can't both observe an
--- under-limit count and bypass the tier quota.
-create function public.insert_bot_if_under_limit(
-  p_owner_id     uuid,
-  p_platform     text,
-  p_external_id  text,
-  p_display_name text,
-  p_agent_id     uuid,
-  p_limit        int
-) returns table (id uuid, display_name text)
-  language plpgsql
-  security definer
-  set search_path = public
-as $$
-declare
-  current_count int;
-begin
-  perform 1 from public.users where public.users.id = p_owner_id for update;
-
-  select count(*) into current_count
-  from public.bots
-  where owner_id = p_owner_id and deleted_at is null;
-
-  if current_count >= p_limit then
-    raise exception 'bot_limit_reached' using errcode = 'P0001';
-  end if;
-
-  return query
-    insert into public.bots (owner_id, platform, external_id, display_name, agent_id)
-    values (p_owner_id, p_platform, p_external_id, p_display_name, p_agent_id)
-    returning bots.id, bots.display_name;
-end;
-$$;
-
-revoke execute on function public.insert_bot_if_under_limit(uuid, text, text, text, uuid, int) from public;
-grant  execute on function public.insert_bot_if_under_limit(uuid, text, text, text, uuid, int) to service_role;

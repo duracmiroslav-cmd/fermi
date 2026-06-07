@@ -1,7 +1,6 @@
-// Per-tier plan values (bot/agent caps, monthly quotas, the Purpose
-// model) live in ./tiers.ts — change "what each plan gets" there. This
-// file is the rate-limit/quota counter mechanics: windows + key shapes.
-import type { Purpose } from './tiers.ts';
+// Rate-limit counter mechanics: windows + key shapes. These guard the
+// operator's own spend — a stranger who adds the bot, or a group member,
+// can't run the owner's API key up with a flood of messages.
 
 // Group threads hold messages from people who never signed up for fermi
 // (group members), so their stored content gets a retention ceiling — the
@@ -29,11 +28,11 @@ export const RATE_WINDOWS: readonly RateWindow[] = [
 ] as const;
 
 // Tighter owner caps for the dashboard agent chat. Unlike a TTS preview
-// (~$0.000025/call), each test turn is a full LLM loop on the platform key
-// and can run on whatever model the owner picked (possibly an expensive
-// one), so the generic RATE_WINDOWS day cap of 1000 would expose real
-// platform spend to abuse. ~200/day still covers heavy legitimate tuning;
-// minute is a burst guard (each turn waits for a reply, so 15 is plenty).
+// (~$0.000025/call), each turn is a full LLM loop on the owner's own key
+// and can run on whatever model they picked (possibly an expensive one),
+// so the generic RATE_WINDOWS day cap of 1000 would expose the owner's
+// spend to abuse. ~200/day still covers heavy legitimate tuning; minute
+// is a burst guard (each turn waits for a reply, so 15 is plenty).
 export const CHAT_RATE_WINDOWS: readonly RateWindow[] = [
   { scope: 'minute', ttlSec: 60, cap: 15 },
   { scope: 'hour', ttlSec: 3600, cap: 60 },
@@ -108,25 +107,6 @@ export const buildChatRateLimitKey = (input: {
   const bucket = formatBucket(input.window.scope, now);
   return `rl:owner:${input.ownerId}:test_chat:${input.window.scope}:${bucket}`;
 };
-
-// Monthly bucket suffix for quota keys; UTC month is fine because
-// fermi's billing month doesn't have to align with any user's local
-// month — the boundary just needs to be deterministic and globally
-// shared so Upstash / Postgres impls agree on key ownership.
-export const buildUsageQuotaKey = (input: {
-  ownerId: string;
-  purpose: Purpose;
-  now?:    Date;
-}): string => {
-  const now = input.now ?? new Date();
-  const period = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
-  return `quota:${input.ownerId}:${input.purpose}:${period}`;
-};
-
-// Period string ('YYYY-MM') stored alongside the count in the Postgres
-// impl. Same derivation as buildUsageQuotaKey above.
-export const getMonthlyPeriod = (now: Date = new Date()): string =>
-  `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
 
 // Bucket suffix derivation kept inline rather than imported so this
 // file has no runtime dependencies — both Deno worker and Nuxt server

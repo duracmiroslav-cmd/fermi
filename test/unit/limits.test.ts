@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CHAT_RATE_WINDOWS,
   RATE_WINDOWS,
   type RateWindow,
-  TEST_CHAT_RATE_WINDOWS,
+  buildChatRateLimitKey,
   buildPreviewRateLimitKey,
   buildRateLimitKey,
-  buildTestChatRateLimitKey,
-  buildUsageQuotaKey,
-  getMonthlyPeriod,
 } from '../../shared/constants/limits';
 
 const owner = '00000000-0000-0000-0000-000000000001';
@@ -17,49 +15,10 @@ const user = 'U0c8f8b6b865daa7311a5b424af94d174';
 const utc = (...args: [number, number, number, number?, number?, number?, number?]): Date =>
   new Date(Date.UTC(...args));
 
-const qKey = (now: Date): string =>
-  buildUsageQuotaKey({ ownerId: owner, purpose: 'tts', now });
-
 const rlKey = (scope: RateWindow['scope'], now: Date): string => {
   const window = RATE_WINDOWS.find(w => w.scope === scope)!;
   return buildRateLimitKey({ botId: bot, externalUserId: user, window, now });
 };
-
-describe('getMonthlyPeriod', () => {
-  it.each([
-    [utc(2026, 0, 1), '2026-01', 'january pads to 01'],
-    [utc(2026, 8, 1), '2026-09', 'september pads to 09'],
-    [utc(2026, 9, 1), '2026-10', 'october stays two-digit'],
-    [utc(2026, 11, 31, 23, 59), '2026-12', 'last minute of december'],
-    [utc(2027, 0, 1, 0, 0), '2027-01', 'first minute of next year'],
-  ])('returns %s suffix (%s)', (date, expected) => {
-    expect(getMonthlyPeriod(date)).toBe(expected);
-  });
-
-  it('reads UTC, not local time', () => {
-    // 23:30Z on May 31 is still May UTC even where local clock has flipped to June.
-    expect(getMonthlyPeriod(utc(2026, 4, 31, 23, 30))).toBe('2026-05');
-  });
-});
-
-describe('buildUsageQuotaKey', () => {
-  it('composes owner, purpose, and period', () => {
-    expect(buildUsageQuotaKey({ ownerId: owner, purpose: 'image_gen', now: utc(2026, 4, 28, 12) }))
-      .toBe(`quota:${owner}:image_gen:2026-05`);
-  });
-
-  describe('monthly bucket', () => {
-    it('keeps the same key within a UTC month', () => {
-      expect(qKey(utc(2026, 4, 1, 0, 0, 0)))
-        .toBe(qKey(utc(2026, 4, 31, 23, 59, 59)));
-    });
-
-    it('rolls a fresh key across the UTC month boundary', () => {
-      expect(qKey(utc(2026, 4, 31, 23, 59, 59)))
-        .not.toBe(qKey(utc(2026, 5, 1, 0, 0, 0)));
-    });
-  });
-});
 
 describe('buildRateLimitKey', () => {
   it('composes bot, user, scope, and time bucket', () => {
@@ -104,25 +63,25 @@ describe('buildRateLimitKey', () => {
   });
 });
 
-// The test chat runs a full LLM loop on the platform key, so it must stay a
-// separate, tighter budget than the cheap TTS preview — otherwise a user can
-// point the test at an expensive model and burn platform spend up to the
+// The dashboard agent chat runs a full LLM loop on the owner's key, so it must
+// stay a separate, tighter budget than the cheap TTS preview — otherwise a user
+// can point the chat at an expensive model and burn the owner's spend up to the
 // generic 1000/day cap. These lock the split in against a future re-merge.
-describe('test chat rate limit', () => {
+describe('chat rate limit', () => {
   const capOf = (windows: readonly RateWindow[], scope: RateWindow['scope']): number =>
     windows.find(w => w.scope === scope)!.cap;
 
   it.each(['minute', 'hour', 'day'] as const)(
     'caps the %s window below the generic preview budget',
     (scope) => {
-      expect(capOf(TEST_CHAT_RATE_WINDOWS, scope)).toBeLessThan(capOf(RATE_WINDOWS, scope));
+      expect(capOf(CHAT_RATE_WINDOWS, scope)).toBeLessThan(capOf(RATE_WINDOWS, scope));
     },
   );
 
   it('counts under a separate key namespace from the tts preview', () => {
-    const window = TEST_CHAT_RATE_WINDOWS.find(w => w.scope === 'day')!;
+    const window = CHAT_RATE_WINDOWS.find(w => w.scope === 'day')!;
     const now = utc(2026, 4, 28);
-    expect(buildTestChatRateLimitKey({ ownerId: owner, window, now }))
+    expect(buildChatRateLimitKey({ ownerId: owner, window, now }))
       .not.toBe(buildPreviewRateLimitKey({ ownerId: owner, window, now }));
   });
 });

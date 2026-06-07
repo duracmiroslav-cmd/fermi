@@ -19,11 +19,6 @@
         icon="i-lucide-cable"
         :label="$t('__labelConnector', 2)"
       />
-      <DashboardNavItem
-        to="/dashboard/usage"
-        icon="i-lucide-gauge"
-        :label="$t('__labelUsage')"
-      />
     </nav>
 
     <div class="border-t border-default">

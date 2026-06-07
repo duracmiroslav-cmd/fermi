@@ -1,13 +1,12 @@
 import {
-  FreeByokRequiredError,
-  PlatformKeyNotConfiguredError,
+  KeyNotConfiguredError,
   resolveKey,
 } from '../../../../shared/keys.ts';
 import { safeFetch } from './safe-http.ts';
 import type { Tool, ToolContext } from './index.ts';
 
 // A fetch backend. Returns null when it can't service the request (e.g.
-// no Tavily key for this tier), so the next provider in the chain gets a
+// no Tavily key configured), so the next provider in the chain gets a
 // turn. Throws on a hard failure (network/parse/blocked host), which the
 // chain also treats as "try the next one".
 interface FetchProvider {
@@ -19,10 +18,10 @@ interface FetchProvider {
 const MAX_CHARS = 8000;
 
 // ---- Provider 1: Tavily Extract --------------------------------------------
-// Reuses the owner's Tavily credential (same key + tier policy as search_web,
+// Reuses the owner's Tavily credential (same key resolution as search_web,
 // via shared resolveKey). Tavily fetches the page itself, so this path carries
-// no SSRF exposure on our infra and returns already-clean text. When the tier
-// can't supply a key it returns null, degrading to the direct fetch below.
+// no SSRF exposure on our infra and returns already-clean text. When no Tavily
+// key is configured it returns null, degrading to the direct fetch below.
 
 const tavilyProvider: FetchProvider = {
   name: 'tavily',
@@ -36,9 +35,9 @@ const tavilyProvider: FetchProvider = {
       });
       apiKey = resolved.key;
     } catch (err) {
-      // No Tavily for this tier (Free without BYOK, or Pro with no platform
-      // key): fall through to the direct provider rather than failing.
-      if (err instanceof FreeByokRequiredError || err instanceof PlatformKeyNotConfiguredError) {
+      // No Tavily key configured: fall through to the direct provider
+      // rather than failing.
+      if (err instanceof KeyNotConfiguredError) {
         return null;
       }
       throw err;

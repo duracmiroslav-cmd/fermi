@@ -4,9 +4,8 @@
 // don't drift between the two surfaces.
 //
 // `onSynced` is the page's data-source refresh callback (useFetch's
-// `refresh` or useTierLimit's `refresh`). It's called only after a
-// successful API response so a failed sync doesn't trigger an
-// unnecessary fetch.
+// `refresh`). It's called only after a successful API response so a
+// failed sync doesn't trigger an unnecessary fetch.
 export const useBotAvatar = (onSynced: () => Promise<unknown> | unknown) => {
   const notify = useNotify();
   const syncingId = ref<string | null>(null);

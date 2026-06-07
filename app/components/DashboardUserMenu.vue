@@ -13,9 +13,6 @@ const name = computed(() => {
   return (meta.full_name as string) || (meta.name as string) || profile.value?.displayName || email.value;
 });
 const initial = computed(() => (name.value.charAt(0) || '?').toUpperCase());
-const tierLabel = computed(() =>
-  profile.value?.tier === 'pro' ? t('__labelTierPro') : t('__labelTierFree'),
-);
 
 const signOut = async () => {
   await supabase.auth.signOut();
@@ -64,18 +61,9 @@ const items = computed<DropdownMenuItem[][]>(() => [
           size="md"
         />
         <div class="min-w-0">
-          <div class="flex items-center gap-2">
-            <p class="text-sm font-medium truncate">
-              {{ name }}
-            </p>
-            <UBadge
-              :label="tierLabel"
-              :color="profile?.tier === 'pro' ? 'primary' : 'neutral'"
-              variant="subtle"
-              size="xs"
-              class="shrink-0"
-            />
-          </div>
+          <p class="text-sm font-medium truncate">
+            {{ name }}
+          </p>
           <p class="text-xs text-toned truncate">
             {{ email }}
           </p>

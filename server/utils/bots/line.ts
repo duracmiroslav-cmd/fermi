@@ -69,7 +69,6 @@ export const connectLineBot = async (
   admin: SupabaseClient,
   userId: string,
   input: LineBotInput,
-  limit: number,
 ): Promise<ConnectedBot> => {
   const botInfo = await verifyLineBot(input.channelAccessToken);
 
@@ -112,21 +111,18 @@ export const connectLineBot = async (
     });
   }
 
-  const { data: rows, error: insertErr } = await admin.rpc('insert_bot_if_under_limit', {
-    p_owner_id:     userId,
-    p_platform:     'line',
-    p_external_id:  botInfo.userId,
-    p_display_name: botInfo.displayName,
-    p_agent_id:     defaultAgent.id,
-    p_limit:        limit,
-  });
+  const { data: bot, error: insertErr } = await admin
+    .from('bots')
+    .insert({
+      owner_id:     userId,
+      platform:     'line',
+      external_id:  botInfo.userId,
+      display_name: botInfo.displayName,
+      agent_id:     defaultAgent.id,
+    })
+    .select('id, display_name')
+    .single();
   if (insertErr) {
-    if (insertErr.message?.includes('bot_limit_reached')) {
-      throw createError({
-        statusCode:    403,
-        statusMessage: `Bot limit reached (max ${limit})`,
-      });
-    }
     // Race fallback for the (platform, external_id) unique index.
     // A parallel connect could slot in between the pre-check above
     // and this insert. Same UX as the pre-check, just no ownership
@@ -138,10 +134,6 @@ export const connectLineBot = async (
       });
     }
     throw insertErr;
-  }
-  const bot = rows?.[0];
-  if (!bot) {
-    throw new Error('insert_bot_if_under_limit returned no row');
   }
 
   const { fermiKek } = useRuntimeConfig(event);

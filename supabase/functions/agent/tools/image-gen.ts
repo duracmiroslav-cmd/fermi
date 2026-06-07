@@ -1,7 +1,5 @@
 import {
-  FreeByokRequiredError,
-  type KeySource,
-  PlatformKeyNotConfiguredError,
+  KeyNotConfiguredError,
   resolveKey,
 } from '../../../../shared/keys.ts';
 import {
@@ -17,7 +15,6 @@ import {
 } from '../imagegen.ts';
 import { encodeJpegPreview } from '../imagePreview.ts';
 import type { ImageSize } from '../../../../shared/imageModels.ts';
-import { COUNTER_ENV, consumeQuota, peekQuota } from '../quota.ts';
 import type { Tool } from './index.ts';
 
 interface Args {
@@ -61,13 +58,11 @@ export const generateImage: Tool = {
       return { error: 'generate_image requires a non-empty `prompt` string.' };
     }
 
-    // Tier policy: Free must BYOK fal.ai; Pro falls back to fermi's
-    // platform key. Resolve the key before charging quota so a Free owner
-    // with no key short-circuits without being charged an image unit.
-    // Errors round-trip back to the LLM as tool-result JSON so the model
-    // can relay a sensible message in the user's language.
+    // The key resolves from the owner's connected fal.ai credential or the
+    // deployment's FAL_API_KEY env. Errors round-trip back to the LLM as
+    // tool-result JSON so the model can relay a sensible message in the
+    // user's language.
     let apiKey: string;
-    let keySource: KeySource;
     try {
       const resolved = await resolveKey(ctx.admin, ctx.kek, {
         ownerId: ctx.ownerId,
@@ -75,39 +70,13 @@ export const generateImage: Tool = {
         platformKey: Deno.env.get('FAL_API_KEY') ?? null,
       });
       apiKey = resolved.key;
-      keySource = resolved.source;
     } catch (err) {
-      if (err instanceof FreeByokRequiredError) {
+      if (err instanceof KeyNotConfiguredError) {
         return {
-          error: 'generate_image requires a fal.ai API key. Tell the user the bot owner needs to either connect fal.ai at https://fermi.tw/dashboard/connectors (~$0.04 per image, sign up at https://fal.ai) or upgrade to Pro so fermi handles it.',
-        };
-      }
-      if (err instanceof PlatformKeyNotConfiguredError) {
-        return {
-          error: 'generate_image is temporarily unavailable. Tell the user that fermi\'s Pro image generation backend is down and to try again shortly.',
+          error: 'generate_image needs a fal.ai API key, which this bot has not configured. Tell the user image generation is not set up on this bot.',
         };
       }
       throw err;
-    }
-
-    // Quota caps only platform-key usage — the spend fermi actually pays for.
-    // A BYOK owner draws on their own fal account, so it's uncapped (this is
-    // the "connect your own key for unlimited usage" promise). Peek (read, no
-    // INCR) to fast-fail an over-cap owner before the paid call; the unit is
-    // only spent after fal actually produces an image (below). fal bills solely
-    // for successful outputs — a 422/5xx costs nothing, so it must not cost a
-    // quota unit either. `remaining > 0` (not `allowed`, which is count<=cap)
-    // is the correct pre-check: it leaves room for exactly this call.
-    if (keySource === 'platform') {
-      const quota = await peekQuota(ctx.admin, COUNTER_ENV, {
-        ownerId: ctx.ownerId,
-        purpose: 'image_gen',
-      });
-      if (quota.remaining <= 0) {
-        return {
-          error: `Image generation quota exceeded: ${quota.count}/${quota.cap} this month. Tell the user the bot owner's free image quota is used up; they can either upgrade to Pro at https://fermi.tw/dashboard/billing ($19/mo, 200 images/mo) or connect their own fal.ai key at https://fermi.tw/dashboard/connectors for unlimited usage.`,
-        };
-      }
     }
 
     try {
@@ -118,11 +87,6 @@ export const generateImage: Tool = {
         size: parseSize(size),
         config: ctx.capabilityConfig ?? {},
       });
-      // Charge only now that fal produced an image: a failed call threw above
-      // and never reaches here, so failures never spend a quota unit.
-      if (keySource === 'platform') {
-        await consumeQuota(ctx.admin, COUNTER_ENV, { ownerId: ctx.ownerId, purpose: 'image_gen' });
-      }
       // Path doubles as an audit handle: the tool call ID ties the
       // object back to the `tool_called` / `tool_responded` step rows.
       const { storagePath } = await uploadGeneratedImage(ctx.admin, {

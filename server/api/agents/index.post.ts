@@ -1,6 +1,4 @@
-import type { Database } from '~~/app/types/database.types';
 import { getCurrentUser } from '~~/server/utils/auth';
-import { AGENT_LIMIT, type Tier } from '~~/shared/constants/tiers';
 import { createAgentInputSchema } from '~~/shared/schemas/agents';
 
 export default defineEventHandler(async (event) => {
@@ -14,11 +12,6 @@ export default defineEventHandler(async (event) => {
   const input = parsed.data;
 
   const admin = useSupabaseAdmin();
-
-  const { data: userRow, error: userErr } = await admin
-    .from('users').select('tier').eq('id', user.id).single();
-  if (userErr) throw userErr;
-  const limit = AGENT_LIMIT[userRow.tier as Tier];
 
   // Resolve modelProviderId. Callers can omit it (pre-BYOK API shape)
   // and we land on OpenRouter to match the previous default. The
@@ -35,36 +28,25 @@ export default defineEventHandler(async (event) => {
     modelProviderId = provider.id;
   }
 
-  // The generated Args type marks every text param non-null, but these columns
-  // and their SQL params accept NULL — cast past the generator's blind spot.
-  const { data: rows, error: insertErr } = await admin.rpc('insert_agent_if_under_limit', {
-    p_owner_id:              user.id,
-    p_name:                  input.name,
-    p_system_prompt:         input.systemPrompt ?? null,
-    p_default_text_model:    input.defaultTextModel ?? null,
-    p_default_vision_model:  input.defaultVisionModel ?? null,
-    p_default_tts_model:     input.defaultTtsModel ?? null,
-    p_default_tts_voice:     input.defaultTtsVoice ?? null,
-    p_tts_instructions:      input.ttsInstructions ?? null,
-    p_model_provider_id:     modelProviderId,
-    p_voice_reply_mode:      input.voiceReplyMode ?? 'off',
-    p_normalize_traditional: input.normalizeTraditional ?? true,
-    p_avatar_url:            input.avatarUrl ?? null,
-    p_limit:                 limit,
-  } as Database['public']['Functions']['insert_agent_if_under_limit']['Args']);
-  if (insertErr) {
-    if (insertErr.message?.includes('agent_limit_reached')) {
-      throw createError({
-        statusCode:    403,
-        statusMessage: `Agent limit reached (max ${limit})`,
-      });
-    }
-    throw insertErr;
-  }
-  const agent = rows?.[0];
-  if (!agent) {
-    throw new Error('insert_agent_if_under_limit returned no row');
-  }
+  const { data: agent, error: insertErr } = await admin
+    .from('agents')
+    .insert({
+      owner_id:              user.id,
+      name:                  input.name,
+      system_prompt:         input.systemPrompt ?? null,
+      default_text_model:    input.defaultTextModel ?? null,
+      default_vision_model:  input.defaultVisionModel ?? null,
+      default_tts_model:     input.defaultTtsModel ?? null,
+      default_tts_voice:     input.defaultTtsVoice ?? null,
+      tts_instructions:      input.ttsInstructions ?? null,
+      model_provider_id:     modelProviderId,
+      voice_reply_mode:      input.voiceReplyMode ?? 'off',
+      normalize_traditional: input.normalizeTraditional ?? true,
+      avatar_url:            input.avatarUrl ?? null,
+    })
+    .select('id')
+    .single();
+  if (insertErr) throw insertErr;
 
   return {
     id:                   agent.id,

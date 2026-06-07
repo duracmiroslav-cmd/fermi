@@ -89,51 +89,6 @@ create policy "Users can view their own agents." on public.agents
     and deleted_at is null
   );
 
--- Writes flow through service_role-only RPCs. Explicit revoke makes
--- this hold even if RLS were ever disabled on the table.
+-- Writes flow through the server's service_role client only. Explicit revoke
+-- makes this hold even if RLS were ever disabled on the table.
 revoke insert, update, delete on public.agents from authenticated;
-
--- Locks the owner's users row before counting + inserting so two
--- concurrent creates from the same user can't both observe an
--- under-limit count and bypass the tier quota.
-create function public.insert_agent_if_under_limit(
-  p_owner_id             uuid,
-  p_name                 text,
-  p_system_prompt        text,
-  p_default_text_model   text,
-  p_default_vision_model text,
-  p_default_tts_model    text,
-  p_default_tts_voice    text,
-  p_tts_instructions     text,
-  p_model_provider_id    uuid,
-  p_voice_reply_mode     text,
-  p_normalize_traditional boolean,
-  p_avatar_url           text,
-  p_limit                int
-) returns table (id uuid)
-  language plpgsql
-  security definer
-  set search_path = public
-as $$
-declare
-  current_count int;
-begin
-  perform 1 from public.users where public.users.id = p_owner_id for update;
-
-  select count(*) into current_count
-  from public.agents
-  where owner_id = p_owner_id and deleted_at is null;
-
-  if current_count >= p_limit then
-    raise exception 'agent_limit_reached' using errcode = 'P0001';
-  end if;
-
-  return query
-    insert into public.agents (owner_id, name, system_prompt, default_text_model, default_vision_model, default_tts_model, default_tts_voice, tts_instructions, model_provider_id, voice_reply_mode, normalize_traditional, avatar_url)
-    values (p_owner_id, p_name, p_system_prompt, p_default_text_model, p_default_vision_model, p_default_tts_model, p_default_tts_voice, p_tts_instructions, p_model_provider_id, p_voice_reply_mode, p_normalize_traditional, p_avatar_url)
-    returning agents.id;
-end;
-$$;
-
-revoke execute on function public.insert_agent_if_under_limit(uuid, text, text, text, text, text, text, text, uuid, text, boolean, text, int) from public;
-grant  execute on function public.insert_agent_if_under_limit(uuid, text, text, text, text, text, text, text, uuid, text, boolean, text, int) to service_role;

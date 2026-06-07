@@ -1,11 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
-  ConsumeQuotaInput,
-  ConsumeQuotaResult,
   RateLimitCheckInput,
   RateLimitCheckResult,
   RateLimiter,
-  UsageCounter,
 } from './index.ts';
 
 export const createPostgresRateLimiter = (admin: SupabaseClient): RateLimiter => ({
@@ -35,34 +32,5 @@ export const createPostgresRateLimiter = (admin: SupabaseClient): RateLimiter =>
     }
 
     return { blocked: blockingWindow !== undefined, blockingWindow, counts };
-  },
-});
-
-export const createPostgresUsageCounter = (admin: SupabaseClient): UsageCounter => ({
-  async consume(input: ConsumeQuotaInput): Promise<ConsumeQuotaResult> {
-    // ttlSec is unused for usage_counters: period is encoded in the
-    // key suffix (YYYY-MM). Rolling into a new month creates a fresh
-    // row instead of mutating an expiring one.
-    const { data, error: rpcErr } = await admin.rpc('consume_usage_quota', {
-      quota_key: input.key,
-    });
-    if (rpcErr) throw rpcErr;
-    const count = Number(data ?? 0);
-    return {
-      allowed:   count <= input.cap,
-      count,
-      remaining: Math.max(0, input.cap - count),
-      cap:       input.cap,
-    };
-  },
-
-  async peek({ key }: { key: string }): Promise<number> {
-    const { data: row, error: rowErr } = await admin
-      .from('usage_counters')
-      .select('count')
-      .eq('key', key)
-      .maybeSingle();
-    if (rowErr) throw rowErr;
-    return Number(row?.count ?? 0);
   },
 });

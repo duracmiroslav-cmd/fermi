@@ -1,6 +1,6 @@
-// Counter abstraction. Two impls plug in via factory:
-//   Upstash REST  → production (fermi Cloud)
-//   Postgres RPC  → self-host fallback (no Redis dependency)
+// Rate-limit counter abstraction. Two impls plug in via factory:
+//   Upstash REST  → used when UPSTASH_REDIS_* env is set
+//   Postgres RPC  → fallback (no Redis dependency)
 // Factory in `./factory.ts` picks by env presence — adding a new
 // backend = one new impl file + one branch in the factory, no caller
 // edits.
@@ -26,27 +26,4 @@ export interface RateLimitCheckResult {
 
 export interface RateLimiter {
   check(input: RateLimitCheckInput): Promise<RateLimitCheckResult>;
-}
-
-export interface ConsumeQuotaInput {
-  key:    string;
-  cap:    number;
-  // TTL on first write. Subsequent INCRs don't extend; the key dies
-  // naturally at the period boundary. 35 days for monthly keys covers
-  // any timezone-vs-UTC slippage at the boundary.
-  ttlSec: number;
-}
-
-export interface ConsumeQuotaResult {
-  // True iff post-INCR count <= cap. count keeps climbing past cap so
-  // the observability log can report "how far over they went".
-  allowed:   boolean;
-  count:     number;
-  remaining: number;
-  cap:       number;
-}
-
-export interface UsageCounter {
-  consume(input: ConsumeQuotaInput): Promise<ConsumeQuotaResult>;
-  peek(input: { key: string }): Promise<number>;
 }

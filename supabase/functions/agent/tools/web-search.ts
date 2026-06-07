@@ -1,6 +1,5 @@
 import {
-  FreeByokRequiredError,
-  PlatformKeyNotConfiguredError,
+  KeyNotConfiguredError,
   resolveKey,
 } from '../../../../shared/keys.ts';
 import type { Tool } from './index.ts';
@@ -52,10 +51,10 @@ export const searchWeb: Tool = {
     additionalProperties: false,
   },
   execute: async (rawArgs, ctx) => {
-    // Tier policy: Free must BYOK Tavily; Pro falls back to fermi's
-    // platform key. Errors round-trip back to the LLM as tool-result
-    // JSON so the model can relay a sensible message in the user's
-    // language rather than crashing the loop.
+    // The key resolves from the owner's connected Tavily credential or the
+    // deployment's TAVILY_API_KEY env. Errors round-trip back to the LLM as
+    // tool-result JSON so the model can relay a sensible message in the
+    // user's language rather than crashing the loop.
     let apiKey: string;
     try {
       const resolved = await resolveKey(ctx.admin, ctx.kek, {
@@ -65,14 +64,9 @@ export const searchWeb: Tool = {
       });
       apiKey = resolved.key;
     } catch (err) {
-      if (err instanceof FreeByokRequiredError) {
+      if (err instanceof KeyNotConfiguredError) {
         return {
-          error: 'search_web requires a Tavily API key. Tell the user the bot owner needs to either connect Tavily at https://fermi.tw/dashboard/connectors (Tavily free tier gives 1000 queries/month, ~30 seconds at https://tavily.com) or upgrade to Pro so fermi handles it.',
-        };
-      }
-      if (err instanceof PlatformKeyNotConfiguredError) {
-        return {
-          error: 'search_web is temporarily unavailable. Tell the user that fermi\'s Pro web search backend is down and to try again shortly.',
+          error: 'search_web needs a Tavily API key, which this bot has not configured. Tell the user web search is not set up on this bot.',
         };
       }
       throw err;

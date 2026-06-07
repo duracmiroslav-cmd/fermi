@@ -4,10 +4,9 @@ import type { Tool } from './index.ts';
 // absolute fire_at using the current time + timezone injected into the
 // system prompt; these tools never parse relative time themselves.
 //
-// There's no per-tier cap on how many reminders a user can hold: an
-// unfired reminder costs ~one row, and the two real cost axes are
-// already bounded elsewhere — creation velocity by the per-(bot,user)
-// rate limiter, and delivery by the owner's monthly `line_push` quota.
+// There's no cap on how many reminders a user can hold: an unfired
+// reminder costs ~one row, and creation velocity is already bounded by
+// the per-(bot,user) rate limiter.
 
 interface CreateArgs {
   fire_at?: string;

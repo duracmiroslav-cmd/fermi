@@ -14,9 +14,7 @@ import { type Locale } from '../../../shared/locale.ts';
 import { loadOwnerContext } from '../../../shared/users.ts';
 import { loadRecentMemories, MEMORY_INJECT_LIMIT } from '../../../shared/memories.ts';
 import {
-  FreeByokRequiredError,
-  type KeySource,
-  PlatformKeyNotConfiguredError,
+  KeyNotConfiguredError,
   resolveKey,
 } from '../../../shared/keys.ts';
 import {
@@ -39,7 +37,6 @@ import {
   LinePushError,
   LineReplyError,
   pushMessages,
-  REPLY_BUDGET_MS,
   safeReply,
   showLoadingAnimation,
   type LineMessage,
@@ -47,7 +44,7 @@ import {
 } from './channels/line.ts';
 import { OpenRouterError, type ChatMessage } from './openrouter.ts';
 import { MAX_AGENT_STEPS, runAgentConversation } from './loop.ts';
-import { COUNTER_ENV, consumeQuota, peekQuota } from './quota.ts';
+import { COUNTER_ENV } from './counterEnv.ts';
 import { checkGroupMemberRateLimit } from './groupRateLimit.ts';
 import { deriveErrorCode, finishRun, logStep, startRun } from './runs.ts';
 import { STTError, transcribeAudio } from './stt.ts';
@@ -399,7 +396,6 @@ const transcribeGroupAudio = async (params: {
   }
 
   let openaiKey: string;
-  let keySource: KeySource;
   try {
     const resolved = await resolveKey(admin, kek, {
       ownerId:     bot.ownerId,
@@ -407,29 +403,12 @@ const transcribeGroupAudio = async (params: {
       platformKey: PLATFORM_OPENAI_KEY,
     });
     openaiKey = resolved.key;
-    keySource = resolved.source;
   } catch (err) {
-    if (err instanceof FreeByokRequiredError) {
-      await safeReply(lineAccessToken, replyToken, t('__noticeFreeByokOpenai', ownerLocale));
-      return;
-    }
-    if (err instanceof PlatformKeyNotConfiguredError) {
-      console.error('platform OpenAI key missing for Pro user', { ownerId: bot.ownerId });
-      await safeReply(lineAccessToken, replyToken, t('__noticePlatformKeyOps', ownerLocale));
+    if (err instanceof KeyNotConfiguredError) {
+      await safeReply(lineAccessToken, replyToken, t('__noticeOpenaiKeyMissing', ownerLocale));
       return;
     }
     throw err;
-  }
-
-  // Quota caps only platform-key usage (the spend fermi pays for); BYOK draws
-  // on the owner's own OpenAI account and is uncapped. Peek to fast-fail over
-  // cap; the unit is spent only after Whisper actually runs (below).
-  const quota = keySource === 'platform'
-    ? await peekQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' })
-    : null;
-  if (quota && quota.remaining <= 0) {
-    await safeReply(lineAccessToken, replyToken, t('__noticeQuotaSttExhausted', ownerLocale));
-    return;
   }
 
   // Name lookup and the agent's normalize flag are both independent of
@@ -450,12 +429,6 @@ const transcribeGroupAudio = async (params: {
       return;
     }
     throw err;
-  }
-  // Whisper billed for the audio it processed; charge now that it succeeded
-  // (an empty transcript still consumed Whisper time). A failed call returned
-  // above and never reaches here.
-  if (keySource === 'platform') {
-    await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' });
   }
   if (transcript.length === 0) {
     await safeReply(lineAccessToken, replyToken, t('__noticeAudioEmpty', ownerLocale));
@@ -593,9 +566,6 @@ const runAgentLoop = async (params: {
   ownerLocale: Locale;
   ownerTimezone: string;
   openrouterKey: string;
-  // 'platform' → fermi's OpenRouter key (metered); 'byok' → the owner's own
-  // (uncapped, so extended_run isn't charged).
-  openrouterSource: KeySource;
   lineAccessToken: string;
   kek: CryptoKey;
   externalUserId: string;
@@ -609,7 +579,7 @@ const runAgentLoop = async (params: {
   // to the group. `externalUserId` is then the mentioner.
   group?: { groupId: string };
 }): Promise<void> => {
-  const { bot, agent, ownerLocale, ownerTimezone, openrouterKey, openrouterSource, lineAccessToken, kek, externalUserId, replyToken, userInput, eventTimestamp, group } = params;
+  const { bot, agent, ownerLocale, ownerTimezone, openrouterKey, lineAccessToken, kek, externalUserId, replyToken, userInput, eventTimestamp, group } = params;
 
   const subjectExternalId = group ? group.groupId : externalUserId;
   const subjectType: ThreadSubjectType = group ? 'group' : 'user';
@@ -803,7 +773,6 @@ const runAgentLoop = async (params: {
       ...history,
     ];
 
-    let extendedRunConsumed = false;
     const conversation = await runAgentConversation({
       apiKey: openrouterKey,
       model,
@@ -821,23 +790,6 @@ const runAgentLoop = async (params: {
         costUsd:         s.costUsd,
         openrouterGenId: s.openrouterGenId,
       }),
-      // extended_run quota: INCR at most once per run, the first time
-      // wall time crosses the reply-token budget. Aborting ends the loop
-      // with a CTA; already-paid LLM cost up to that point is sunk. Only
-      // platform-key runs are metered — a BYOK owner pays their own OpenRouter
-      // tokens, so a long conversation costs fermi nothing and stays uncapped
-      // (the technical MAX_AGENT_STEPS / wall-clock limits still bound it).
-      beforeIteration: async () => {
-        if (openrouterSource !== 'platform' || extendedRunConsumed || (Date.now() - eventTimestamp) < REPLY_BUDGET_MS) return null;
-        const exQuota = await consumeQuota(admin, COUNTER_ENV, {
-          ownerId: bot.ownerId,
-          purpose: 'extended_run',
-        });
-        extendedRunConsumed = true;
-        return exQuota.allowed
-          ? null
-          : { abort: true, text: t('__noticeQuotaExtendedRunExhausted', ownerLocale) };
-      },
     });
     totalCostUsd += conversation.totalCostUsd;
     let finalText: string | null = conversation.hitStepCap ? null : conversation.text;
@@ -868,9 +820,9 @@ const runAgentLoop = async (params: {
     //   always → every turn
     //   auto   → only when this turn's user input was audio (mirror)
     //   off    → never
-    // Any failure along the TTS path (Free without OpenAI BYOK,
-    // platform env unset, OpenAI 4xx/5xx, upload error) falls back to
-    // text. Better a text reply than no reply.
+    // Any failure along the TTS path (no OpenAI key configured, OpenAI
+    // 4xx/5xx, upload error) falls back to text. Better a text reply than
+    // no reply.
     const wantsVoiceReply
       = agent.voiceReplyMode === 'always'
         || (agent.voiceReplyMode === 'auto' && userInput.type === 'audio');
@@ -879,56 +831,35 @@ const runAgentLoop = async (params: {
     // on the outcome — an audio variant (with transcript) vs plain text.
     // Mirrors the user-side STT shape: one audio row, transcript embedded.
     let ttsAudio: { storagePath: string; signedUrl: string; mime: string; sizeBytes: number; durationMs: number } | null = null;
-    // Distinguishes quota block (suffix CTA on text fallback) from
-    // generic TTS failure (silent text fallback). Both end up as text;
-    // only the quota path warrants the user-facing CTA.
-    let ttsQuotaExhausted = false;
     if (wantsVoiceReply) {
       try {
-        // Resolve the key before charging quota: a Free owner with no key
-        // (or a missing platform key) falls back to text here without being
-        // charged a TTS unit. Has-key + exhausted-quota still flags the CTA.
         const resolved = await resolveKey(admin, kek, {
           ownerId: bot.ownerId,
           purpose: 'openai',
           platformKey: PLATFORM_OPENAI_KEY,
         });
-        // Quota caps only platform-key usage; a BYOK owner's OpenAI account
-        // covers their own TTS, so it's uncapped. Peek to fast-fail over cap;
-        // the unit is spent only after synthesis succeeds (a failed call costs
-        // nothing upstream, so it must not cost a quota unit).
-        const ttsQuota = resolved.source === 'platform'
-          ? await peekQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'tts' })
-          : null;
-        if (ttsQuota && ttsQuota.remaining <= 0) {
-          ttsQuotaExhausted = true;
-        } else {
-          const speech = await synthesizeSpeech({
-            apiKey:       resolved.key,
-            text:         finalText,
-            model:        agent.defaultTtsModel,
-            voice:        agent.defaultTtsVoice,
-            instructions: agent.ttsInstructions,
-          });
-          if (resolved.source === 'platform') {
-            await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'tts' });
-          }
-          const { storagePath } = await uploadGeneratedAudio(admin, {
-            ownerId: bot.ownerId,
-            threadId,
-            runId,
-            mime: speech.mime,
-            bytes: speech.bytes,
-          });
-          const signedUrl = await signMessageAudioUrl(admin, storagePath);
-          ttsAudio = {
-            storagePath,
-            signedUrl,
-            mime: speech.mime,
-            sizeBytes: speech.bytes.byteLength,
-            durationMs: speech.durationMs,
-          };
-        }
+        const speech = await synthesizeSpeech({
+          apiKey:       resolved.key,
+          text:         finalText,
+          model:        agent.defaultTtsModel,
+          voice:        agent.defaultTtsVoice,
+          instructions: agent.ttsInstructions,
+        });
+        const { storagePath } = await uploadGeneratedAudio(admin, {
+          ownerId: bot.ownerId,
+          threadId,
+          runId,
+          mime: speech.mime,
+          bytes: speech.bytes,
+        });
+        const signedUrl = await signMessageAudioUrl(admin, storagePath);
+        ttsAudio = {
+          storagePath,
+          signedUrl,
+          mime: speech.mime,
+          sizeBytes: speech.bytes.byteLength,
+          durationMs: speech.durationMs,
+        };
       } catch (ttsErr) {
         console.warn('TTS failed; falling back to text', {
           agentId: agent.id,
@@ -969,12 +900,9 @@ const runAgentLoop = async (params: {
     // slots after the primary, so a turn that produces 5+ images loses
     // the tail. The truncation layer (replyMessages / pushMessages)
     // caps at LINE_MESSAGES_PER_CALL regardless.
-    const textWithSuffix = ttsQuotaExhausted
-      ? `${finalText}${t('__noticeQuotaTtsExhaustedSuffix', ownerLocale)}`
-      : finalText;
     const outbound: LineMessage[] = ttsAudio
       ? [{ type: 'audio', originalContentUrl: ttsAudio.signedUrl, duration: ttsAudio.durationMs }]
-      : [{ type: 'text', text: textWithSuffix }];
+      : [{ type: 'text', text: finalText }];
     for (const att of attachments) {
       if (att.type === 'image') {
         outbound.push({
@@ -1001,18 +929,6 @@ const runAgentLoop = async (params: {
         messages: outbound,
         elapsedMs,
       });
-      // Observe-only: count successful pushes toward the LINE-side
-      // monthly cap so dashboard /usage can surface usage. Doesn't
-      // block — push is what gets the reply to the user and dropping
-      // it harms UX more than enforcing a cap helps. Fail-open: a
-      // counter outage here must not error the run that already
-      // delivered successfully.
-      if (method === 'push') {
-        await consumeQuota(admin, COUNTER_ENV, {
-          ownerId: bot.ownerId,
-          purpose: 'line_push',
-        }).catch((quotaErr) => console.error('line_push quota INCR failed', quotaErr));
-      }
       await logStep(admin, {
         runId,
         step: step++,
@@ -1208,7 +1124,6 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
   }
 
   let openrouterKey: string;
-  let openrouterSource: KeySource;
   try {
     const resolved = await resolveKey(admin, kek, {
       ownerId: bot.ownerId,
@@ -1216,25 +1131,14 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       platformKey: PLATFORM_OPENROUTER_KEY,
     });
     openrouterKey = resolved.key;
-    openrouterSource = resolved.source;
   } catch (err) {
-    // FreeByokRequiredError = owner is on Free + hasn't connected.
-    // PlatformKeyNotConfiguredError = Pro user but fermi's env is
-    // missing (operational issue on the fermi side; user-facing
-    // message must not blame the user). Any other throw is a real
-    // DB/decryption error → bubble so pgmq retries.
-    const noticeKey = err instanceof FreeByokRequiredError
-      ? '__noticeFreeByokOpenrouter'
-      : err instanceof PlatformKeyNotConfiguredError
-        ? '__noticePlatformKeyOps'
-        : null;
-    if (noticeKey === null) throw err;
-    if (err instanceof PlatformKeyNotConfiguredError) {
-      console.error('platform OpenRouter key missing for Pro user', { ownerId: bot.ownerId });
-    }
+    // No key connected and none in the environment → tell the owner to
+    // configure one. Any other throw is a real DB/decryption error →
+    // bubble so pgmq retries.
+    if (!(err instanceof KeyNotConfiguredError)) throw err;
     for (const event of events) {
       if (isReplyableUserMessage(event)) {
-        await safeReply(lineAccessToken, event.replyToken, t(noticeKey, ownerLocale));
+        await safeReply(lineAccessToken, event.replyToken, t('__noticeOpenrouterKeyMissing', ownerLocale));
       }
     }
     return;
@@ -1267,7 +1171,6 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
-        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1303,7 +1206,6 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
-        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1334,14 +1236,9 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         throw err;
       }
 
-      // Resolve the OpenAI key before charging quota: a Free owner with no
-      // key short-circuits here without being charged an STT unit. (Has-key
-      // + exhausted-quota still gets the quota notice below — resolveKey
-      // succeeds first.) STT runs before the agent loop because the rest of
-      // the pipeline only knows text + image; a failed transcription starts
-      // no agent_run.
+      // STT runs before the agent loop because the rest of the pipeline only
+      // knows text + image; a failed transcription starts no agent_run.
       let openaiKey: string;
-      let keySource: KeySource;
       try {
         const resolved = await resolveKey(admin, kek, {
           ownerId: bot.ownerId,
@@ -1349,29 +1246,12 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
           platformKey: PLATFORM_OPENAI_KEY,
         });
         openaiKey = resolved.key;
-        keySource = resolved.source;
       } catch (err) {
-        if (err instanceof FreeByokRequiredError) {
-          await safeReply(lineAccessToken, event.replyToken, t('__noticeFreeByokOpenai', ownerLocale));
-          continue;
-        }
-        if (err instanceof PlatformKeyNotConfiguredError) {
-          console.error('platform OpenAI key missing for Pro user', { ownerId: bot.ownerId });
-          await safeReply(lineAccessToken, event.replyToken, t('__noticePlatformKeyOps', ownerLocale));
+        if (err instanceof KeyNotConfiguredError) {
+          await safeReply(lineAccessToken, event.replyToken, t('__noticeOpenaiKeyMissing', ownerLocale));
           continue;
         }
         throw err;
-      }
-
-      // Quota caps only platform-key usage; BYOK is on the owner's own OpenAI
-      // account and uncapped. Peek to fast-fail over cap; the unit is spent
-      // only after Whisper actually runs (below).
-      const sttQuota = keySource === 'platform'
-        ? await peekQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' })
-        : null;
-      if (sttQuota && sttQuota.remaining <= 0) {
-        await safeReply(lineAccessToken, event.replyToken, t('__noticeQuotaSttExhausted', ownerLocale));
-        continue;
       }
 
       let transcript: string;
@@ -1384,11 +1264,6 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
           continue;
         }
         throw err;
-      }
-      // Charge now that Whisper succeeded (an empty transcript still consumed
-      // Whisper time); a failed call continued above without spending a unit.
-      if (keySource === 'platform') {
-        await consumeQuota(admin, COUNTER_ENV, { ownerId: bot.ownerId, purpose: 'stt' });
       }
       if (transcript.length === 0) {
         await safeReply(lineAccessToken, event.replyToken, t('__noticeAudioEmpty', ownerLocale));
@@ -1405,7 +1280,6 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
-        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1476,7 +1350,6 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
-        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1498,7 +1371,6 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
-        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1520,7 +1392,6 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
         ownerLocale,
         ownerTimezone,
         openrouterKey,
-        openrouterSource,
         lineAccessToken,
         kek,
         externalUserId: event.source.userId,
@@ -1562,7 +1433,6 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
       ownerLocale,
       ownerTimezone,
       openrouterKey,
-      openrouterSource,
       lineAccessToken,
       kek,
       externalUserId: gm.senderId,
@@ -1670,10 +1540,6 @@ const processReminderFire = async (payload: ReminderFirePayload): Promise<void> 
     // Persist into the thread only after a successful push, so a
     // transient-retry doesn't leave duplicate 🔔 rows in history.
     await appendMessage(admin, claimed.thread_id, 'assistant', { type: 'text', text });
-    await consumeQuota(admin, COUNTER_ENV, {
-      ownerId: claimed.owner_id,
-      purpose: 'line_push',
-    }).catch((quotaErr) => console.error('line_push quota INCR failed', quotaErr));
     await logStep(admin, {
       runId,
       step: 1,

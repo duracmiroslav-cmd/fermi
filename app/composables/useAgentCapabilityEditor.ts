@@ -85,10 +85,9 @@ export const useAgentCapabilityEditor = (
   const capability = computed(() => (rows.value ?? []).find(c => c.slug === slug.value) ?? null);
 
   // Attaching is blocked until the capability can actually run: coming-soon is
-  // never attachable, and a provider-backed one needs its credential satisfied
-  // — via the tier-aware server-computed needsConnection, so a Pro owner
-  // (covered by a platform key) isn't wrongly blocked. Once attached the switch
-  // only detaches, so it's never locked.
+  // never attachable, and a provider-backed one needs its credential connected
+  // — via the server-computed needsConnection. Once attached the switch only
+  // detaches, so it's never locked.
   const isLocked = computed((): boolean => {
     const cap = capability.value;
     if (!cap || cap.attached) return false;
