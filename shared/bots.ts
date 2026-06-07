@@ -14,9 +14,16 @@ export interface BotRef {
   groupActivationCode:    string | null;
   // Whether voice in activated groups is transcribed (relay feature).
   groupTranscribeEnabled: boolean;
+  // The LINE userId imprinted as master — gets in-LINE management when the
+  // agent is in maintenance/debug mode. null until the imprint flow binds it.
+  masterExternalId:       string | null;
+  // One-time binding code + TTL the owner armed from the dashboard. A 1:1 text
+  // matching a live code imprints the sender as master, then clears the code.
+  imprintCode:            string | null;
+  imprintCodeExpiresAt:   string | null;
 }
 
-const BOT_SELECT = 'id, owner_id, agent_id, group_activation_code, group_transcribe_enabled';
+const BOT_SELECT = 'id, owner_id, agent_id, group_activation_code, group_transcribe_enabled, master_external_id, imprint_code, imprint_code_expires_at';
 
 const toBotRef = (data: {
   id:                       string;
@@ -24,12 +31,18 @@ const toBotRef = (data: {
   agent_id:                 string | null;
   group_activation_code:    string | null;
   group_transcribe_enabled: boolean;
+  master_external_id:       string | null;
+  imprint_code:             string | null;
+  imprint_code_expires_at:  string | null;
 }): BotRef => ({
   id:                     data.id,
   ownerId:                data.owner_id,
   agentId:                data.agent_id,
   groupActivationCode:    data.group_activation_code,
   groupTranscribeEnabled: data.group_transcribe_enabled,
+  masterExternalId:       data.master_external_id,
+  imprintCode:            data.imprint_code,
+  imprintCodeExpiresAt:   data.imprint_code_expires_at,
 });
 
 export const findBotByExternalId = async (

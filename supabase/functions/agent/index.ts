@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { loadActiveCapabilities } from '../../../shared/agentCapabilities.ts';
 import { type AudioMime, detectAudioMime } from '../../../shared/audio.ts';
 import { detectImageMime, type ImageMime } from '../../../shared/image.ts';
-import { type VoiceReplyMode, findAgentById } from '../../../shared/agents.ts';
+import { type AgentMode, type VoiceReplyMode, effectiveAgentMode, findAgentById } from '../../../shared/agents.ts';
 import { type TtsModel, type TtsVoice } from '../../../shared/tts.ts';
 import { type BotRef, findBotById } from '../../../shared/bots.ts';
 import { activateGroup, ensureGroup, markGroupLeft } from './groups.ts';
@@ -56,7 +56,12 @@ import {
   resolveOrCreateLatestThread,
   type ThreadSubjectType,
 } from './threads.ts';
-import { type ToolAttachment, buildToolset } from './tools/index.ts';
+import { type ToolAttachment, type Toolset, buildToolset, mergeToolsets } from './tools/index.ts';
+import { buildModeToolset } from './tools/management/mode.ts';
+import { buildManagementToolset } from './tools/management/toolset.ts';
+import { buildDebugToolset, debugPreamble } from './tools/management/debug.ts';
+import { maintenancePreamble } from './tools/management/prompt.ts';
+import { loadAccountState } from './tools/management/state.ts';
 import { checkInjection, defaultSystemPrompt, wrapSystemPrompt } from './prompt-guard.ts';
 import { normalizeReplyText } from './reply-text.ts';
 import { captureException } from './sentry.ts';
@@ -523,7 +528,7 @@ const handleGroupEvents = async (
 };
 
 const runAgentLoop = async (params: {
-  bot: { id: string; ownerId: string };
+  bot: { id: string; ownerId: string; masterExternalId: string | null };
   agent: {
     id: string;
     name: string;
@@ -535,6 +540,8 @@ const runAgentLoop = async (params: {
     ttsInstructions: string | null;
     voiceReplyMode: VoiceReplyMode;
     normalizeTraditional: boolean;
+    mode: AgentMode;
+    modeUntil: string | null;
   };
   ownerLocale: Locale;
   ownerTimezone: string;
@@ -669,7 +676,28 @@ const runAgentLoop = async (params: {
     // (e.g. user toggles in dashboard) shouldn't reshape the tool set
     // an LLM call already in flight believes it has.
     const attachedCapabilities = await loadActiveCapabilities(admin, agent.id);
-    const toolset = await buildToolset(attachedCapabilities, { admin, kek, ownerId: bot.ownerId });
+    const capabilityToolset = await buildToolset(attachedCapabilities, { admin, kek, ownerId: bot.ownerId });
+
+    // Management / debug tools exist only for this bot's master, in a 1:1 chat,
+    // while the agent is in the matching mode — never for an end-user or in a
+    // group (where other members would see the controls). switch_mode is the
+    // master's one always-on lever; the heavier overlays follow the mode.
+    const isMaster = !group && bot.masterExternalId !== null && externalUserId === bot.masterExternalId;
+    const mode = effectiveAgentMode(agent);
+    const overlays: Toolset[] = [];
+    let managementPreamble = '';
+    if (isMaster) {
+      overlays.push(buildModeToolset({ admin, ownerId: bot.ownerId, agentId: agent.id }));
+      if (mode === 'maintenance') {
+        const state = await loadAccountState(admin, bot.ownerId);
+        overlays.push(buildManagementToolset(admin, bot.ownerId, { channel: 'line' }));
+        managementPreamble = `\n\n${maintenancePreamble(state, { agentId: agent.id, botId: bot.id })}`;
+      } else if (mode === 'debug') {
+        overlays.push(buildDebugToolset({ admin, ownerId: bot.ownerId, botId: bot.id, agentId: agent.id }));
+        managementPreamble = `\n\n${debugPreamble()}`;
+      }
+    }
+    const toolset = overlays.length ? mergeToolsets(capabilityToolset, ...overlays) : capabilityToolset;
 
     // Only opted-in agents pay for recall: gate the read on the memory
     // capability being attached, so agents without it keep the exact prior
@@ -698,9 +726,9 @@ const runAgentLoop = async (params: {
     // live inside the wrap alongside the agent's own prompt. Recalled memory
     // rides in too, but fenced as untrusted (see renderMemoryBlock).
     const systemPrompt = wrapSystemPrompt(
-      `${formatTimeContext(ownerTimezone)}\n\n${agent.systemPrompt ?? defaultSystemPrompt(agent.name)}${group ? GROUP_CONTEXT_PROMPT : ''}`,
+      `${formatTimeContext(ownerTimezone)}\n\n${agent.systemPrompt ?? defaultSystemPrompt(agent.name)}${managementPreamble}${group ? GROUP_CONTEXT_PROMPT : ''}`,
       {
-        hasTools: attachedCapabilities.length > 0,
+        hasTools: toolset.schemas.length > 0,
         memory:   memory.length > 0 ? memory.map((m) => `- ${m}`).join('\n') : undefined,
       },
     );
@@ -1009,6 +1037,40 @@ const claimFreshEvents = async (events: LineEvent[]): Promise<LineEvent[]> => {
   return fresh;
 };
 
+// Binds the 1:1 sender who texts a live imprint code as the bot's master,
+// then clears the code (single-use). A non-matching message — or no / expired
+// code — returns false and flows through as normal conversation, silent, so an
+// outsider can't probe whether a bot is awaiting binding. master ≡ the account
+// owner; this only records which LINE userId is them.
+const tryImprintMaster = async (
+  bot: BotRef,
+  externalUserId: string,
+  text: string,
+  lineAccessToken: string,
+  replyToken: string,
+  ownerLocale: Locale,
+): Promise<boolean> => {
+  if (!bot.imprintCode) return false;
+  if (bot.imprintCodeExpiresAt && new Date(bot.imprintCodeExpiresAt).getTime() <= Date.now()) return false;
+  if (text.trim() !== bot.imprintCode) return false;
+
+  const { error: bindErr } = await admin
+    .from('bots')
+    .update({ master_external_id: externalUserId, imprint_code: null, imprint_code_expires_at: null })
+    .eq('id', bot.id)
+    .is('deleted_at', null);
+  if (bindErr) {
+    console.error('imprint bind failed', { botId: bot.id, bindErr });
+    return false;
+  }
+  // Reflect in memory so later events in this same batch see the new master.
+  bot.masterExternalId = externalUserId;
+  bot.imprintCode = null;
+  bot.imprintCodeExpiresAt = null;
+  await safeReply(lineAccessToken, replyToken, t('__noticeImprintBound', ownerLocale));
+  return true;
+};
+
 const processLineMessage = async (payload: LinePayload): Promise<void> => {
   const allEvents = await claimFreshEvents(payload.events ?? []);
   if (allEvents.length === 0) return;
@@ -1106,6 +1168,11 @@ const processLineMessage = async (payload: LinePayload): Promise<void> => {
     }
 
     if (isTextMessageFromUser(event)) {
+      // A live imprint code matched → bind this sender as master and stop;
+      // anything else flows through as normal conversation.
+      if (await tryImprintMaster(bot, event.source.userId, event.message.text, lineAccessToken, event.replyToken, ownerLocale)) {
+        continue;
+      }
       await runAgentLoop({
         bot,
         agent,
